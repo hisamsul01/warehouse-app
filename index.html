@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Warehouse Manager (Modular)</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <div class="logo"></div>
+      <div class="title">Warehouse Manager</div>
+    </div>
+    <div class="top-actions">
+      <select id="lang" class="control">
+        <option value="id">Indonesia</option>
+        <option value="en">English</option>
+      </select>
+      <div id="currentUser" class="user">admin</div>
+      <button id="menuToggle" class="btn ghost">☰</button>
+    </div>
+  </header>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="side-top">
+      <div class="brand-mini"></div>
+      <div class="brand-title">Warehouse</div>
+    </div>
+    <nav id="nav" class="nav">
+      <h6>NAVIGATION</h6>
+      <ul>
+        <li><a href="#dashboard" data-view="dashboard" class="active">Dashboard</a></li>
+
+        <li class="has-sub">
+          <a href="#" class="submenu-toggle">Operasional ▾</a>
+          <ul class="submenu">
+            <li><a href="#receipt" data-view="receipt">Penerimaan Barang</a></li>
+            <li><a href="#transfer" data-view="transfer">Transfer ke Outlet</a></li>
+          </ul>
+        </li>
+
+        <li class="has-sub">
+          <a href="#" class="submenu-toggle">Master Data ▾</a>
+          <ul class="submenu">
+            <li><a href="#items" data-view="items">Master Barang</a></li>
+            <li><a href="#outlets" data-view="outlets">Outlet</a></li>
+          </ul>
+        </li>
+
+        <li><a href="#reports" data-view="reports">Laporan</a></li>
+        <li><a href="#settings" data-view="settings">Pengaturan</a></li>
+      </ul>
+    </nav>
+    <div class="side-footer">© <span id="year"></span> Warehouse</div>
+  </aside>
+
+  <main id="main" class="main">
+    <!-- Views placeholders: modules will render into these containers -->
+    <section id="view-dashboard" class="view"></section>
+    <section id="view-receipt" class="view hidden"></section>
+    <section id="view-transfer" class="view hidden"></section>
+    <section id="view-items" class="view hidden"></section>
+    <section id="view-outlets" class="view hidden"></section>
+    <section id="view-reports" class="view hidden"></section>
+    <section id="view-settings" class="view hidden"></section>
+  </main>
+
+  <!-- Modal container (shared) -->
+  <div id="modalBackdrop" class="modal-back hidden" role="dialog" aria-hidden="true">
+    <div class="modal">
+      <h4 id="modalTitle"></h4>
+      <div id="modalBody"></div>
+      <div class="modal-actions">
+        <button id="modalCancel" class="btn ghost">Batal</button>
+        <button id="modalOk" class="btn">Simpan</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="assets/js/app.js"></script>
+</body>
+</html>
