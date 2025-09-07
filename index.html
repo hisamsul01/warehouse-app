@@ -3,72 +3,53 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Warehouse Manager — Google Sheets Integrated</title>
+<title>Warehouse Manager — Full (Google Sheets)</title>
 <style>
-  :root{
-    --primary:#4e73df; --ok:#1cc88a; --warn:#f6c23e; --danger:#e74a3b;
-    --bg:#f6f7fb; --card:#fff; --muted:#64748b; --radius:12px; --shadow:0 8px 20px rgba(2,6,23,0.06);
-  }
-  *{box-sizing:border-box}
-  body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial; background:var(--bg); color:#0f1724}
-  a{color:inherit;text-decoration:none}
-  /* Topbar */
-  .topbar{position:sticky;top:0;z-index:60;background:#fff;display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid #eef2f6}
-  .brand{display:flex;gap:10px;align-items:center;color:var(--primary);font-weight:800}
-  .controls{display:flex;gap:8px;align-items:center}
-  .btn{border:0;padding:8px 12px;border-radius:10px;background:var(--primary);color:#fff;cursor:pointer}
-  .btn.ghost{background:transparent;border:1px solid var(--primary);color:var(--primary)}
-  .btn.secondary{background:#f3f4f6;color:#111;border:0}
-  .control{padding:7px 10px;border-radius:8px;border:1px solid #e6eefc;background:#fff}
-
-  /* Sidebar */
-  .sidebar{position:fixed;left:-260px;top:64px;bottom:0;width:260px;background:#13203d;color:#eaf0ff;padding:18px;transition:left .28s ease;z-index:70;overflow:auto}
-  .sidebar.show{left:0}
-  .nav h6{font-size:12px;color:#94b0ff;margin:12px 0;text-transform:uppercase;letter-spacing:.08em}
-  .nav ul{list-style:none;padding:0;margin:0}
-  .nav li{margin-bottom:6px}
-  .nav a{display:block;padding:10px;border-radius:8px;color:rgba(234,240,255,0.95)}
-  .nav a:hover,.nav a.active{background:#20355f}
-  .submenu{display:none;padding-left:12px;margin-top:6px}
-  .open>.submenu{display:block}
-
-  /* main */
-  .main{transition:margin-left .28s ease;padding:18px}
-  .sidebar.show ~ .main{margin-left:260px}
-  @media(min-width:900px){ .sidebar{left:0} .main{margin-left:260px} .menu-toggle{display:none} }
-
-  /* UI */
-  .cards{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:12px}
-  .card{background:var(--card);padding:12px;border-radius:var(--radius);box-shadow:var(--shadow)}
-  .card .label{color:var(--muted);font-size:13px}
-  .card .value{font-weight:800;color:var(--primary);font-size:20px}
-
-  .panel{background:var(--card);border-radius:var(--radius);padding:12px;margin-bottom:12px;box-shadow:var(--shadow)}
-  .grid-2{display:grid;grid-template-columns:1fr;gap:10px}
-  @media(min-width:780px){ .cards{grid-template-columns:repeat(4,1fr)} .grid-2{grid-template-columns:1fr 1fr} }
-  .field{display:flex;flex-direction:column;gap:6px}
-  input,select,textarea{padding:9px;border-radius:8px;border:1px solid #e6eefc;background:#fff}
-
-  .table-wrap{overflow:auto;border-radius:8px;border:1px solid #eef2f6}
-  table{width:100%;border-collapse:collapse;min-width:720px}
-  thead th{background:#fbfdff;color:var(--primary);padding:10px;text-align:left;position:sticky;top:0}
-  tbody td{padding:10px;border-bottom:1px solid #f3f6fb}
-  tbody tr:hover{background:#f7fbff}
-
-  .badge{display:inline-block;padding:5px 10px;border-radius:999px;color:#fff;font-weight:700}
-  .b-ok{background:var(--ok)}.b-warn{background:var(--warn)}.b-danger{background:var(--danger)}
-
-  .tools{display:flex;gap:8px;align-items:center}
-  .right{margin-left:auto}
-  .muted{color:var(--muted)}
-  .hidden{display:none!important}
-
-  /* modal */
-  .modal-back{position:fixed;inset:0;background:rgba(2,6,23,0.45);display:flex;align-items:center;justify-content:center;z-index:90}
-  .modal{background:#fff;padding:14px;border-radius:10px;max-width:720px;width:92%;box-shadow:var(--shadow)}
-
-  @media(max-width:640px){ table{min-width:600px} .cards{grid-template-columns:repeat(2,1fr)} }
-  @media print{ .topbar,.sidebar,.btn,.cards{display:none} table{min-width:0} }
+:root{--primary:#4e73df;--ok:#1cc88a;--warn:#f6c23e;--danger:#e74a3b;--bg:#f6f7fb;--card:#fff;--muted:#64748b;--radius:12px;--shadow:0 8px 20px rgba(2,6,23,0.06)}
+*{box-sizing:border-box}body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial;background:var(--bg);color:#0f1724}a{color:inherit;text-decoration:none}
+.topbar{position:sticky;top:0;z-index:60;background:#fff;display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid #eef2f6}
+.brand{display:flex;gap:10px;align-items:center;color:var(--primary);font-weight:800}
+.controls{display:flex;gap:8px;align-items:center}
+.btn{border:0;padding:8px 12px;border-radius:10px;background:var(--primary);color:#fff;cursor:pointer}
+.btn.ghost{background:transparent;border:1px solid var(--primary);color:var(--primary)}
+.btn.secondary{background:#f3f4f6;color:#111;border:0}
+.control{padding:7px 10px;border-radius:8px;border:1px solid #e6eefc;background:#fff}
+.sidebar{position:fixed;left:-260px;top:64px;bottom:0;width:260px;background:#13203d;color:#eaf0ff;padding:18px;transition:left .28s ease;z-index:70;overflow:auto}
+.sidebar.show{left:0}
+.nav h6{font-size:12px;color:#94b0ff;margin:12px 0;text-transform:uppercase;letter-spacing:.08em}
+.nav ul{list-style:none;padding:0;margin:0}
+.nav li{margin-bottom:6px}
+.nav a{display:block;padding:10px;border-radius:8px;color:rgba(234,240,255,0.95)}
+.nav a:hover,.nav a.active{background:#20355f}
+.submenu{display:none;padding-left:12px;margin-top:6px}
+.open>.submenu{display:block}
+.main{transition:margin-left .28s ease;padding:18px}
+.sidebar.show ~ .main{margin-left:260px}
+@media(min-width:900px){.sidebar{left:0}.main{margin-left:260px}.menu-toggle{display:none}}
+.cards{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:12px}
+.card{background:var(--card);padding:12px;border-radius:var(--radius);box-shadow:var(--shadow)}
+.card .label{color:var(--muted);font-size:13px}
+.card .value{font-weight:800;color:var(--primary);font-size:20px}
+.panel{background:var(--card);border-radius:var(--radius);padding:12px;margin-bottom:12px;box-shadow:var(--shadow)}
+.grid-2{display:grid;grid-template-columns:1fr;gap:10px}
+@media(min-width:780px){.cards{grid-template-columns:repeat(4,1fr)}.grid-2{grid-template-columns:1fr 1fr}}
+.field{display:flex;flex-direction:column;gap:6px}
+input,select,textarea{padding:9px;border-radius:8px;border:1px solid #e6eefc;background:#fff}
+.table-wrap{overflow:auto;border-radius:8px;border:1px solid #eef2f6}
+table{width:100%;border-collapse:collapse;min-width:720px}
+thead th{background:#fbfdff;color:var(--primary);padding:10px;text-align:left;position:sticky;top:0}
+tbody td{padding:10px;border-bottom:1px solid #f3f6fb}
+tbody tr:hover{background:#f7fbff}
+.badge{display:inline-block;padding:5px 10px;border-radius:999px;color:#fff;font-weight:700}
+.b-ok{background:var(--ok)}.b-warn{background:var(--warn)}.b-danger{background:var(--danger)}
+.tools{display:flex;gap:8px;align-items:center}
+.right{margin-left:auto}
+.muted{color:var(--muted)}
+.hidden{display:none!important}
+.modal-back{position:fixed;inset:0;background:rgba(2,6,23,0.45);display:flex;align-items:center;justify-content:center;z-index:90}
+.modal{background:#fff;padding:14px;border-radius:10px;max-width:720px;width:94%;box-shadow:var(--shadow)}
+@media(max-width:640px){table{min-width:600px}.cards{grid-template-columns:repeat(2,1fr)}}
+@media print{.topbar,.sidebar,.btn,.cards{display:none}table{min-width:0}}
 </style>
 </head>
 <body>
@@ -127,6 +108,7 @@
       <div class="card"><div class="label">Outlet</div><div class="value" id="wOutlets">0</div></div>
       <div class="card"><div class="label">Pengguna</div><div class="value" id="wUsers">1</div></div>
     </div>
+
     <div class="panel">
       <h3 style="margin:0">Aksi Cepat</h3>
       <div class="tools" style="margin-top:8px">
@@ -262,7 +244,7 @@
   </section>
 </main>
 
-<!-- Modal (used for edit) -->
+<!-- Modal -->
 <div id="modal" class="modal-back hidden" role="dialog">
   <div class="modal">
     <h4 id="modalTitle">Edit</h4>
@@ -275,172 +257,107 @@
 </div>
 
 <script>
-/*
-  Warehouse Manager single-file (Google Sheets integration)
-  - Uses API_URL (Google Apps Script Web App) to fetch/update spreadsheet
-  - If API not available, falls back to localStorage
-  - NOTE: Server script must support the specified 'action' strings.
-*/
-
-/* ===== CONFIG ===== */
+/* ========== CONFIG ========== */
 const API_URL = "https://script.google.com/macros/s/AKfycbynsLp-AT0ixomA6CIJ7yOUf4ktw-Jm9VzyNaII4wIZYe4ikP63JT-9M9nb3Dn7U4H7/exec";
-const DB_KEY = 'whm.gs.fallback.v1'; // fallback local DB key
+const DB_KEY = 'whm.gs.fallback.v2';
 
-/* ===== Helpers ===== */
+/* ========== HELPERS ========== */
 function sel(id){ return document.getElementById(id); }
 function uid(){ return 'id'+Math.random().toString(36).slice(2,9); }
 function escapeCSV(s){ return /[",\n]/.test(s) ? `"${s.replace(/"/g,'""')}"` : s; }
-function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
 
-/* ===== Local fallback (same structure used by localStorage fallback) ===== */
+/* ========== FALLBACK LOCAL (keystore localStorage) ========== */
 function fallbackInit(){
   if(!localStorage.getItem(DB_KEY)){
     const seed = {
       user:{username:'admin',password:'admin',showWidgets:true,lang:'id'},
       outlets:[{code:'OT-01',name:'Outlet Utama'}],
-      inventory:[{code:'BRG-001',name:'Cat Tembok 10L',qty:12},{code:'BRG-002',name:'Amplas 400',qty:30}],
+      inventory:[
+        {code:'BRG-001',name:'Cat Tembok 10L',qty:12},
+        {code:'BRG-002',name:'Amplas 400',qty:30}
+      ],
       receipts:[],
       transfers:[]
     };
-    localStorage.setItem(DB_KEY,JSON.stringify(seed));
+    localStorage.setItem(DB_KEY, JSON.stringify(seed));
   }
 }
 function fallbackLoad(){ return JSON.parse(localStorage.getItem(DB_KEY)); }
 function fallbackSave(obj){ localStorage.setItem(DB_KEY, JSON.stringify(obj)); }
 
-/* ===== API CALL WRAPPER =====
-   Protocol used:
-   - GET: API_URL?action=xxx  -> returns JSON
-   - POST: API_URL with JSON body {action:'xxx', ...}
-   If API fails, we fallback automatically to localStorage routines.
-*/
-async function apiCall(action, payload = null){
-  // Try GET for simple reads
+/* ========== API CALL (tries GET then POST) ========== */
+async function apiCall(action, payload=null){
+  // try GET when no payload (simple read)
   try{
-    if(payload === null){
+    if(!payload){
       const url = API_URL + '?action=' + encodeURIComponent(action);
       const res = await fetch(url);
-      if(!res.ok) throw new Error('API GET failed');
+      if(!res.ok) throw new Error('GET failed');
       const data = await res.json();
       return { ok:true, data };
     } else {
       const res = await fetch(API_URL, {
-        method: 'POST',
-        headers: {'Content-Type':'application/json'},
-        body: JSON.stringify(Object.assign({action}, payload))
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({action, ...payload})
       });
-      if(!res.ok) throw new Error('API POST failed');
+      if(!res.ok) throw new Error('POST failed');
       const data = await res.json();
       return { ok:true, data };
     }
   }catch(err){
-    // API failed — return ok:false so caller uses fallback
-    console.warn('API call failed for action', action, err);
-    return { ok:false, error: err.message };
+    console.warn('API error', action, err);
+    return { ok:false, error:err.message };
   }
 }
 
-/* ===== DB API (abstracted, tries Google Sheets first, falls back) ===== */
-
-/* Get full DB object (inventory, outlets, receipts, transfers) */
+/* ========== HIGH-LEVEL DB WRAPPERS ========== */
 async function dbGetAll(){
   const r = await apiCall('getAll');
   if(r.ok && r.data) return r.data;
-  // fallback
-  fallbackInit();
-  return fallbackLoad();
+  fallbackInit(); return fallbackLoad();
 }
-
-/* Inventory */
 async function dbGetInventory(){
   const r = await apiCall('getInventory');
   if(r.ok && r.data) return r.data;
-  fallbackInit();
-  return fallbackLoad().inventory;
+  fallbackInit(); return fallbackLoad().inventory;
 }
-async function dbAddItem_remote(item){
-  return await apiCall('addItem', item);
-}
-async function dbUpdateItem_remote(item){
-  return await apiCall('updateItem', item);
-}
-async function dbDeleteItem_remote(code){
-  return await apiCall('deleteItem', {code});
-}
-
-/* Outlets */
 async function dbGetOutlets(){
   const r = await apiCall('getOutlets');
   if(r.ok && r.data) return r.data;
-  fallbackInit();
-  return fallbackLoad().outlets;
+  fallbackInit(); return fallbackLoad().outlets;
 }
-async function dbAddOutlet_remote(out){
-  return await apiCall('addOutlet', out);
-}
-async function dbUpdateOutlet_remote(out){
-  return await apiCall('updateOutlet', out);
-}
-async function dbDeleteOutlet_remote(code){
-  return await apiCall('deleteOutlet', {code});
-}
-
-/* Receipts & Transfers */
 async function dbGetTransactions(){
   const r = await apiCall('getTransactions');
   if(r.ok && r.data) return r.data;
-  const db = fallbackLoad();
-  // combine receipts + transfers
+  fallbackInit(); const db = fallbackLoad();
   return [...(db.receipts||[]).map(x=>({...x,type:'receipt'})), ...(db.transfers||[]).map(x=>({...x,type:'transfer'}))].sort((a,b)=>new Date(b.date)-new Date(a.date));
 }
-async function dbAddReceipt_remote(obj){
-  return await apiCall('addReceipt', obj);
-}
-async function dbAddTransfer_remote(obj){
-  return await apiCall('addTransfer', obj);
-}
 
-/* Fallback write helpers for localStorage if remote fails */
-function fallbackAddItem(it){
-  const db = fallbackLoad();
-  db.inventory.push(it); fallbackSave(db);
-}
-function fallbackUpdateItem(it){
-  const db = fallbackLoad();
-  const idx = db.inventory.findIndex(x=>x.code===it.code);
-  if(idx>=0) db.inventory[idx] = it;
-  fallbackSave(db);
-}
-function fallbackDeleteItem(code){
-  const db = fallbackLoad();
-  db.inventory = db.inventory.filter(x=>x.code!==code); fallbackSave(db);
-}
-function fallbackAddOutlet(o){
-  const db = fallbackLoad(); db.outlets.push(o); fallbackSave(db);
-}
-function fallbackUpdateOutlet(o){
-  const db = fallbackLoad(); const idx=db.outlets.findIndex(x=>x.code===o.code); if(idx>=0) db.outlets[idx]=o; fallbackSave(db);
-}
-function fallbackDeleteOutlet(code){
-  const db = fallbackLoad(); db.outlets = db.outlets.filter(x=>x.code!==code); fallbackSave(db);
-}
-function fallbackAddReceipt(r){
-  const db = fallbackLoad(); db.receipts.push(r);
-  const it = db.inventory.find(x=>x.code===r.code);
-  if(it) it.qty = Number(it.qty||0) + Number(r.qty||0);
-  fallbackSave(db);
-}
-function fallbackAddTransfer(t){
-  const db = fallbackLoad(); db.transfers.push(t);
-  const it = db.inventory.find(x=>x.code===t.code);
-  if(it) it.qty = Number(it.qty||0) - Number(t.qty||0);
-  fallbackSave(db);
-}
+/* write operations -> attempt remote, fallback to local */
+async function dbAddItem_remote(it){ return await apiCall('addItem', it); }
+async function dbUpdateItem_remote(it){ return await apiCall('updateItem', it); }
+async function dbDeleteItem_remote(code){ return await apiCall('deleteItem', {code}); }
+async function dbAddOutlet_remote(o){ return await apiCall('addOutlet', o); }
+async function dbUpdateOutlet_remote(o){ return await apiCall('updateOutlet', o); }
+async function dbDeleteOutlet_remote(code){ return await apiCall('deleteOutlet', {code}); }
+async function dbAddReceipt_remote(r){ return await apiCall('addReceipt', r); }
+async function dbAddTransfer_remote(t){ return await apiCall('addTransfer', t); }
+async function dbSaveSettings_remote(user){ return await apiCall('saveSettings', {user}); }
 
-/* ===== UI / Rendering ===== */
+/* fallback write helpers */
+function fallbackAddItem(it){ const db=fallbackLoad(); db.inventory.push(it); fallbackSave(db); }
+function fallbackUpdateItem(it){ const db=fallbackLoad(); const i=db.inventory.findIndex(x=>x.code===it.code); if(i>=0) db.inventory[i]=it; fallbackSave(db); }
+function fallbackDeleteItem(code){ const db=fallbackLoad(); db.inventory=db.inventory.filter(x=>x.code!==code); fallbackSave(db); }
+function fallbackAddOutlet(o){ const db=fallbackLoad(); db.outlets.push(o); fallbackSave(db); }
+function fallbackUpdateOutlet(o){ const db=fallbackLoad(); const i=db.outlets.findIndex(x=>x.code===o.code); if(i>=0) db.outlets[i]=o; fallbackSave(db); }
+function fallbackDeleteOutlet(code){ const db=fallbackLoad(); db.outlets=db.outlets.filter(x=>x.code!==code); fallbackSave(db); }
+function fallbackAddReceipt(r){ const db=fallbackLoad(); db.receipts.push(r); const it=db.inventory.find(x=>x.code===r.code); if(it) it.qty = Number(it.qty||0)+Number(r.qty||0); fallbackSave(db); }
+function fallbackAddTransfer(t){ const db=fallbackLoad(); db.transfers.push(t); const it=db.inventory.find(x=>x.code===t.code); if(it) it.qty = Number(it.qty||0)-Number(t.qty||0); fallbackSave(db); }
 
+/* ========== UI & RENDER ========== */
 function showView(name){
-  const views = ['dashboard','receipt','transfer','items','outlets','reports','settings'];
+  const views=['dashboard','receipt','transfer','items','outlets','reports','settings'];
   views.forEach(v=> {
     const el = sel('view-'+v);
     if(!el) return;
@@ -459,42 +376,33 @@ function showView(name){
 /* sidebar behavior */
 const menuToggle = sel('menuToggle'), sidebar = sel('sidebar');
 menuToggle.addEventListener('click', ()=> sidebar.classList.toggle('show'));
-document.addEventListener('click', (e)=>{
-  if(window.innerWidth < 900 && !sidebar.contains(e.target) && e.target !== menuToggle) sidebar.classList.remove('show');
-});
-document.querySelectorAll('[data-toggle="sub"]').forEach(btn=> btn.addEventListener('click', (e)=>{
-  e.preventDefault(); btn.parentElement.classList.toggle('open');
-}));
-document.getElementById('navList').addEventListener('click', e=>{
-  const a = e.target.closest('[data-view]'); if(!a) return;
-  e.preventDefault(); if(window.innerWidth<900) sidebar.classList.remove('show'); showView(a.dataset.view);
-});
+document.addEventListener('click', (e)=>{ if(window.innerWidth < 900 && !sidebar.contains(e.target) && e.target !== menuToggle) sidebar.classList.remove('show'); });
+document.querySelectorAll('[data-toggle="sub"]').forEach(btn=> btn.addEventListener('click', (e)=>{ e.preventDefault(); btn.parentElement.classList.toggle('open'); }));
+document.getElementById('navList').addEventListener('click', e=>{ const a = e.target.closest('[data-view]'); if(!a) return; e.preventDefault(); if(window.innerWidth<900) sidebar.classList.remove('show'); showView(a.dataset.view); });
 
-/* Dashboard widgets */
+/* Dashboard */
 async function refreshWidgets(){
-  // try to get full db first
-  const dbAll = await dbGetAll();
-  const inv = dbAll.inventory || [];
-  const receipts = dbAll.receipts || [];
-  const transfers = dbAll.transfers || [];
-  const outlets = dbAll.outlets || [];
+  const db = await dbGetAll();
+  const inv = db.inventory || [];
+  const receipts = db.receipts || [];
+  const transfers = db.transfers || [];
+  const outlets = db.outlets || [];
   sel('wItems').textContent = inv.length;
   sel('wStock').textContent = inv.reduce((s,i)=> s + Number(i.qty||0),0);
   sel('wReceipts').textContent = receipts.length;
   sel('wTransfers').textContent = transfers.length;
   sel('wOutlets').textContent = outlets.length;
   sel('wUsers').textContent = 1;
-  sel('currentUser').textContent = '👤 ' + (dbAll.user && dbAll.user.username ? dbAll.user.username : 'admin');
-  sel('setUser').value = (dbAll.user && dbAll.user.username) || '';
-  sel('setWidgets').checked = dbAll.user ? (dbAll.user.showWidgets !== false) : true;
-  sel('lang').value = dbAll.user ? (dbAll.user.lang || 'id') : 'id';
+  sel('currentUser').textContent = '👤 ' + (db.user && db.user.username ? db.user.username : 'admin');
+  sel('setUser').value = (db.user && db.user.username) || '';
+  sel('setWidgets').checked = db.user ? (db.user.showWidgets !== false) : true;
+  sel('lang').value = db.user ? (db.user.lang || 'id') : 'id';
   sel('year').textContent = new Date().getFullYear();
 }
 
-/* ===== Inventory / Receipt (uses remote if possible, otherwise fallback) ===== */
-
+/* Inventory / Receipt */
 async function renderInventory(){
-  const tbody = sel('tblInventory').querySelector('tbody'); tbody.innerHTML = '';
+  const tbody = sel('tblInventory').querySelector('tbody'); tbody.innerHTML='';
   const inv = await dbGetInventory();
   inv.forEach((it,i)=>{
     const tr = document.createElement('tr');
@@ -508,40 +416,28 @@ async function renderInventory(){
 async function addReceipt(){
   const code = sel('rcpCode').value.trim(), name = sel('rcpName').value.trim(), qty = Number(sel('rcpQty').value) || 0;
   if(!code || !name || qty <= 0) return alert('Lengkapi data penerimaan.');
-  // Try remote write first
   const payload = { id: uid(), date: new Date().toISOString(), code, name, qty };
   const r = await dbAddReceipt_remote(payload);
-  if(r.ok){
-    // success remote - optionally refresh
-  } else {
-    // fallback to local
-    fallbackAddReceipt(payload);
-  }
+  if(!r.ok) fallbackAddReceipt(payload);
   sel('rcpCode').value=''; sel('rcpName').value=''; sel('rcpQty').value=1;
   await renderInventory(); await renderItems(); await refreshWidgets();
 }
 
-/* ===== Transfers ===== */
+/* Transfers */
 async function populateOutletSelect(){
-  const selEl = sel('trfOutlet'); selEl.innerHTML = '';
-  const outlets = await dbGetOutlets();
-  outlets.forEach(o => { const opt = document.createElement('option'); opt.value=o.code; opt.textContent = `${o.code} — ${o.name}`; selEl.appendChild(opt); });
+  const selEl = sel('trfOutlet'); selEl.innerHTML='';
+  const outs = await dbGetOutlets();
+  outs.forEach(o => { const opt = document.createElement('option'); opt.value=o.code; opt.textContent = `${o.code} — ${o.name}`; selEl.appendChild(opt); });
 }
 
 async function addTransfer(){
   const code = sel('trfCode').value.trim(), name = sel('trfName').value.trim(), qty = Number(sel('trfQty').value)||0, outlet = sel('trfOutlet').value;
   if(!code||!name||qty<=0||!outlet) return alert('Lengkapi data transfer.');
-  // check stock via remote read
-  const inv = await dbGetInventory();
-  const item = inv.find(x=>x.code===code);
+  const inv = await dbGetInventory(); const item = inv.find(x=>x.code===code);
   if(!item || Number(item.qty) < qty) return alert('Stok tidak cukup atau barang belum ada.');
   const transferObj = { id: uid(), date: new Date().toISOString(), code, name, qty, outlet };
   const r = await dbAddTransfer_remote(transferObj);
-  if(r.ok){
-    // server handled stock changes ideally; if not, we still refresh from server
-  } else {
-    fallbackAddTransfer(transferObj);
-  }
+  if(!r.ok) fallbackAddTransfer(transferObj);
   sel('trfCode').value=''; sel('trfName').value=''; sel('trfQty').value=1;
   await renderTransfers(); await renderInventory(); await renderItems(); await refreshWidgets();
 }
@@ -557,7 +453,7 @@ async function renderTransfers(){
   });
 }
 
-/* ===== Items CRUD ===== */
+/* Items CRUD */
 async function renderItems(){
   const tbody = sel('tblItems').querySelector('tbody'); tbody.innerHTML='';
   const inv = await dbGetInventory();
@@ -572,33 +468,23 @@ async function renderItems(){
 async function addItem(){
   const code = sel('itCode').value.trim(), name = sel('itName').value.trim();
   if(!code||!name) return alert('Isi kode dan nama.');
-  // Try remote add
   const item = { code, name, qty:0 };
   const r = await dbAddItem_remote(item);
-  if(r.ok){
-    // OK
-  } else {
-    fallbackAddItem(item);
-  }
+  if(!r.ok) fallbackAddItem(item);
   sel('itCode').value=''; sel('itName').value=''; await renderItems(); await renderInventory(); await refreshWidgets();
 }
 
 async function openEditItem(code){
-  // find item (remote)
   const inv = await dbGetInventory(); const item = inv.find(x=>x.code===code);
   if(!item) return alert('Item tidak ditemukan.');
   showModal('Edit Barang', `
     <div class="field"><label>Kode</label><input id="editCode" value="${item.code}" disabled></div>
-    <div class="field"><label>Nama</label><input id="editName" value="${item.name.replace(/"/g,'&quot;')}"></div>
+    <div class="field"><label>Nama</label><input id="editName" value="${(item.name+'').replace(/"/g,'&quot;')}"></div>
     <div class="field"><label>Qty</label><input id="editQty" type="number" value="${item.qty}"></div>
   `, async ()=>{
     const it = { code, name: sel('editName').value.trim(), qty: Number(sel('editQty').value)||0 };
     const r = await dbUpdateItem_remote(it);
-    if(r.ok){
-      // ok
-    } else {
-      fallbackUpdateItem(it);
-    }
+    if(!r.ok) fallbackUpdateItem(it);
     closeModal(); await renderItems(); await renderInventory(); await refreshWidgets();
   });
 }
@@ -606,15 +492,11 @@ async function openEditItem(code){
 async function deleteItem(code){
   if(!confirm('Hapus barang ini?')) return;
   const r = await dbDeleteItem_remote(code);
-  if(r.ok){
-    // ok
-  } else {
-    fallbackDeleteItem(code);
-  }
+  if(!r.ok) fallbackDeleteItem(code);
   await renderItems(); await renderInventory(); await refreshWidgets();
 }
 
-/* ===== Outlets CRUD ===== */
+/* Outlets CRUD */
 async function renderOutlets(){
   const tbody = sel('tblOutlets').querySelector('tbody'); tbody.innerHTML='';
   const outs = await dbGetOutlets();
@@ -625,15 +507,12 @@ async function renderOutlets(){
   });
 }
 
-async function addOutlet(){ const code = sel('outCode').value.trim(), name = sel('outName').value.trim(); if(!code||!name) return alert('Isi kode & nama'); const out = { code, name }; const r = await dbAddOutlet_remote(out); if(!r.ok) fallbackAddOutlet(out); sel('outCode').value=''; sel('outName').value=''; await renderOutlets(); await refreshWidgets(); populateOutletSelect(); }
-async function openEditOutlet(code){ const outs = await dbGetOutlets(); const o = outs.find(x=>x.code===code); if(!o) return alert('Not found'); showModal('Edit Outlet', `<div class="field"><label>Kode</label><input id="editOutCode" value="${o.code}" disabled></div><div class="field"><label>Nama</label><input id="editOutName" value="${o.name.replace(/"/g,'&quot;')}"></div>`, async ()=>{ const up = { code, name: sel('editOutName').value.trim() }; const r = await dbUpdateOutlet_remote(up); if(!r.ok) fallbackUpdateOutlet(up); closeModal(); await renderOutlets(); populateOutletSelect(); await refreshWidgets(); }); }
+async function addOutlet(){ const code = sel('outCode').value.trim(), name = sel('outName').value.trim(); if(!code||!name) return alert('Isi kode & nama'); const o={code,name}; const r = await dbAddOutlet_remote(o); if(!r.ok) fallbackAddOutlet(o); sel('outCode').value=''; sel('outName').value=''; await renderOutlets(); await refreshWidgets(); populateOutletSelect(); }
+async function openEditOutlet(code){ const outs = await dbGetOutlets(); const o = outs.find(x=>x.code===code); if(!o) return alert('Not found'); showModal('Edit Outlet', `<div class="field"><label>Kode</label><input id="editOutCode" value="${o.code}" disabled></div><div class="field"><label>Nama</label><input id="editOutName" value="${(o.name+'').replace(/"/g,'&quot;')}"></div>`, async ()=>{ const up={code, name: sel('editOutName').value.trim()}; const r = await dbUpdateOutlet_remote(up); if(!r.ok) fallbackUpdateOutlet(up); closeModal(); await renderOutlets(); populateOutletSelect(); await refreshWidgets(); }); }
 async function deleteOutlet(code){ if(!confirm('Hapus outlet?')) return; const r = await dbDeleteOutlet_remote(code); if(!r.ok) fallbackDeleteOutlet(code); await renderOutlets(); populateOutletSelect(); await refreshWidgets(); }
 
-/* ===== Reports ===== */
-async function collectRows(){
-  const rows = await dbGetTransactions();
-  return rows.sort((a,b)=> new Date(b.date) - new Date(a.date));
-}
+/* Reports */
+async function collectRows(){ return await dbGetTransactions(); }
 async function renderReports(){
   const tbody = sel('tblReports').querySelector('tbody'); tbody.innerHTML='';
   const rows = await collectRows();
@@ -642,29 +521,30 @@ async function renderReports(){
   if(q) out = out.filter(r=> (r.code+' '+r.name+' '+(r.outlet||'')).toLowerCase().includes(q));
   out.forEach((r,i)=>{ const tr=document.createElement('tr'); tr.innerHTML = `<td>${i+1}</td><td>${new Date(r.date).toLocaleString()}</td><td>${r.type}</td><td>${r.code}</td><td>${r.name}</td><td>${r.qty}</td><td>${r.outlet||'-'}</td>`; tbody.appendChild(tr); });
 }
-async function renderExpenses(){ const tbody = sel('tblExpenses').querySelector('tbody'); tbody.innerHTML=''; const rows = await dbGetTransactions(); const agg = {}; rows.filter(x=> x.type==='transfer').forEach(t=> agg[t.outlet] = (agg[t.outlet]||0) + Number(t.qty)); const outs = await dbGetOutlets(); outs.forEach(o=>{ const tr=document.createElement('tr'); tr.innerHTML = `<td>${o.code} — ${o.name}</td><td>${agg[o.code]||0}</td>`; tbody.appendChild(tr); }); }
-function exportCSV(){ const rows = []; const headers = ['Tanggal','Jenis','Kode','Nama','Qty','Outlet']; rows.push(headers.join(',')); sel('tblReports').querySelectorAll('tbody tr').forEach(tr=>{ const cols = Array.from(tr.children).slice(1).map(td=>escapeCSV(td.textContent.trim())); rows.push(cols.join(',')); }); const blob = new Blob([rows.join('\\n')],{type:'text/csv'}); const url = URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='reports.csv'; a.click(); URL.revokeObjectURL(url); }
+async function renderExpenses(){ const tbody = sel('tblExpenses').querySelector('tbody'); tbody.innerHTML=''; const rows = await dbGetTransactions(); const agg={}; rows.filter(x=> x.type==='transfer').forEach(t=> agg[t.outlet] = (agg[t.outlet]||0) + Number(t.qty)); const outs = await dbGetOutlets(); outs.forEach(o=>{ const tr=document.createElement('tr'); tr.innerHTML=`<td>${o.code} — ${o.name}</td><td>${agg[o.code]||0}</td>`; tbody.appendChild(tr); }); }
+function exportCSV(){ const rows=[]; const headers=['Tanggal','Jenis','Kode','Nama','Qty','Outlet']; rows.push(headers.join(',')); sel('tblReports').querySelectorAll('tbody tr').forEach(tr=>{ const cols = Array.from(tr.children).slice(1).map(td=>escapeCSV(td.textContent.trim())); rows.push(cols.join(',')); }); const blob=new Blob([rows.join('\n')],{type:'text/csv'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='reports.csv'; a.click(); URL.revokeObjectURL(url); }
 
-/* ===== Settings ===== */
-async function saveSettings(){ const dbAll = await dbGetAll(); const u = sel('setUser').value.trim(); const p = sel('setPass').value; if(u) dbAll.user = dbAll.user || {}; dbAll.user.username = u || dbAll.user.username; if(p) dbAll.user.password = p; dbAll.user.showWidgets = sel('setWidgets').checked; dbAll.user.lang = sel('lang').value; // try to persist via API if possible
-  const r = await apiCall('saveSettings', dbAll.user);
-  if(!r.ok) { // fallback save entire DB locally
-    fallbackInit(); const local = fallbackLoad(); local.user = dbAll.user; fallbackSave(local);
-  }
+/* Settings */
+async function saveSettings(){
+  const dbAll = await dbGetAll();
+  const u = sel('setUser').value.trim(); const p = sel('setPass').value;
+  dbAll.user = dbAll.user || {};
+  if(u) dbAll.user.username = u;
+  if(p) dbAll.user.password = p;
+  dbAll.user.showWidgets = sel('setWidgets').checked;
+  dbAll.user.lang = sel('lang').value;
+  const r = await dbSaveSettings_remote(dbAll.user);
+  if(!r.ok){ fallbackInit(); const local=fallbackLoad(); local.user = dbAll.user; fallbackSave(local); }
   sel('saveNote').textContent = 'Disimpan.'; await refreshWidgets();
 }
 
-/* ===== Modal helpers ===== */
-function showModal(title, html, onSave){
-  sel('modal').classList.remove('hidden'); sel('modalTitle').textContent = title; sel('modalBody').innerHTML = html; sel('modalSave').onclick = onSave;
-}
+/* Modal helpers */
+function showModal(title, html, onSave){ sel('modal').classList.remove('hidden'); sel('modalTitle').textContent = title; sel('modalBody').innerHTML = html; sel('modalSave').onclick = onSave; }
 function closeModal(){ sel('modal').classList.add('hidden'); sel('modalBody').innerHTML=''; sel('modalSave').onclick = null; }
 
-/* ===== Initialization ===== */
+/* Init */
 async function init(){
-  // ensure fallback seed exists
   fallbackInit();
-  // initial render
   await refreshWidgets();
   await renderInventory();
   await renderItems();
@@ -673,57 +553,13 @@ async function init(){
   await renderReports();
   await renderExpenses();
   await populateOutletSelect();
-  // routing
   const hash = (location.hash || '#dashboard').replace('#',''); showView(hash);
   sel('repType').addEventListener('change', renderReports); sel('repSearch').addEventListener('input', renderReports);
-  sel('lang').addEventListener('change', (e)=>{ /* persist locally */ (async ()=>{ const db = fallbackLoad(); db.user = db.user || {}; db.user.lang = e.target.value; fallbackSave(db); })(); });
-  // auto close sidebar on small screens when view clicked
+  sel('lang').addEventListener('change', (e)=>{ (async ()=>{ const db=fallbackLoad(); db.user = db.user || {}; db.user.lang = e.target.value; fallbackSave(db); })(); });
   document.querySelectorAll('#navList [data-view]').forEach(a=> a.addEventListener('click', ()=>{ if(window.innerWidth<900) sidebar.classList.remove('show'); }));
-  document.getElementById('year').textContent = new Date().getFullYear();
+  sel('year').textContent = new Date().getFullYear();
 }
 window.addEventListener('load', init);
-
-/* ===== Remote helper implementations (wrappers for previously declared apiCall) =====
-   These wrappers keep code readable. They attempt remote action and return result object {ok:true,data:...}
-   For write actions we return the apiCall result; if not OK, caller uses fallback.
-*/
-async function dbAddItem_remote(it){ return await apiCall('addItem', it); }
-async function dbUpdateItem_remote(it){ return await apiCall('updateItem', it); }
-async function dbDeleteItem_remote(code){ return await apiCall('deleteItem', {code}); }
-async function dbGetInventory_remote(){ return await apiCall('getInventory'); }
-async function dbGetOutlets_remote(){ return await apiCall('getOutlets'); }
-async function dbAddOutlet_remote(out){ return await apiCall('addOutlet', out); }
-async function dbUpdateOutlet_remote(out){ return await apiCall('updateOutlet', out); }
-async function dbDeleteOutlet_remote(code){ return await apiCall('deleteOutlet', {code}); }
-async function dbAddReceipt_remote(obj){ return await apiCall('addReceipt', obj); }
-async function dbAddTransfer_remote(obj){ return await apiCall('addTransfer', obj); }
-async function dbGetTransactions_remote(){ return await apiCall('getTransactions'); }
-
-/* And we implement dbGetInventory/dbGetOutlets/dbGetAll/dbGetTransactions to try remote then fallback */
-async function dbGetInventory(){
-  const r = await dbGetInventory_remote();
-  if(r.ok && r.data) return r.data;
-  fallbackInit(); return fallbackLoad().inventory;
-}
-async function dbGetOutlets(){
-  const r = await dbGetOutlets_remote();
-  if(r.ok && r.data) return r.data;
-  fallbackInit(); return fallbackLoad().outlets;
-}
-async function dbGetAll(){
-  const r = await apiCall('getAll');
-  if(r.ok && r.data) return r.data;
-  fallbackInit(); return fallbackLoad();
-}
-async function dbGetTransactions(){
-  const r = await dbGetTransactions_remote();
-  if(r.ok && r.data) return r.data;
-  // fallback: combine receipts & transfers
-  fallbackInit(); const db = fallbackLoad();
-  return [...(db.receipts||[]).map(x=>({...x,type:'receipt'})), ...(db.transfers||[]).map(x=>({...x,type:'transfer'}))];
-}
-
-/* ===== END OF SCRIPT ===== */
 </script>
 
 </body>
