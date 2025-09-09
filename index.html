@@ -14,11 +14,41 @@
     <div class="p-6 text-2xl font-bold border-b border-blue-500">
       Warehouse
     </div>
-    <nav class="flex-1 p-4 space-y-3">
+    <nav class="flex-1 p-4 space-y-2">
+
+      <!-- Terima Barang -->
       <a href="#terima" class="block p-2 rounded-lg hover:bg-blue-600">📥 Terima Barang</a>
+
+      <!-- Pemindahan -->
       <a href="#pindah" class="block p-2 rounded-lg hover:bg-blue-600">🔄 Pemindahan</a>
-      <a href="#outlet" class="block p-2 rounded-lg hover:bg-blue-600">🏪 Outlet</a>
-      <a href="#admin" class="block p-2 rounded-lg hover:bg-blue-600">👤 Admin</a>
+
+      <!-- Outlet (dengan submenu) -->
+      <div>
+        <button onclick="toggleMenu('outletMenu')" class="w-full flex justify-between items-center p-2 rounded-lg hover:bg-blue-600">
+          🏪 Outlet
+          <span>▼</span>
+        </button>
+        <div id="outletMenu" class="ml-6 hidden space-y-2 mt-2">
+          <a href="#outlet-tambah" class="block p-2 rounded hover:bg-blue-600">➕ Tambah Outlet</a>
+          <a href="#outlet-daftar" class="block p-2 rounded hover:bg-blue-600">📋 Daftar Outlet</a>
+        </div>
+      </div>
+
+      <!-- Admin (dengan submenu) -->
+      <div>
+        <button onclick="toggleMenu('adminMenu')" class="w-full flex justify-between items-center p-2 rounded-lg hover:bg-blue-600">
+          👤 Admin
+          <span>▼</span>
+        </button>
+        <div id="adminMenu" class="ml-6 hidden space-y-2 mt-2">
+          <a href="#admin-tambah" class="block p-2 rounded hover:bg-blue-600">➕ Tambah User</a>
+          <a href="#admin-daftar" class="block p-2 rounded hover:bg-blue-600">📋 Daftar User</a>
+        </div>
+      </div>
+
+      <!-- Pengaturan -->
+      <a href="#pengaturan" class="block p-2 rounded-lg hover:bg-blue-600">⚙️ Pengaturan</a>
+
     </nav>
     <div class="p-4 border-t border-blue-500 text-sm">
       © 2025 Warehouse Manager
@@ -50,21 +80,24 @@
           <option value="">Pilih Outlet</option>
           <option value="OUT001">OUT001 - Outlet Jakarta</option>
           <option value="OUT002">OUT002 - Outlet Bandung</option>
-          <option value="OUT003">OUT003 - Outlet Surabaya</option>
         </select>
         <button type="submit" class="bg-blue-600 text-white py-2 rounded">Proses</button>
       </form>
     </section>
 
-    <!-- 🏪 Outlet -->
-    <section id="outlet" class="bg-white p-6 rounded-xl shadow-md">
-      <h2 class="text-xl font-semibold mb-4">🏪 Master Outlet</h2>
-      <form class="grid gap-4 max-w-md mb-6">
+    <!-- 🏪 Tambah Outlet -->
+    <section id="outlet-tambah" class="bg-white p-6 rounded-xl shadow-md">
+      <h2 class="text-xl font-semibold mb-4">➕ Tambah Outlet</h2>
+      <form class="grid gap-4 max-w-md">
         <input type="text" placeholder="Kode Outlet" class="border p-2 rounded">
         <input type="text" placeholder="Nama Outlet" class="border p-2 rounded">
         <button type="submit" class="bg-green-600 text-white py-2 rounded">Tambah Outlet</button>
       </form>
-      <!-- Tabel Outlet -->
+    </section>
+
+    <!-- 🏪 Daftar Outlet -->
+    <section id="outlet-daftar" class="bg-white p-6 rounded-xl shadow-md">
+      <h2 class="text-xl font-semibold mb-4">📋 Daftar Outlet</h2>
       <table class="w-full border text-left">
         <thead class="bg-gray-200">
           <tr>
@@ -82,22 +115,14 @@
               <button class="bg-red-600 text-white px-2 py-1 rounded">Hapus</button>
             </td>
           </tr>
-          <tr>
-            <td class="p-2 border">OUT002</td>
-            <td class="p-2 border">Outlet Bandung</td>
-            <td class="p-2 border">
-              <button class="bg-yellow-500 text-white px-2 py-1 rounded">Edit</button>
-              <button class="bg-red-600 text-white px-2 py-1 rounded">Hapus</button>
-            </td>
-          </tr>
         </tbody>
       </table>
     </section>
 
-    <!-- 👤 Admin -->
-    <section id="admin" class="bg-white p-6 rounded-xl shadow-md">
-      <h2 class="text-xl font-semibold mb-4">👤 Manajemen Admin</h2>
-      <form class="grid gap-4 max-w-md mb-6">
+    <!-- 👤 Tambah User -->
+    <section id="admin-tambah" class="bg-white p-6 rounded-xl shadow-md">
+      <h2 class="text-xl font-semibold mb-4">➕ Tambah User</h2>
+      <form class="grid gap-4 max-w-md">
         <input type="text" placeholder="Nama User" class="border p-2 rounded">
         <input type="email" placeholder="Email User" class="border p-2 rounded">
         <select class="border p-2 rounded">
@@ -107,7 +132,11 @@
         </select>
         <button type="submit" class="bg-green-600 text-white py-2 rounded">Tambah User</button>
       </form>
-      <!-- Tabel User -->
+    </section>
+
+    <!-- 👤 Daftar User -->
+    <section id="admin-daftar" class="bg-white p-6 rounded-xl shadow-md">
+      <h2 class="text-xl font-semibold mb-4">📋 Daftar User</h2>
       <table class="w-full border text-left">
         <thead class="bg-gray-200">
           <tr>
@@ -131,10 +160,29 @@
       </table>
     </section>
 
+    <!-- ⚙️ Pengaturan -->
+    <section id="pengaturan" class="bg-white p-6 rounded-xl shadow-md">
+      <h2 class="text-xl font-semibold mb-4">⚙️ Pengaturan</h2>
+      <form class="grid gap-4 max-w-md">
+        <select class="border p-2 rounded">
+          <option>Pilih Tema</option>
+          <option>Terang</option>
+          <option>Gelap</option>
+        </select>
+        <button type="submit" class="bg-blue-600 text-white py-2 rounded">Simpan</button>
+      </form>
+    </section>
+
   </main>
 
   <script>
-    // Simulasi Nama Barang otomatis berdasarkan Kode Barang
+    // Toggle submenu
+    function toggleMenu(id) {
+      let menu = document.getElementById(id);
+      menu.classList.toggle("hidden");
+    }
+
+    // Simulasi Nama Barang otomatis
     document.getElementById("kodeBarang").addEventListener("input", function() {
       let kode = this.value.trim().toUpperCase();
       let namaInput = document.getElementById("namaBarang");
