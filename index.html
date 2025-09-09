@@ -1,137 +1,66 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-  <meta charset="UTF-8">
-  <title>Warehouse WMS dengan Spreadsheet</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1.0">
-  <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="bg-gray-100 text-gray-900 flex transition-colors duration-300">
-  <!-- Sidebar -->
-  <aside class="w-64 bg-blue-700 text-white min-h-screen flex flex-col">
-    <div class="p-6 text-2xl font-bold border-b border-blue-500">Warehouse</div>
-    <nav class="flex-1 p-4 space-y-2">
-      <a href="#terima" class="flex items-center gap-2 p-2 rounded-lg hover:bg-blue-600">📥 Terima Barang</a>
-      <a href="#pindah" class="flex items-center gap-2 p-2 rounded-lg hover:bg-blue-600">🔄 Pemindahan</a>
-      <a href="#master" class="flex items-center gap-2 p-2 rounded-lg hover:bg-blue-600">📊 Master Data</a>
-      <!-- outlet & admin submenu omitted for brevity -->
-      <a href="#pengaturan" class="flex items-center gap-2 p-2 rounded-lg hover:bg-blue-600">⚙️ Pengaturan</a>
-    </nav>
-    <div class="p-4 border-t border-blue-500 text-sm">© 2025 WMS</div>
-  </aside>
+<script>
+  const API_URL = "https://script.google.com/macros/s/AKfycbwu_N7CkdQPFOwELmPFO6Ku0gPldaPY3kkAiiXc-t6TI3oQ57n2tae7EcHZqoqbTWD1/exec";
 
-  <!-- Content -->
-  <main class="flex-1 p-8 space-y-12 overflow-y-auto">
-    <!-- Terima Barang -->
-    <section id="terima" class="bg-white p-6 rounded-xl shadow-md">
-      <h2 class="text-xl font-semibold mb-4">📥 Terima Barang</h2>
-      <form id="formTerima" class="grid gap-4 max-w-md">
-        <input type="text" id="kodeTerima" placeholder="Kode Barang" class="border p-2 rounded">
-        <input type="text" id="namaTerima" placeholder="Nama Barang" class="border p-2 rounded">
-        <input type="number" id="jumlahTerima" placeholder="Jumlah" class="border p-2 rounded">
-        <button type="submit" class="bg-blue-600 text-white py-2 rounded">Simpan</button>
-      </form>
-    </section>
-
-    <!-- Master Data -->
-    <section id="master" class="bg-white p-6 rounded-xl shadow-md">
-      <h2 class="text-xl font-semibold mb-4">📊 Master Data Barang</h2>
-      <table class="w-full border text-left">
-        <thead class="bg-gray-200">
-          <tr>
-            <th class="p-2 border">Kode</th>
-            <th class="p-2 border">Nama</th>
-            <th class="p-2 border">Jumlah</th>
-            <th class="p-2 border">Aksi</th>
-          </tr>
-        </thead>
-        <tbody id="masterBody"></tbody>
-      </table>
-    </section>
-  </main>
-
-  <!-- Toast Notifications -->
-  <div id="toastContainer" class="fixed top-4 right-4 space-y-2 z-50"></div>
-
-  <script>
-    const API_URL = "https://script.google.com/macros/s/AKfycbwu_N7CkdQPFOwELmPFO6Ku0gPldaPY3kkAiiXc-t6TI3oQ57n2tae7EcHZqoqbTWD1/exec";
-
-    // Render data from spreadsheet
-    async function renderMasterData() {
-      const res = await fetch(`${API_URL}?action=getBarang`);
-      const data = await res.json();
-      const body = document.getElementById("masterBody");
-      body.innerHTML = "";
-      data.forEach(item => {
-        const row = document.createElement("tr");
-        row.innerHTML = `
-          <td class="p-2 border">${item.kode}</td>
-          <td class="p-2 border">${item.nama}</td>
-          <td class="p-2 border">${item.jumlah}</td>
-          <td class="p-2 border space-x-2">
-            <button onclick="editBarang('${item.kode}','${item.nama}',${item.jumlah})" class="bg-yellow-500 text-white px-2 py-1 rounded">Edit</button>
-            <button onclick="hapusBarang('${item.kode}')" class="bg-red-600 text-white px-2 py-1 rounded">Hapus</button>
-          </td>`;
-        body.appendChild(row);
-      });
-    }
-
-    // Submit Terima Barang
-    document.getElementById("formTerima").addEventListener("submit", async function(e) {
-      e.preventDefault();
-      const kode = document.getElementById("kodeTerima").value.trim().toUpperCase();
-      const nama = document.getElementById("namaTerima").value.trim();
-      const jumlah = parseInt(document.getElementById("jumlahTerima").value);
-      if (!kode || !nama || !jumlah) {
-        showToast("Lengkapi semua data!", "error");
-        return;
-      }
-      await fetch(API_URL, {
-        method: "POST",
-        body: JSON.stringify({ action: "addBarang", kode, nama, jumlah })
-      });
-      showToast("Barang berhasil ditambahkan!", "success");
-      renderMasterData();
-      this.reset();
+  async function renderMasterData() {
+    const res = await fetch(`${API_URL}?action=getBarang`);
+    const data = await res.json(); // array of {kode,nama,jumlah}
+    const body = document.getElementById("masterBody");
+    body.innerHTML = "";
+    data.forEach(item => {
+      const row = document.createElement("tr");
+      row.innerHTML = `
+        <td class="p-2 border">${item.kode}</td>
+        <td class="p-2 border">${item.nama}</td>
+        <td class="p-2 border">${item.jumlah}</td>
+        <td class="p-2 border space-x-2">
+          <button onclick="editBarang('${item.kode}','${item.nama}',${item.jumlah})" class="bg-yellow-500 text-white px-2 py-1 rounded">Edit</button>
+          <button onclick="hapusBarang('${item.kode}')" class="bg-red-600 text-white px-2 py-1 rounded">Hapus</button>
+        </td>`;
+      body.appendChild(row);
     });
+  }
 
-    async function editBarang(kode, nama, jumlah) {
-      const namaBaru = prompt("Nama baru:", nama);
-      const jumlahBaru = prompt("Jumlah baru:", jumlah);
-      if (!namaBaru || !jumlahBaru) return;
-      await fetch(API_URL, {
-        method: "POST",
-        body: JSON.stringify({ action: "updateBarang", kode, nama: namaBaru, jumlah: parseInt(jumlahBaru) })
-      });
-      showToast("Data berhasil diupdate!", "success");
-      renderMasterData();
-    }
-
-    async function hapusBarang(kode) {
-      if (!confirm(`Hapus barang ${kode}?`)) return;
-      await fetch(API_URL, {
-        method: "POST",
-        body: JSON.stringify({ action: "deleteBarang", kode })
-      });
-      showToast("Barang berhasil dihapus!", "error");
-      renderMasterData();
-    }
-
-    function showToast(msg, type = "success") {
-      const c = document.getElementById("toastContainer");
-      const t = document.createElement("div");
-      t.className = `px-4 py-2 rounded shadow text-white ${type==="success"?"bg-green-600":"bg-red-600"} animate-fadeIn`;
-      t.innerText = msg;
-      c.appendChild(t);
-      setTimeout(() => { t.classList.add("opacity-0","transition-opacity","duration-500"); setTimeout(()=>t.remove(),500); }, 3000);
-    }
-
+  // Contoh fungsi edit
+  async function editBarang(kode, nama, jumlah) {
+    const namaBaru = prompt("Nama baru:", nama);
+    const jumlahBaru = prompt("Jumlah baru:", jumlah);
+    if (!namaBaru || !jumlahBaru) return;
+    await fetch(API_URL, {
+      method: "POST",
+      body: JSON.stringify({
+        action: "updateBarang", kode,
+        nama: namaBaru, jumlah: parseInt(jumlahBaru)
+      })
+    });
+    showToast("Barang diupdate!");
     renderMasterData();
-  </script>
+  }
 
-  <style>
-    @keyframes fadeIn { from {opacity:0;transform:translateY(-10px);} to {opacity:1;transform:translateY(0);} }
-    .animate-fadeIn { animation: fadeIn 0.3s ease-out; }
-  </style>
-</body>
-</html>
+  // Contoh fungsi hapus
+  async function hapusBarang(kode) {
+    if (!confirm(`Hapus barang ${kode}?`)) return;
+    await fetch(API_URL, {
+      method: "POST",
+      body: JSON.stringify({ action: "deleteBarang", kode })
+    });
+    showToast("Barang dihapus!");
+    renderMasterData();
+  }
+
+  // Simpan Barang (Terima)
+  document.getElementById("formTerima").addEventListener("submit", async function(e) {
+    e.preventDefault();
+    const kode = document.getElementById("kodeTerima").value.toUpperCase().trim();
+    const nama = document.getElementById("namaTerima").value.trim();
+    const jumlah = parseInt(document.getElementById("jumlahTerima").value);
+    await fetch(API_URL, {
+      method: "POST",
+      body: JSON.stringify({ action: "addBarang", kode, nama, jumlah })
+    });
+    showToast("Barang ditambahkan!");
+    renderMasterData();
+    this.reset();
+  });
+
+  renderMasterData();  // Load awal data
+</script>
