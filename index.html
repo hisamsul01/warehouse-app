@@ -1,66 +1,66 @@
-<script>
-  const API_URL = "https://script.google.com/macros/s/AKfycbwu_N7CkdQPFOwELmPFO6Ku0gPldaPY3kkAiiXc-t6TI3oQ57n2tae7EcHZqoqbTWD1/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbx123456789/exec";
 
-  async function renderMasterData() {
-    const res = await fetch(`${API_URL}?action=getBarang`);
-    const data = await res.json(); // array of {kode,nama,jumlah}
-    const body = document.getElementById("masterBody");
-    body.innerHTML = "";
-    data.forEach(item => {
-      const row = document.createElement("tr");
-      row.innerHTML = `
-        <td class="p-2 border">${item.kode}</td>
-        <td class="p-2 border">${item.nama}</td>
-        <td class="p-2 border">${item.jumlah}</td>
-        <td class="p-2 border space-x-2">
-          <button onclick="editBarang('${item.kode}','${item.nama}',${item.jumlah})" class="bg-yellow-500 text-white px-2 py-1 rounded">Edit</button>
-          <button onclick="hapusBarang('${item.kode}')" class="bg-red-600 text-white px-2 py-1 rounded">Hapus</button>
-        </td>`;
-      body.appendChild(row);
-    });
-  }
+// Load Master Data dari Spreadsheet
+async function renderMasterData() {
+  const res = await fetch(`${API_URL}?action=getBarang`);
+  const data = await res.json();
+  const body = document.getElementById("masterBody");
+  body.innerHTML = "";
+  data.forEach(item => {
+    const row = document.createElement("tr");
+    row.innerHTML = `
+      <td class="p-2 border">${item.kode}</td>
+      <td class="p-2 border">${item.nama}</td>
+      <td class="p-2 border">${item.jumlah}</td>
+      <td class="p-2 border space-x-2">
+        <button onclick="editBarang('${item.kode}','${item.nama}',${item.jumlah})" class="bg-yellow-500 text-white px-2 py-1 rounded">Edit</button>
+        <button onclick="hapusBarang('${item.kode}')" class="bg-red-600 text-white px-2 py-1 rounded">Hapus</button>
+      </td>`;
+    body.appendChild(row);
+  });
+}
 
-  // Contoh fungsi edit
-  async function editBarang(kode, nama, jumlah) {
-    const namaBaru = prompt("Nama baru:", nama);
-    const jumlahBaru = prompt("Jumlah baru:", jumlah);
-    if (!namaBaru || !jumlahBaru) return;
-    await fetch(API_URL, {
-      method: "POST",
-      body: JSON.stringify({
-        action: "updateBarang", kode,
-        nama: namaBaru, jumlah: parseInt(jumlahBaru)
-      })
-    });
-    showToast("Barang diupdate!");
-    renderMasterData();
-  }
+// Tambah barang (Terima Barang)
+document.getElementById("formTerima").addEventListener("submit", async function(e) {
+  e.preventDefault();
+  let kode = document.getElementById("kodeTerima").value.trim().toUpperCase();
+  let nama = document.getElementById("namaTerima").value.trim();
+  let jumlah = parseInt(document.getElementById("jumlahTerima").value);
 
-  // Contoh fungsi hapus
-  async function hapusBarang(kode) {
-    if (!confirm(`Hapus barang ${kode}?`)) return;
-    await fetch(API_URL, {
-      method: "POST",
-      body: JSON.stringify({ action: "deleteBarang", kode })
-    });
-    showToast("Barang dihapus!");
-    renderMasterData();
-  }
-
-  // Simpan Barang (Terima)
-  document.getElementById("formTerima").addEventListener("submit", async function(e) {
-    e.preventDefault();
-    const kode = document.getElementById("kodeTerima").value.toUpperCase().trim();
-    const nama = document.getElementById("namaTerima").value.trim();
-    const jumlah = parseInt(document.getElementById("jumlahTerima").value);
-    await fetch(API_URL, {
-      method: "POST",
-      body: JSON.stringify({ action: "addBarang", kode, nama, jumlah })
-    });
-    showToast("Barang ditambahkan!");
+  let res = await fetch(API_URL, {
+    method: "POST",
+    body: JSON.stringify({ action: "addBarang", kode, nama, jumlah })
+  });
+  if (res.ok) {
+    showToast("Barang berhasil ditambahkan ✅");
     renderMasterData();
     this.reset();
-  });
+  }
+});
 
-  renderMasterData();  // Load awal data
-</script>
+// Edit Barang
+async function editBarang(kode, nama, jumlah) {
+  let namaBaru = prompt("Edit Nama Barang:", nama);
+  let jumlahBaru = prompt("Edit Jumlah:", jumlah);
+  if (!namaBaru || !jumlahBaru) return;
+  await fetch(API_URL, {
+    method: "POST",
+    body: JSON.stringify({ action: "updateBarang", kode, nama: namaBaru, jumlah: parseInt(jumlahBaru) })
+  });
+  showToast("Barang berhasil diupdate ✏️");
+  renderMasterData();
+}
+
+// Hapus Barang
+async function hapusBarang(kode) {
+  if (!confirm(`Hapus barang ${kode}?`)) return;
+  await fetch(API_URL, {
+    method: "POST",
+    body: JSON.stringify({ action: "deleteBarang", kode })
+  });
+  showToast("Barang berhasil dihapus 🗑️", "error");
+  renderMasterData();
+}
+
+// Load awal
+renderMasterData();
