@@ -1,66 +1,138 @@
-const API_URL = "https://script.google.com/macros/s/AKfycbx123456789/exec";
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>Warehouse Management System</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 text-gray-900 flex">
 
-// Load Master Data dari Spreadsheet
-async function renderMasterData() {
-  const res = await fetch(`${API_URL}?action=getBarang`);
-  const data = await res.json();
-  const body = document.getElementById("masterBody");
-  body.innerHTML = "";
-  data.forEach(item => {
-    const row = document.createElement("tr");
-    row.innerHTML = `
-      <td class="p-2 border">${item.kode}</td>
-      <td class="p-2 border">${item.nama}</td>
-      <td class="p-2 border">${item.jumlah}</td>
-      <td class="p-2 border space-x-2">
-        <button onclick="editBarang('${item.kode}','${item.nama}',${item.jumlah})" class="bg-yellow-500 text-white px-2 py-1 rounded">Edit</button>
-        <button onclick="hapusBarang('${item.kode}')" class="bg-red-600 text-white px-2 py-1 rounded">Hapus</button>
-      </td>`;
-    body.appendChild(row);
-  });
-}
+  <!-- Sidebar -->
+  <aside class="w-64 bg-blue-700 text-white min-h-screen flex flex-col">
+    <div class="p-6 text-2xl font-bold border-b border-blue-500">📦 WMS</div>
+    <nav class="flex-1 p-4 space-y-2">
+      <a href="#terima" class="block p-2 rounded hover:bg-blue-600">📥 Terima Barang</a>
+      <a href="#master" class="block p-2 rounded hover:bg-blue-600">📊 Master Data</a>
+    </nav>
+    <div class="p-4 border-t border-blue-500 text-sm">© 2025 WMS</div>
+  </aside>
 
-// Tambah barang (Terima Barang)
-document.getElementById("formTerima").addEventListener("submit", async function(e) {
-  e.preventDefault();
-  let kode = document.getElementById("kodeTerima").value.trim().toUpperCase();
-  let nama = document.getElementById("namaTerima").value.trim();
-  let jumlah = parseInt(document.getElementById("jumlahTerima").value);
+  <!-- Main Content -->
+  <main class="flex-1 p-8 space-y-12 overflow-y-auto">
+    <!-- Terima Barang -->
+    <section id="terima" class="bg-white p-6 rounded-xl shadow-md">
+      <h2 class="text-xl font-semibold mb-4">📥 Terima Barang</h2>
+      <form id="formTerima" class="grid gap-4 max-w-md">
+        <input type="text" id="kodeTerima" placeholder="Kode Barang" class="border p-2 rounded" required>
+        <input type="text" id="namaTerima" placeholder="Nama Barang" class="border p-2 rounded" required>
+        <input type="number" id="jumlahTerima" placeholder="Jumlah" class="border p-2 rounded" required>
+        <button type="submit" class="bg-blue-600 text-white py-2 rounded">Simpan</button>
+      </form>
+    </section>
 
-  let res = await fetch(API_URL, {
-    method: "POST",
-    body: JSON.stringify({ action: "addBarang", kode, nama, jumlah })
-  });
-  if (res.ok) {
-    showToast("Barang berhasil ditambahkan ✅");
+    <!-- Master Data -->
+    <section id="master" class="bg-white p-6 rounded-xl shadow-md">
+      <h2 class="text-xl font-semibold mb-4">📊 Master Data Barang</h2>
+      <table class="w-full border text-left">
+        <thead class="bg-gray-200">
+          <tr>
+            <th class="p-2 border">Kode</th>
+            <th class="p-2 border">Nama</th>
+            <th class="p-2 border">Jumlah</th>
+            <th class="p-2 border">Aksi</th>
+          </tr>
+        </thead>
+        <tbody id="masterBody"></tbody>
+      </table>
+    </section>
+  </main>
+
+  <!-- Toast -->
+  <div id="toastContainer" class="fixed top-4 right-4 space-y-2 z-50"></div>
+
+  <script>
+    const API_URL = "https://script.google.com/macros/s/AKfycbx123456789/exec";
+
+    // Load Master Data dari Spreadsheet
+    async function renderMasterData() {
+      const res = await fetch(`${API_URL}?action=getBarang`);
+      const data = await res.json();
+      const body = document.getElementById("masterBody");
+      body.innerHTML = "";
+      data.forEach(item => {
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td class="p-2 border">${item.kode}</td>
+          <td class="p-2 border">${item.nama}</td>
+          <td class="p-2 border">${item.jumlah}</td>
+          <td class="p-2 border space-x-2">
+            <button onclick="editBarang('${item.kode}','${item.nama}',${item.jumlah})" class="bg-yellow-500 text-white px-2 py-1 rounded">Edit</button>
+            <button onclick="hapusBarang('${item.kode}')" class="bg-red-600 text-white px-2 py-1 rounded">Hapus</button>
+          </td>`;
+        body.appendChild(row);
+      });
+    }
+
+    // Tambah barang (Terima Barang)
+    document.getElementById("formTerima").addEventListener("submit", async function(e) {
+      e.preventDefault();
+      let kode = document.getElementById("kodeTerima").value.trim().toUpperCase();
+      let nama = document.getElementById("namaTerima").value.trim();
+      let jumlah = parseInt(document.getElementById("jumlahTerima").value);
+
+      let res = await fetch(API_URL, {
+        method: "POST",
+        body: JSON.stringify({ action: "addBarang", kode, nama, jumlah })
+      });
+      if (res.ok) {
+        showToast("Barang berhasil ditambahkan ✅");
+        renderMasterData();
+        this.reset();
+      }
+    });
+
+    // Edit Barang
+    async function editBarang(kode, nama, jumlah) {
+      let namaBaru = prompt("Edit Nama Barang:", nama);
+      let jumlahBaru = prompt("Edit Jumlah:", jumlah);
+      if (!namaBaru || !jumlahBaru) return;
+      await fetch(API_URL, {
+        method: "POST",
+        body: JSON.stringify({ action: "updateBarang", kode, nama: namaBaru, jumlah: parseInt(jumlahBaru) })
+      });
+      showToast("Barang berhasil diupdate ✏️");
+      renderMasterData();
+    }
+
+    // Hapus Barang
+    async function hapusBarang(kode) {
+      if (!confirm(`Hapus barang ${kode}?`)) return;
+      await fetch(API_URL, {
+        method: "POST",
+        body: JSON.stringify({ action: "deleteBarang", kode })
+      });
+      showToast("Barang berhasil dihapus 🗑️", "error");
+      renderMasterData();
+    }
+
+    // Toast notification
+    function showToast(msg, type = "success") {
+      const c = document.getElementById("toastContainer");
+      const t = document.createElement("div");
+      t.className = `px-4 py-2 rounded shadow text-white ${type==="error"?"bg-red-600":"bg-green-600"} animate-fadeIn`;
+      t.innerText = msg;
+      c.appendChild(t);
+      setTimeout(() => { t.classList.add("opacity-0","transition-opacity","duration-500"); setTimeout(()=>t.remove(),500); }, 3000);
+    }
+
+    // Load awal
     renderMasterData();
-    this.reset();
-  }
-});
+  </script>
 
-// Edit Barang
-async function editBarang(kode, nama, jumlah) {
-  let namaBaru = prompt("Edit Nama Barang:", nama);
-  let jumlahBaru = prompt("Edit Jumlah:", jumlah);
-  if (!namaBaru || !jumlahBaru) return;
-  await fetch(API_URL, {
-    method: "POST",
-    body: JSON.stringify({ action: "updateBarang", kode, nama: namaBaru, jumlah: parseInt(jumlahBaru) })
-  });
-  showToast("Barang berhasil diupdate ✏️");
-  renderMasterData();
-}
-
-// Hapus Barang
-async function hapusBarang(kode) {
-  if (!confirm(`Hapus barang ${kode}?`)) return;
-  await fetch(API_URL, {
-    method: "POST",
-    body: JSON.stringify({ action: "deleteBarang", kode })
-  });
-  showToast("Barang berhasil dihapus 🗑️", "error");
-  renderMasterData();
-}
-
-// Load awal
-renderMasterData();
+  <style>
+    @keyframes fadeIn { from {opacity:0;transform:translateY(-10px);} to {opacity:1;transform:translateY(0);} }
+    .animate-fadeIn { animation: fadeIn 0.3s ease-out; }
+  </style>
+</body>
+</html>
