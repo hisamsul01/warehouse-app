@@ -1,566 +1,224 @@
 <!doctype html>
 <html lang="id">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Warehouse Manager — Full (Google Sheets)</title>
-<style>
-:root{--primary:#4e73df;--ok:#1cc88a;--warn:#f6c23e;--danger:#e74a3b;--bg:#f6f7fb;--card:#fff;--muted:#64748b;--radius:12px;--shadow:0 8px 20px rgba(2,6,23,0.06)}
-*{box-sizing:border-box}body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial;background:var(--bg);color:#0f1724}a{color:inherit;text-decoration:none}
-.topbar{position:sticky;top:0;z-index:60;background:#fff;display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid #eef2f6}
-.brand{display:flex;gap:10px;align-items:center;color:var(--primary);font-weight:800}
-.controls{display:flex;gap:8px;align-items:center}
-.btn{border:0;padding:8px 12px;border-radius:10px;background:var(--primary);color:#fff;cursor:pointer}
-.btn.ghost{background:transparent;border:1px solid var(--primary);color:var(--primary)}
-.btn.secondary{background:#f3f4f6;color:#111;border:0}
-.control{padding:7px 10px;border-radius:8px;border:1px solid #e6eefc;background:#fff}
-.sidebar{position:fixed;left:-260px;top:64px;bottom:0;width:260px;background:#13203d;color:#eaf0ff;padding:18px;transition:left .28s ease;z-index:70;overflow:auto}
-.sidebar.show{left:0}
-.nav h6{font-size:12px;color:#94b0ff;margin:12px 0;text-transform:uppercase;letter-spacing:.08em}
-.nav ul{list-style:none;padding:0;margin:0}
-.nav li{margin-bottom:6px}
-.nav a{display:block;padding:10px;border-radius:8px;color:rgba(234,240,255,0.95)}
-.nav a:hover,.nav a.active{background:#20355f}
-.submenu{display:none;padding-left:12px;margin-top:6px}
-.open>.submenu{display:block}
-.main{transition:margin-left .28s ease;padding:18px}
-.sidebar.show ~ .main{margin-left:260px}
-@media(min-width:900px){.sidebar{left:0}.main{margin-left:260px}.menu-toggle{display:none}}
-.cards{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:12px}
-.card{background:var(--card);padding:12px;border-radius:var(--radius);box-shadow:var(--shadow)}
-.card .label{color:var(--muted);font-size:13px}
-.card .value{font-weight:800;color:var(--primary);font-size:20px}
-.panel{background:var(--card);border-radius:var(--radius);padding:12px;margin-bottom:12px;box-shadow:var(--shadow)}
-.grid-2{display:grid;grid-template-columns:1fr;gap:10px}
-@media(min-width:780px){.cards{grid-template-columns:repeat(4,1fr)}.grid-2{grid-template-columns:1fr 1fr}}
-.field{display:flex;flex-direction:column;gap:6px}
-input,select,textarea{padding:9px;border-radius:8px;border:1px solid #e6eefc;background:#fff}
-.table-wrap{overflow:auto;border-radius:8px;border:1px solid #eef2f6}
-table{width:100%;border-collapse:collapse;min-width:720px}
-thead th{background:#fbfdff;color:var(--primary);padding:10px;text-align:left;position:sticky;top:0}
-tbody td{padding:10px;border-bottom:1px solid #f3f6fb}
-tbody tr:hover{background:#f7fbff}
-.badge{display:inline-block;padding:5px 10px;border-radius:999px;color:#fff;font-weight:700}
-.b-ok{background:var(--ok)}.b-warn{background:var(--warn)}.b-danger{background:var(--danger)}
-.tools{display:flex;gap:8px;align-items:center}
-.right{margin-left:auto}
-.muted{color:var(--muted)}
-.hidden{display:none!important}
-.modal-back{position:fixed;inset:0;background:rgba(2,6,23,0.45);display:flex;align-items:center;justify-content:center;z-index:90}
-.modal{background:#fff;padding:14px;border-radius:10px;max-width:720px;width:94%;box-shadow:var(--shadow)}
-@media(max-width:640px){table{min-width:600px}.cards{grid-template-columns:repeat(2,1fr)}}
-@media print{.topbar,.sidebar,.btn,.cards{display:none}table{min-width:0}}
-</style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Warehouse Manager — Full (Google Sheets)</title>
+  <style>
+    :root {
+      --primary:#4e73df;--ok:#1cc88a;--warn:#f6c23e;--danger:#e74a3b;
+      --bg:#f6f7fb;--card:#fff;--muted:#64748b;
+      --radius:12px;--shadow:0 8px 20px rgba(2,6,23,0.06)
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial;
+      background:var(--bg);color:#0f1724}
+    a{color:inherit;text-decoration:none}
+    .topbar{position:sticky;top:0;z-index:60;background:#fff;display:flex;
+      justify-content:space-between;align-items:center;
+      padding:12px 16px;border-bottom:1px solid #eef2f6}
+    .brand{display:flex;gap:10px;align-items:center;color:var(--primary);
+      font-weight:600;font-size:18px}
+    .sidebar{width:220px;flex-shrink:0;background:#fff;height:100vh;
+      position:fixed;top:0;left:0;overflow-y:auto;padding:16px;
+      border-right:1px solid #eef2f6}
+    .menu{display:flex;flex-direction:column;gap:8px;margin-top:24px}
+    .menu a{padding:10px 14px;border-radius:var(--radius);
+      transition:.2s;background:transparent}
+    .menu a:hover{background:#f1f5f9}
+    .main{margin-left:220px;padding:20px}
+    .card{background:var(--card);border-radius:var(--radius);
+      box-shadow:var(--shadow);padding:20px;margin-bottom:20px}
+    h2{margin:0 0 12px}
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:8px 12px;border-bottom:1px solid #eef2f6;text-align:left}
+    th{background:#f9fafb}
+    button{padding:8px 14px;border:none;border-radius:var(--radius);
+      cursor:pointer;font-weight:500}
+    .btn-primary{background:var(--primary);color:#fff}
+    .btn-ok{background:var(--ok);color:#fff}
+    .btn-warn{background:var(--warn);color:#fff}
+    .btn-danger{background:var(--danger);color:#fff}
+    .modal{position:fixed;top:0;left:0;right:0;bottom:0;
+      background:rgba(0,0,0,.5);display:none;align-items:center;
+      justify-content:center;z-index:100}
+    .modal-content{background:#fff;padding:20px;border-radius:var(--radius);
+      width:90%;max-width:400px}
+    .modal.show{display:flex}
+  </style>
 </head>
 <body>
-
-<header class="topbar">
-  <div class="brand"><div style="width:36px;height:36px;border-radius:8px;background:linear-gradient(135deg,var(--primary),#7c9af5)"></div>Warehouse Manager</div>
-  <div class="controls">
-    <select id="lang" class="control"><option value="id">Indonesia</option><option value="en">English</option></select>
-    <div id="currentUser" class="muted">admin</div>
-    <button id="menuToggle" class="btn ghost menu-toggle">☰</button>
-  </div>
-</header>
-
-<aside class="sidebar" id="sidebar">
-  <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
-    <div style="width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,var(--primary),#7c9af5)"></div>
-    <div style="font-weight:800">Warehouse</div>
+  <div class="topbar">
+    <div class="brand">📦 Warehouse Manager</div>
+    <div id="user-info"></div>
   </div>
 
-  <nav class="nav">
-    <h6>Navigation</h6>
-    <ul id="navList">
-      <li><a href="#dashboard" data-view="dashboard" class="active">Dashboard</a></li>
-
-      <li>
-        <a href="#" data-toggle="sub">Operasional ▾</a>
-        <div class="submenu">
-          <a href="#receipt" data-view="receipt">Penerimaan Barang</a>
-          <a href="#transfer" data-view="transfer">Transfer ke Outlet</a>
-        </div>
-      </li>
-
-      <li>
-        <a href="#" data-toggle="sub">Master Data ▾</a>
-        <div class="submenu">
-          <a href="#items" data-view="items">Master Barang</a>
-          <a href="#outlets" data-view="outlets">Outlet</a>
-        </div>
-      </li>
-
-      <li><a href="#reports" data-view="reports">Laporan</a></li>
-      <li><a href="#settings" data-view="settings">Pengaturan</a></li>
-    </ul>
-  </nav>
-  <div style="margin-top:18px;font-size:13px;color:#94b0ff">© <span id="year"></span> Warehouse</div>
-</aside>
-
-<main class="main" id="main" style="padding:18px">
-  <!-- Dashboard -->
-  <section id="view-dashboard" class="view">
-    <div class="cards" id="widgets">
-      <div class="card"><div class="label">Jenis Barang</div><div class="value" id="wItems">0</div></div>
-      <div class="card"><div class="label">Total Stok</div><div class="value" id="wStock">0</div></div>
-      <div class="card"><div class="label">Total Penerimaan</div><div class="value" id="wReceipts">0</div></div>
-      <div class="card"><div class="label">Total Transfer</div><div class="value" id="wTransfers">0</div></div>
-      <div class="card"><div class="label">Outlet</div><div class="value" id="wOutlets">0</div></div>
-      <div class="card"><div class="label">Pengguna</div><div class="value" id="wUsers">1</div></div>
-    </div>
-
-    <div class="panel">
-      <h3 style="margin:0">Aksi Cepat</h3>
-      <div class="tools" style="margin-top:8px">
-        <button class="btn" onclick="showView('receipt')">Penerimaan</button>
-        <button class="btn" onclick="showView('transfer')">Transfer</button>
-        <button class="btn ghost" onclick="showView('items')">Master Barang</button>
-        <button class="btn ghost" onclick="showView('reports')">Laporan</button>
-      </div>
-    </div>
-  </section>
-
-  <!-- Receipt -->
-  <section id="view-receipt" class="view hidden">
-    <div class="panel">
-      <h3>Penerimaan Barang</h3>
-      <div class="grid-2" style="margin-top:10px">
-        <div class="field"><label>Kode Barang</label><input id="rcpCode" placeholder="BRG-001"></div>
-        <div class="field"><label>Nama Barang</label><input id="rcpName" placeholder="Cat Tembok 10L"></div>
-        <div class="field"><label>Kuantitas</label><input id="rcpQty" type="number" min="1" value="1"></div>
-        <div style="align-self:end"><button class="btn" onclick="addReceipt()">Tambah Penerimaan</button></div>
-      </div>
-    </div>
-
-    <div class="panel">
-      <h3>Daftar Inventori</h3>
-      <div class="table-wrap">
-        <table id="tblInventory"><thead><tr><th>No</th><th>Kode</th><th>Nama</th><th>Qty</th><th>Aksi</th></tr></thead><tbody></tbody></table>
-      </div>
-    </div>
-  </section>
-
-  <!-- Transfer -->
-  <section id="view-transfer" class="view hidden">
-    <div class="panel">
-      <h3>Transfer ke Outlet</h3>
-      <div class="grid-2" style="margin-top:10px">
-        <div class="field"><label>Kode Barang</label><input id="trfCode" placeholder="BRG-001"></div>
-        <div class="field"><label>Nama Barang</label><input id="trfName" placeholder="Cat Tembok 10L"></div>
-        <div class="field"><label>Kuantitas</label><input id="trfQty" type="number" min="1" value="1"></div>
-        <div class="field"><label>Outlet</label><select id="trfOutlet"></select></div>
-        <div style="align-self:end"><button class="btn" onclick="addTransfer()">Transfer</button></div>
-      </div>
-    </div>
-
-    <div class="panel">
-      <h3>Riwayat Transfer</h3>
-      <div class="table-wrap">
-        <table id="tblTransfers"><thead><tr><th>No</th><th>Tanggal</th><th>Kode</th><th>Nama</th><th>Qty</th><th>Outlet</th></tr></thead><tbody></tbody></table>
-      </div>
-    </div>
-  </section>
-
-  <!-- Items -->
-  <section id="view-items" class="view hidden">
-    <div class="panel">
-      <h3>Master Barang</h3>
-      <div class="row" style="margin-top:10px;gap:8px">
-        <div class="field" style="flex:1"><label>Kode</label><input id="itCode"></div>
-        <div class="field" style="flex:2"><label>Nama</label><input id="itName"></div>
-        <div style="align-self:end"><button class="btn" onclick="addItem()">Tambah Barang</button></div>
-      </div>
-    </div>
-
-    <div class="panel">
-      <h3>Daftar Barang</h3>
-      <div class="table-wrap">
-        <table id="tblItems"><thead><tr><th>No</th><th>Kode</th><th>Nama</th><th>Qty</th><th>Aksi</th></tr></thead><tbody></tbody></table>
-      </div>
-    </div>
-  </section>
-
-  <!-- Outlets -->
-  <section id="view-outlets" class="view hidden">
-    <div class="panel">
-      <h3>Outlet</h3>
-      <div class="row" style="margin-top:10px;gap:8px">
-        <div class="field" style="flex:1"><label>Kode</label><input id="outCode"></div>
-        <div class="field" style="flex:2"><label>Nama</label><input id="outName"></div>
-        <div style="align-self:end"><button class="btn" onclick="addOutlet()">Tambah Outlet</button></div>
-      </div>
-    </div>
-
-    <div class="panel">
-      <h3>Daftar Outlet</h3>
-      <div class="table-wrap">
-        <table id="tblOutlets"><thead><tr><th>No</th><th>Kode</th><th>Nama</th><th>Aksi</th></tr></thead><tbody></tbody></table>
-      </div>
-    </div>
-  </section>
-
-  <!-- Reports -->
-  <section id="view-reports" class="view hidden">
-    <div class="panel">
-      <h3>Laporan Transaksi</h3>
-      <div class="row" style="align-items:center;gap:8px">
-        <div class="field" style="flex:1"><label>Jenis</label>
-          <select id="repType" class="control"><option value="all">Semua</option><option value="receipt">Penerimaan</option><option value="transfer">Transfer</option></select>
-        </div>
-        <div class="field" style="flex:2"><label>Pencarian</label><input id="repSearch" placeholder="Cari kode/nama/outlet..."></div>
-        <div class="right tools">
-          <button class="btn ghost" onclick="exportCSV()">Export CSV</button>
-          <button class="btn" onclick="window.print()">Print to PDF</button>
-        </div>
-      </div>
-    </div>
-
-    <div class="panel">
-      <div class="table-wrap">
-        <table id="tblReports"><thead><tr><th>No</th><th>Tanggal</th><th>Jenis</th><th>Kode</th><th>Nama</th><th>Qty</th><th>Outlet</th></tr></thead><tbody></tbody></table>
-      </div>
-    </div>
-
-    <div class="panel">
-      <h3>Ringkasan Pengeluaran</h3>
-      <div class="table-wrap">
-        <table id="tblExpenses"><thead><tr><th>Outlet</th><th>Total Qty</th></tr></thead><tbody></tbody></table>
-      </div>
-    </div>
-  </section>
-
-  <!-- Settings -->
-  <section id="view-settings" class="view hidden">
-    <div class="panel">
-      <h3>Pengaturan</h3>
-      <div class="grid-2">
-        <div class="field"><label>Username</label><input id="setUser" placeholder="admin"></div>
-        <div class="field"><label>Password</label><input id="setPass" type="password"></div>
-        <div class="row" style="align-items:center"><input type="checkbox" id="setWidgets"><label for="setWidgets" style="margin-left:8px">Tampilkan Widget</label></div>
-        <div style="align-self:end"><button class="btn" onclick="saveSettings()">Simpan</button></div>
-      </div>
-      <div id="saveNote" class="muted" style="margin-top:10px"></div>
-    </div>
-  </section>
-</main>
-
-<!-- Modal -->
-<div id="modal" class="modal-back hidden" role="dialog">
-  <div class="modal">
-    <h4 id="modalTitle">Edit</h4>
-    <div id="modalBody"></div>
-    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px">
-      <button class="btn ghost" onclick="closeModal()">Batal</button>
-      <button class="btn" id="modalSave">Simpan</button>
+  <div class="sidebar">
+    <div class="menu">
+      <a href="#" onclick="showView('items')">📋 Items</a>
+      <a href="#" onclick="showView('outlets')">🏪 Outlets</a>
+      <a href="#" onclick="showView('receipts')">📥 Receipts</a>
+      <a href="#" onclick="showView('transfers')">📤 Transfers</a>
+      <a href="#" onclick="showView('settings')">⚙️ Settings</a>
     </div>
   </div>
-</div>
 
-<script>
-/* ========== CONFIG ========== */
-const API_URL = "https://script.google.com/macros/s/AKfycbynsLp-AT0ixomA6CIJ7yOUf4ktw-Jm9VzyNaII4wIZYe4ikP63JT-9M9nb3Dn7U4H7/exec";
-const DB_KEY = 'whm.gs.fallback.v2';
+  <div class="main" id="main-view"></div>
 
-/* ========== HELPERS ========== */
-function sel(id){ return document.getElementById(id); }
-function uid(){ return 'id'+Math.random().toString(36).slice(2,9); }
-function escapeCSV(s){ return /[",\n]/.test(s) ? `"${s.replace(/"/g,'""')}"` : s; }
+  <!-- Modal -->
+  <div class="modal" id="modal">
+    <div class="modal-content">
+      <h3 id="modal-title"></h3>
+      <div id="modal-body"></div>
+      <div style="margin-top:12px;display:flex;gap:8px;justify-content:end">
+        <button onclick="closeModal()">Batal</button>
+        <button class="btn-primary" id="modal-save">Simpan</button>
+      </div>
+    </div>
+  </div>
 
-/* ========== FALLBACK LOCAL (keystore localStorage) ========== */
-function fallbackInit(){
-  if(!localStorage.getItem(DB_KEY)){
-    const seed = {
-      user:{username:'admin',password:'admin',showWidgets:true,lang:'id'},
-      outlets:[{code:'OT-01',name:'Outlet Utama'}],
-      inventory:[
-        {code:'BRG-001',name:'Cat Tembok 10L',qty:12},
-        {code:'BRG-002',name:'Amplas 400',qty:30}
-      ],
-      receipts:[],
-      transfers:[]
-    };
-    localStorage.setItem(DB_KEY, JSON.stringify(seed));
-  }
-}
-function fallbackLoad(){ return JSON.parse(localStorage.getItem(DB_KEY)); }
-function fallbackSave(obj){ localStorage.setItem(DB_KEY, JSON.stringify(obj)); }
+  <script>
+    /* ========== CONFIG ========== */
+    const API_URL = "https://script.google.com/macros/s/AKfycbxeuTBzHypvDoASva600WAjXeLNR8WCQ57UhASBcNxloe44E1D0_XqY8S88_jVQ_pgF/exec";
+    const DB_KEY = 'whm.gs.fallback.v2';
 
-/* ========== API CALL (tries GET then POST) ========== */
-async function apiCall(action, payload=null){
-  // try GET when no payload (simple read)
-  try{
-    if(!payload){
-      const url = API_URL + '?action=' + encodeURIComponent(action);
-      const res = await fetch(url);
-      if(!res.ok) throw new Error('GET failed');
-      const data = await res.json();
-      return { ok:true, data };
-    } else {
-      const res = await fetch(API_URL, {
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({action, ...payload})
-      });
-      if(!res.ok) throw new Error('POST failed');
-      const data = await res.json();
-      return { ok:true, data };
+    /* ========== STATE ========== */
+    let db = {items:[], outlets:[], receipts:[], transfers:[], settings:[]};
+
+    /* ========== API HELPERS ========== */
+    async function api(action, payload={}) {
+      try {
+        const res = await fetch(API_URL, {
+          method:'POST',
+          body: JSON.stringify({action,...payload})
+        });
+        return await res.json();
+      } catch (err) {
+        console.error('API error, fallback:', err);
+        return {success:false,error:String(err)};
+      }
     }
-  }catch(err){
-    console.warn('API error', action, err);
-    return { ok:false, error:err.message };
-  }
-}
 
-/* ========== HIGH-LEVEL DB WRAPPERS ========== */
-async function dbGetAll(){
-  const r = await apiCall('getAll');
-  if(r.ok && r.data) return r.data;
-  fallbackInit(); return fallbackLoad();
-}
-async function dbGetInventory(){
-  const r = await apiCall('getInventory');
-  if(r.ok && r.data) return r.data;
-  fallbackInit(); return fallbackLoad().inventory;
-}
-async function dbGetOutlets(){
-  const r = await apiCall('getOutlets');
-  if(r.ok && r.data) return r.data;
-  fallbackInit(); return fallbackLoad().outlets;
-}
-async function dbGetTransactions(){
-  const r = await apiCall('getTransactions');
-  if(r.ok && r.data) return r.data;
-  fallbackInit(); const db = fallbackLoad();
-  return [...(db.receipts||[]).map(x=>({...x,type:'receipt'})), ...(db.transfers||[]).map(x=>({...x,type:'transfer'}))].sort((a,b)=>new Date(b.date)-new Date(a.date));
-}
+    /* ========== UI ========== */
+    function showView(view) {
+      const main = document.getElementById('main-view');
+      if (view==='items') renderItems(main);
+      else if (view==='outlets') renderOutlets(main);
+      else if (view==='receipts') renderReceipts(main);
+      else if (view==='transfers') renderTransfers(main);
+      else if (view==='settings') renderSettings(main);
+    }
 
-/* write operations -> attempt remote, fallback to local */
-async function dbAddItem_remote(it){ return await apiCall('addItem', it); }
-async function dbUpdateItem_remote(it){ return await apiCall('updateItem', it); }
-async function dbDeleteItem_remote(code){ return await apiCall('deleteItem', {code}); }
-async function dbAddOutlet_remote(o){ return await apiCall('addOutlet', o); }
-async function dbUpdateOutlet_remote(o){ return await apiCall('updateOutlet', o); }
-async function dbDeleteOutlet_remote(code){ return await apiCall('deleteOutlet', {code}); }
-async function dbAddReceipt_remote(r){ return await apiCall('addReceipt', r); }
-async function dbAddTransfer_remote(t){ return await apiCall('addTransfer', t); }
-async function dbSaveSettings_remote(user){ return await apiCall('saveSettings', {user}); }
+    function renderItems(el) {
+      el.innerHTML = `
+        <div class="card">
+          <h2>Items</h2>
+          <button class="btn-primary" onclick="openAddItem()">+ Add Item</button>
+          <table><thead><tr><th>Kode</th><th>Nama</th><th>Qty</th></tr></thead>
+          <tbody>${db.items.map(r=>`<tr><td>${r.Kode}</td><td>${r.Nama}</td><td>${r.Qty}</td></tr>`).join('')}</tbody></table>
+        </div>`;
+    }
+    function renderOutlets(el) {
+      el.innerHTML = `
+        <div class="card">
+          <h2>Outlets</h2>
+          <button class="btn-primary" onclick="openAddOutlet()">+ Add Outlet</button>
+          <table><thead><tr><th>Kode</th><th>Nama</th></tr></thead>
+          <tbody>${db.outlets.map(r=>`<tr><td>${r.Kode}</td><td>${r.Nama}</td></tr>`).join('')}</tbody></table>
+        </div>`;
+    }
+    function renderReceipts(el) {
+      el.innerHTML = `
+        <div class="card">
+          <h2>Receipts</h2>
+          <button class="btn-primary" onclick="openAddReceipt()">+ Add Receipt</button>
+          <table><thead><tr><th>ID</th><th>Tanggal</th><th>Kode</th><th>Nama</th><th>Qty</th></tr></thead>
+          <tbody>${db.receipts.map(r=>`<tr><td>${r.ID}</td><td>${r.Tanggal}</td><td>${r.Kode}</td><td>${r.Nama}</td><td>${r.Qty}</td></tr>`).join('')}</tbody></table>
+        </div>`;
+    }
+    function renderTransfers(el) {
+      el.innerHTML = `
+        <div class="card">
+          <h2>Transfers</h2>
+          <button class="btn-primary" onclick="openAddTransfer()">+ Add Transfer</button>
+          <table><thead><tr><th>ID</th><th>Tanggal</th><th>Kode</th><th>Nama</th><th>Qty</th><th>Outlet</th></tr></thead>
+          <tbody>${db.transfers.map(r=>`<tr><td>${r.ID}</td><td>${r.Tanggal}</td><td>${r.Kode}</td><td>${r.Nama}</td><td>${r.Qty}</td><td>${r.Outlet}</td></tr>`).join('')}</tbody></table>
+        </div>`;
+    }
+    function renderSettings(el) {
+      el.innerHTML = `
+        <div class="card">
+          <h2>Settings</h2>
+          <table><thead><tr><th>Username</th><th>Password</th><th>ShowWidgets</th><th>Lang</th></tr></thead>
+          <tbody>${db.settings.map(r=>`<tr><td>${r.Username}</td><td>${r.Password}</td><td>${r.ShowWidgets}</td><td>${r.Lang}</td></tr>`).join('')}</tbody></table>
+        </div>`;
+    }
 
-/* fallback write helpers */
-function fallbackAddItem(it){ const db=fallbackLoad(); db.inventory.push(it); fallbackSave(db); }
-function fallbackUpdateItem(it){ const db=fallbackLoad(); const i=db.inventory.findIndex(x=>x.code===it.code); if(i>=0) db.inventory[i]=it; fallbackSave(db); }
-function fallbackDeleteItem(code){ const db=fallbackLoad(); db.inventory=db.inventory.filter(x=>x.code!==code); fallbackSave(db); }
-function fallbackAddOutlet(o){ const db=fallbackLoad(); db.outlets.push(o); fallbackSave(db); }
-function fallbackUpdateOutlet(o){ const db=fallbackLoad(); const i=db.outlets.findIndex(x=>x.code===o.code); if(i>=0) db.outlets[i]=o; fallbackSave(db); }
-function fallbackDeleteOutlet(code){ const db=fallbackLoad(); db.outlets=db.outlets.filter(x=>x.code!==code); fallbackSave(db); }
-function fallbackAddReceipt(r){ const db=fallbackLoad(); db.receipts.push(r); const it=db.inventory.find(x=>x.code===r.code); if(it) it.qty = Number(it.qty||0)+Number(r.qty||0); fallbackSave(db); }
-function fallbackAddTransfer(t){ const db=fallbackLoad(); db.transfers.push(t); const it=db.inventory.find(x=>x.code===t.code); if(it) it.qty = Number(it.qty||0)-Number(t.qty||0); fallbackSave(db); }
+    /* ========== MODAL ========== */
+    function openModal(title,bodyHtml,onSave){
+      document.getElementById('modal-title').innerText=title;
+      document.getElementById('modal-body').innerHTML=bodyHtml;
+      document.getElementById('modal-save').onclick=async()=>{
+        await onSave();
+        closeModal();loadAll();
+      };
+      document.getElementById('modal').classList.add('show');
+    }
+    function closeModal(){document.getElementById('modal').classList.remove('show')}
 
-/* ========== UI & RENDER ========== */
-function showView(name){
-  const views=['dashboard','receipt','transfer','items','outlets','reports','settings'];
-  views.forEach(v=> {
-    const el = sel('view-'+v);
-    if(!el) return;
-    el.classList.toggle('hidden', v!==name);
-    document.querySelectorAll('#navList [data-view="'+v+'"]').forEach(a=> a.classList.toggle('active', v===name));
-  });
-  if(name==='dashboard') refreshWidgets();
-  if(name==='receipt') renderInventory();
-  if(name==='transfer'){ renderTransfers(); populateOutletSelect(); }
-  if(name==='items') renderItems();
-  if(name==='outlets') renderOutlets();
-  if(name==='reports'){ renderReports(); renderExpenses(); }
-  location.hash = name;
-}
+    /* ========== ADD FORMS ========== */
+    function openAddItem(){
+      openModal('Add Item',`
+        <input id="f-kode" placeholder="Kode" /><br><br>
+        <input id="f-nama" placeholder="Nama" /><br><br>
+        <input id="f-qty" placeholder="Qty" type="number" />`, async()=>{
+        await api('addItem',{Kode:fKode().value,Nama:fNama().value,Qty:fQty().value});
+      });
+    }
+    function openAddOutlet(){
+      openModal('Add Outlet',`
+        <input id="f-kode" placeholder="Kode" /><br><br>
+        <input id="f-nama" placeholder="Nama" />`, async()=>{
+        await api('addOutlet',{Kode:fKode().value,Nama:fNama().value});
+      });
+    }
+    function openAddReceipt(){
+      openModal('Add Receipt',`
+        <input id="f-id" placeholder="ID" /><br><br>
+        <input id="f-tanggal" type="date" /><br><br>
+        <input id="f-kode" placeholder="Kode" /><br><br>
+        <input id="f-nama" placeholder="Nama" /><br><br>
+        <input id="f-qty" type="number" placeholder="Qty" />`, async()=>{
+        await api('addReceipt',{ID:fId().value,Tanggal:fTanggal().value,Kode:fKode().value,Nama:fNama().value,Qty:fQty().value});
+      });
+    }
+    function openAddTransfer(){
+      openModal('Add Transfer',`
+        <input id="f-id" placeholder="ID" /><br><br>
+        <input id="f-tanggal" type="date" /><br><br>
+        <input id="f-kode" placeholder="Kode" /><br><br>
+        <input id="f-nama" placeholder="Nama" /><br><br>
+        <input id="f-qty" type="number" placeholder="Qty" /><br><br>
+        <input id="f-outlet" placeholder="Outlet" />`, async()=>{
+        await api('addTransfer',{ID:fId().value,Tanggal:fTanggal().value,Kode:fKode().value,Nama:fNama().value,Qty:fQty().value,Outlet:fOutlet().value});
+      });
+    }
 
-/* sidebar behavior */
-const menuToggle = sel('menuToggle'), sidebar = sel('sidebar');
-menuToggle.addEventListener('click', ()=> sidebar.classList.toggle('show'));
-document.addEventListener('click', (e)=>{ if(window.innerWidth < 900 && !sidebar.contains(e.target) && e.target !== menuToggle) sidebar.classList.remove('show'); });
-document.querySelectorAll('[data-toggle="sub"]').forEach(btn=> btn.addEventListener('click', (e)=>{ e.preventDefault(); btn.parentElement.classList.toggle('open'); }));
-document.getElementById('navList').addEventListener('click', e=>{ const a = e.target.closest('[data-view]'); if(!a) return; e.preventDefault(); if(window.innerWidth<900) sidebar.classList.remove('show'); showView(a.dataset.view); });
+    /* helpers */
+    const fId=()=>document.getElementById('f-id');
+    const fTanggal=()=>document.getElementById('f-tanggal');
+    const fKode=()=>document.getElementById('f-kode');
+    const fNama=()=>document.getElementById('f-nama');
+    const fQty=()=>document.getElementById('f-qty');
+    const fOutlet=()=>document.getElementById('f-outlet');
 
-/* Dashboard */
-async function refreshWidgets(){
-  const db = await dbGetAll();
-  const inv = db.inventory || [];
-  const receipts = db.receipts || [];
-  const transfers = db.transfers || [];
-  const outlets = db.outlets || [];
-  sel('wItems').textContent = inv.length;
-  sel('wStock').textContent = inv.reduce((s,i)=> s + Number(i.qty||0),0);
-  sel('wReceipts').textContent = receipts.length;
-  sel('wTransfers').textContent = transfers.length;
-  sel('wOutlets').textContent = outlets.length;
-  sel('wUsers').textContent = 1;
-  sel('currentUser').textContent = '👤 ' + (db.user && db.user.username ? db.user.username : 'admin');
-  sel('setUser').value = (db.user && db.user.username) || '';
-  sel('setWidgets').checked = db.user ? (db.user.showWidgets !== false) : true;
-  sel('lang').value = db.user ? (db.user.lang || 'id') : 'id';
-  sel('year').textContent = new Date().getFullYear();
-}
-
-/* Inventory / Receipt */
-async function renderInventory(){
-  const tbody = sel('tblInventory').querySelector('tbody'); tbody.innerHTML='';
-  const inv = await dbGetInventory();
-  inv.forEach((it,i)=>{
-    const tr = document.createElement('tr');
-    const bc = Number(it.qty) <=5 ? 'b-danger' : (Number(it.qty) < 15 ? 'b-warn' : 'b-ok');
-    tr.innerHTML = `<td>${i+1}</td><td>${it.code}</td><td>${it.name}</td><td><span class="badge ${bc}">${it.qty}</span></td>
-      <td><div class="tools"><button class="btn ghost" onclick="openEditItem('${it.code}')">Edit</button><button class="btn secondary" onclick="deleteItem('${it.code}')">Hapus</button></div></td>`;
-    tbody.appendChild(tr);
-  });
-}
-
-async function addReceipt(){
-  const code = sel('rcpCode').value.trim(), name = sel('rcpName').value.trim(), qty = Number(sel('rcpQty').value) || 0;
-  if(!code || !name || qty <= 0) return alert('Lengkapi data penerimaan.');
-  const payload = { id: uid(), date: new Date().toISOString(), code, name, qty };
-  const r = await dbAddReceipt_remote(payload);
-  if(!r.ok) fallbackAddReceipt(payload);
-  sel('rcpCode').value=''; sel('rcpName').value=''; sel('rcpQty').value=1;
-  await renderInventory(); await renderItems(); await refreshWidgets();
-}
-
-/* Transfers */
-async function populateOutletSelect(){
-  const selEl = sel('trfOutlet'); selEl.innerHTML='';
-  const outs = await dbGetOutlets();
-  outs.forEach(o => { const opt = document.createElement('option'); opt.value=o.code; opt.textContent = `${o.code} — ${o.name}`; selEl.appendChild(opt); });
-}
-
-async function addTransfer(){
-  const code = sel('trfCode').value.trim(), name = sel('trfName').value.trim(), qty = Number(sel('trfQty').value)||0, outlet = sel('trfOutlet').value;
-  if(!code||!name||qty<=0||!outlet) return alert('Lengkapi data transfer.');
-  const inv = await dbGetInventory(); const item = inv.find(x=>x.code===code);
-  if(!item || Number(item.qty) < qty) return alert('Stok tidak cukup atau barang belum ada.');
-  const transferObj = { id: uid(), date: new Date().toISOString(), code, name, qty, outlet };
-  const r = await dbAddTransfer_remote(transferObj);
-  if(!r.ok) fallbackAddTransfer(transferObj);
-  sel('trfCode').value=''; sel('trfName').value=''; sel('trfQty').value=1;
-  await renderTransfers(); await renderInventory(); await renderItems(); await refreshWidgets();
-}
-
-async function renderTransfers(){
-  const tbody = sel('tblTransfers').querySelector('tbody'); tbody.innerHTML='';
-  const rows = await dbGetTransactions();
-  const transfers = rows.filter(r=> r.type === 'transfer');
-  transfers.forEach((t,i)=>{
-    const tr = document.createElement('tr');
-    tr.innerHTML = `<td>${i+1}</td><td>${new Date(t.date).toLocaleString()}</td><td>${t.code}</td><td>${t.name}</td><td>${t.qty}</td><td>${t.outlet || '-'}</td>`;
-    tbody.appendChild(tr);
-  });
-}
-
-/* Items CRUD */
-async function renderItems(){
-  const tbody = sel('tblItems').querySelector('tbody'); tbody.innerHTML='';
-  const inv = await dbGetInventory();
-  inv.forEach((it,i)=>{
-    const tr = document.createElement('tr');
-    tr.innerHTML = `<td>${i+1}</td><td>${it.code}</td><td>${it.name}</td><td>${it.qty}</td>
-      <td><div class="tools"><button class="btn ghost" onclick="openEditItem('${it.code}')">Edit</button><button class="btn secondary" onclick="deleteItem('${it.code}')">Hapus</button></div></td>`;
-    tbody.appendChild(tr);
-  });
-}
-
-async function addItem(){
-  const code = sel('itCode').value.trim(), name = sel('itName').value.trim();
-  if(!code||!name) return alert('Isi kode dan nama.');
-  const item = { code, name, qty:0 };
-  const r = await dbAddItem_remote(item);
-  if(!r.ok) fallbackAddItem(item);
-  sel('itCode').value=''; sel('itName').value=''; await renderItems(); await renderInventory(); await refreshWidgets();
-}
-
-async function openEditItem(code){
-  const inv = await dbGetInventory(); const item = inv.find(x=>x.code===code);
-  if(!item) return alert('Item tidak ditemukan.');
-  showModal('Edit Barang', `
-    <div class="field"><label>Kode</label><input id="editCode" value="${item.code}" disabled></div>
-    <div class="field"><label>Nama</label><input id="editName" value="${(item.name+'').replace(/"/g,'&quot;')}"></div>
-    <div class="field"><label>Qty</label><input id="editQty" type="number" value="${item.qty}"></div>
-  `, async ()=>{
-    const it = { code, name: sel('editName').value.trim(), qty: Number(sel('editQty').value)||0 };
-    const r = await dbUpdateItem_remote(it);
-    if(!r.ok) fallbackUpdateItem(it);
-    closeModal(); await renderItems(); await renderInventory(); await refreshWidgets();
-  });
-}
-
-async function deleteItem(code){
-  if(!confirm('Hapus barang ini?')) return;
-  const r = await dbDeleteItem_remote(code);
-  if(!r.ok) fallbackDeleteItem(code);
-  await renderItems(); await renderInventory(); await refreshWidgets();
-}
-
-/* Outlets CRUD */
-async function renderOutlets(){
-  const tbody = sel('tblOutlets').querySelector('tbody'); tbody.innerHTML='';
-  const outs = await dbGetOutlets();
-  outs.forEach((o,i)=>{
-    const tr = document.createElement('tr');
-    tr.innerHTML = `<td>${i+1}</td><td>${o.code}</td><td>${o.name}</td><td><div class="tools"><button class="btn ghost" onclick="openEditOutlet('${o.code}')">Edit</button><button class="btn secondary" onclick="deleteOutlet('${o.code}')">Hapus</button></div></td>`;
-    tbody.appendChild(tr);
-  });
-}
-
-async function addOutlet(){ const code = sel('outCode').value.trim(), name = sel('outName').value.trim(); if(!code||!name) return alert('Isi kode & nama'); const o={code,name}; const r = await dbAddOutlet_remote(o); if(!r.ok) fallbackAddOutlet(o); sel('outCode').value=''; sel('outName').value=''; await renderOutlets(); await refreshWidgets(); populateOutletSelect(); }
-async function openEditOutlet(code){ const outs = await dbGetOutlets(); const o = outs.find(x=>x.code===code); if(!o) return alert('Not found'); showModal('Edit Outlet', `<div class="field"><label>Kode</label><input id="editOutCode" value="${o.code}" disabled></div><div class="field"><label>Nama</label><input id="editOutName" value="${(o.name+'').replace(/"/g,'&quot;')}"></div>`, async ()=>{ const up={code, name: sel('editOutName').value.trim()}; const r = await dbUpdateOutlet_remote(up); if(!r.ok) fallbackUpdateOutlet(up); closeModal(); await renderOutlets(); populateOutletSelect(); await refreshWidgets(); }); }
-async function deleteOutlet(code){ if(!confirm('Hapus outlet?')) return; const r = await dbDeleteOutlet_remote(code); if(!r.ok) fallbackDeleteOutlet(code); await renderOutlets(); populateOutletSelect(); await refreshWidgets(); }
-
-/* Reports */
-async function collectRows(){ return await dbGetTransactions(); }
-async function renderReports(){
-  const tbody = sel('tblReports').querySelector('tbody'); tbody.innerHTML='';
-  const rows = await collectRows();
-  const tf = sel('repType').value; const q = sel('repSearch').value.trim().toLowerCase();
-  let out = rows.filter(r=> tf==='all' ? true : r.type===tf);
-  if(q) out = out.filter(r=> (r.code+' '+r.name+' '+(r.outlet||'')).toLowerCase().includes(q));
-  out.forEach((r,i)=>{ const tr=document.createElement('tr'); tr.innerHTML = `<td>${i+1}</td><td>${new Date(r.date).toLocaleString()}</td><td>${r.type}</td><td>${r.code}</td><td>${r.name}</td><td>${r.qty}</td><td>${r.outlet||'-'}</td>`; tbody.appendChild(tr); });
-}
-async function renderExpenses(){ const tbody = sel('tblExpenses').querySelector('tbody'); tbody.innerHTML=''; const rows = await dbGetTransactions(); const agg={}; rows.filter(x=> x.type==='transfer').forEach(t=> agg[t.outlet] = (agg[t.outlet]||0) + Number(t.qty)); const outs = await dbGetOutlets(); outs.forEach(o=>{ const tr=document.createElement('tr'); tr.innerHTML=`<td>${o.code} — ${o.name}</td><td>${agg[o.code]||0}</td>`; tbody.appendChild(tr); }); }
-function exportCSV(){ const rows=[]; const headers=['Tanggal','Jenis','Kode','Nama','Qty','Outlet']; rows.push(headers.join(',')); sel('tblReports').querySelectorAll('tbody tr').forEach(tr=>{ const cols = Array.from(tr.children).slice(1).map(td=>escapeCSV(td.textContent.trim())); rows.push(cols.join(',')); }); const blob=new Blob([rows.join('\n')],{type:'text/csv'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='reports.csv'; a.click(); URL.revokeObjectURL(url); }
-
-/* Settings */
-async function saveSettings(){
-  const dbAll = await dbGetAll();
-  const u = sel('setUser').value.trim(); const p = sel('setPass').value;
-  dbAll.user = dbAll.user || {};
-  if(u) dbAll.user.username = u;
-  if(p) dbAll.user.password = p;
-  dbAll.user.showWidgets = sel('setWidgets').checked;
-  dbAll.user.lang = sel('lang').value;
-  const r = await dbSaveSettings_remote(dbAll.user);
-  if(!r.ok){ fallbackInit(); const local=fallbackLoad(); local.user = dbAll.user; fallbackSave(local); }
-  sel('saveNote').textContent = 'Disimpan.'; await refreshWidgets();
-}
-
-/* Modal helpers */
-function showModal(title, html, onSave){ sel('modal').classList.remove('hidden'); sel('modalTitle').textContent = title; sel('modalBody').innerHTML = html; sel('modalSave').onclick = onSave; }
-function closeModal(){ sel('modal').classList.add('hidden'); sel('modalBody').innerHTML=''; sel('modalSave').onclick = null; }
-
-/* Init */
-async function init(){
-  fallbackInit();
-  await refreshWidgets();
-  await renderInventory();
-  await renderItems();
-  await renderOutlets();
-  await renderTransfers();
-  await renderReports();
-  await renderExpenses();
-  await populateOutletSelect();
-  const hash = (location.hash || '#dashboard').replace('#',''); showView(hash);
-  sel('repType').addEventListener('change', renderReports); sel('repSearch').addEventListener('input', renderReports);
-  sel('lang').addEventListener('change', (e)=>{ (async ()=>{ const db=fallbackLoad(); db.user = db.user || {}; db.user.lang = e.target.value; fallbackSave(db); })(); });
-  document.querySelectorAll('#navList [data-view]').forEach(a=> a.addEventListener('click', ()=>{ if(window.innerWidth<900) sidebar.classList.remove('show'); }));
-  sel('year').textContent = new Date().getFullYear();
-}
-window.addEventListener('load', init);
-</script>
-
+    /* ========== INIT ========== */
+    async function loadAll(){
+      const res = await api('getAll');
+      if(res.success) db=res.data;
+      showView('items');
+    }
+    loadAll();
+  </script>
 </body>
 </html>
