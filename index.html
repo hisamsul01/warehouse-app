@@ -1,113 +1,90 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8">
-  <title>📦 Sistem Manajemen Gudang</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Warehouse Manager — Full (Google Sheets)</title>
+
   <!-- TailwindCSS -->
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gray-100 text-gray-900 flex transition-colors duration-300">
-
-  <!-- Sidebar -->
-  <aside class="w-64 bg-blue-700 text-white min-h-screen flex flex-col">
-    <div class="p-6 text-2xl font-bold border-b border-blue-500">
-      Warehouse
-    </div>
-    <nav class="flex-1 p-4 space-y-2">
-      <a href="#terima" class="flex items-center gap-2 p-2 rounded-lg hover:bg-blue-600">📥 <span>Terima Barang</span></a>
-      <a href="#pindah" class="flex items-center gap-2 p-2 rounded-lg hover:bg-blue-600">🔄 <span>Pemindahan</span></a>
-      <a href="#master" class="flex items-center gap-2 p-2 rounded-lg hover:bg-blue-600">📊 <span>Master Data</span></a>
-      <div>
-        <button onclick="toggleMenu('outletMenu', 'outletArrow')" 
-                class="w-full flex justify-between items-center p-2 rounded-lg hover:bg-blue-600">
-          <span class="flex items-center gap-2">🏪 Outlet</span>
-          <span id="outletArrow" class="transform transition-transform">▶</span>
+<body class="bg-gray-100 font-sans">
+  <div class="flex h-screen">
+    <!-- Sidebar -->
+    <aside class="w-64 bg-indigo-700 text-white flex flex-col">
+      <div class="p-4 text-xl font-bold">📦 Warehouse</div>
+      <nav class="flex-1 px-2 space-y-2">
+        <button onclick="showPage('dashboard')" class="w-full text-left px-4 py-2 rounded hover:bg-indigo-600">📊 Dashboard</button>
+        <button onclick="toggleMenu('menuBarang','arrowBarang')" class="w-full flex justify-between items-center px-4 py-2 rounded hover:bg-indigo-600">
+          📦 Barang <span id="arrowBarang">▶</span>
         </button>
-        <div id="outletMenu" class="ml-6 hidden space-y-2 mt-2">
-          <a href="#outlet-tambah" class="block p-2 rounded hover:bg-blue-600">➕ Tambah Outlet</a>
-          <a href="#outlet-daftar" class="block p-2 rounded hover:bg-blue-600">📋 Daftar Outlet</a>
+        <div id="menuBarang" class="ml-4 hidden">
+          <button onclick="showPage('terima')" class="block px-4 py-2 hover:bg-indigo-600 w-full text-left">➕ Terima Barang</button>
+          <button onclick="showPage('keluar')" class="block px-4 py-2 hover:bg-indigo-600 w-full text-left">➖ Barang Keluar</button>
+          <button onclick="showPage('stok')" class="block px-4 py-2 hover:bg-indigo-600 w-full text-left">📦 Data Stok</button>
         </div>
-      </div>
-      <div>
-        <button onclick="toggleMenu('adminMenu', 'adminArrow')" 
-                class="w-full flex justify-between items-center p-2 rounded-lg hover:bg-blue-600">
-          <span class="flex items-center gap-2">👤 Admin</span>
-          <span id="adminArrow" class="transform transition-transform">▶</span>
-        </button>
-        <div id="adminMenu" class="ml-6 hidden space-y-2 mt-2">
-          <a href="#admin-tambah" class="block p-2 rounded hover:bg-blue-600">➕ Tambah User</a>
-          <a href="#admin-daftar" class="block p-2 rounded hover:bg-blue-600">📋 Daftar User</a>
-        </div>
-      </div>
-      <a href="#pengaturan" class="flex items-center gap-2 p-2 rounded-lg hover:bg-blue-600">⚙️ <span>Pengaturan</span></a>
-    </nav>
-    <div class="p-4 border-t border-blue-500 text-sm flex justify-between items-center">
-      © 2025 WMS
-      <button id="themeToggle" class="ml-2 bg-gray-800 text-white px-2 py-1 rounded">🌙</button>
-    </div>
-  </aside>
+        <button onclick="showPage('laporan')" class="w-full text-left px-4 py-2 rounded hover:bg-indigo-600">📑 Laporan</button>
+        <button onclick="showPage('pengaturan')" class="w-full text-left px-4 py-2 rounded hover:bg-indigo-600">⚙️ Pengaturan</button>
+      </nav>
+    </aside>
 
-  <!-- Konten -->
-  <main class="flex-1 p-8 space-y-12 overflow-y-auto">
+    <!-- Main Content -->
+    <main class="flex-1 p-6 overflow-y-auto">
+      <!-- Dashboard -->
+      <section id="dashboard" class="page">
+        <h1 class="text-2xl font-bold mb-4">📊 Dashboard</h1>
+        <p>Selamat datang di sistem manajemen gudang.</p>
+      </section>
 
-    <!-- 📥 Terima Barang -->
-    <section id="terima" class="bg-white dark:bg-gray-800 dark:text-gray-100 p-6 rounded-xl shadow-md">
-      <h2 class="text-xl font-semibold mb-4">📥 Terima Barang</h2>
-      <form id="formTerima" class="grid gap-4 max-w-md">
-        <input type="text" id="kodeTerima" placeholder="Kode Barang" class="border p-2 rounded">
-        <input type="text" id="namaTerima" placeholder="Nama Barang" class="border p-2 rounded">
-        <input type="number" id="jumlahTerima" placeholder="Jumlah" class="border p-2 rounded">
-        <button type="submit" class="bg-blue-600 text-white py-2 rounded">Simpan</button>
-      </form>
-    </section>
+      <!-- Terima Barang -->
+      <section id="terima" class="page hidden">
+        <h1 class="text-2xl font-bold mb-4">➕ Terima Barang</h1>
+        <form id="formTerima" class="space-y-4 bg-white p-4 rounded shadow">
+          <input type="text" id="kodeTerima" placeholder="Kode Barang" class="w-full p-2 border rounded" required>
+          <input type="text" id="namaTerima" placeholder="Nama Barang" class="w-full p-2 border rounded" required>
+          <input type="number" id="jumlahTerima" placeholder="Jumlah" class="w-full p-2 border rounded" required>
+          <button type="submit" class="bg-green-500 text-white px-4 py-2 rounded">Simpan</button>
+        </form>
+      </section>
 
-    <!-- 🔄 Pemindahan Barang -->
-    <section id="pindah" class="bg-white dark:bg-gray-800 dark:text-gray-100 p-6 rounded-xl shadow-md">
-      <h2 class="text-xl font-semibold mb-4">🔄 Pemindahan Barang</h2>
-      <form id="formPindah" class="grid gap-4 max-w-md">
-        <input type="text" id="kodeBarang" placeholder="Kode Barang" class="border p-2 rounded">
-        <input type="text" id="namaBarang" placeholder="Nama Barang (otomatis)" class="border p-2 rounded bg-gray-100" readonly>
-        <input type="number" id="jumlahPindah" placeholder="Jumlah" class="border p-2 rounded">
-        <select id="outletPindah" class="border p-2 rounded">
-          <option value="">Pilih Outlet</option>
-          <option value="OUT001">OUT001 - Outlet Jakarta</option>
-          <option value="OUT002">OUT002 - Outlet Bandung</option>
-        </select>
-        <button type="submit" class="bg-blue-600 text-white py-2 rounded">Proses</button>
-      </form>
-    </section>
+      <!-- Barang Keluar -->
+      <section id="keluar" class="page hidden">
+        <h1 class="text-2xl font-bold mb-4">➖ Barang Keluar</h1>
+        <form id="formKeluar" class="space-y-4 bg-white p-4 rounded shadow">
+          <input type="text" id="kodeKeluar" placeholder="Kode Barang" class="w-full p-2 border rounded" required>
+          <input type="number" id="jumlahKeluar" placeholder="Jumlah Keluar" class="w-full p-2 border rounded" required>
+          <button type="submit" class="bg-red-500 text-white px-4 py-2 rounded">Keluarkan</button>
+        </form>
+      </section>
 
-    <!-- 📊 Master Data -->
-    <section id="master" class="bg-white dark:bg-gray-800 dark:text-gray-100 p-6 rounded-xl shadow-md">
-      <h2 class="text-xl font-semibold mb-4">📊 Master Data Barang</h2>
-      <table id="masterTable" class="w-full border text-left">
-        <thead class="bg-gray-200 dark:bg-gray-700">
-          <tr>
-            <th class="p-2 border">Kode</th>
-            <th class="p-2 border">Nama Barang</th>
-            <th class="p-2 border">Jumlah</th>
-            <th class="p-2 border">Aksi</th>
-          </tr>
-        </thead>
-        <tbody id="masterBody"></tbody>
-      </table>
-    </section>
+      <!-- Data Stok -->
+      <section id="stok" class="page hidden">
+        <h1 class="text-2xl font-bold mb-4">📦 Data Stok Barang</h1>
+        <table class="w-full bg-white rounded shadow">
+          <thead>
+            <tr class="bg-gray-200">
+              <th class="p-2 text-left">Kode</th>
+              <th class="p-2 text-left">Nama</th>
+              <th class="p-2 text-left">Jumlah</th>
+            </tr>
+          </thead>
+          <tbody id="masterBody"></tbody>
+        </table>
+      </section>
 
-    <!-- ⚙️ Pengaturan -->
-    <section id="pengaturan" class="bg-white dark:bg-gray-800 dark:text-gray-100 p-6 rounded-xl shadow-md">
-      <h2 class="text-xl font-semibold mb-4">⚙️ Pengaturan</h2>
-      <form class="grid gap-4 max-w-md">
-        <select class="border p-2 rounded">
-          <option>Pilih Tema</option>
-          <option>Terang</option>
-          <option>Gelap</option>
-        </select>
-        <button type="submit" class="bg-blue-600 text-white py-2 rounded">Simpan</button>
-      </form>
-    </section>
+      <!-- Laporan -->
+      <section id="laporan" class="page hidden">
+        <h1 class="text-2xl font-bold mb-4">📑 Laporan</h1>
+        <p>Fitur laporan dalam pengembangan.</p>
+      </section>
 
-  </main>
+      <!-- Pengaturan -->
+      <section id="pengaturan" class="page hidden">
+        <h1 class="text-2xl font-bold mb-4">⚙️ Pengaturan</h1>
+        <p>Pengaturan sistem di sini.</p>
+      </section>
+    </main>
+  </div>
 
   <!-- Toast Notification -->
   <div id="toastContainer" class="fixed top-4 right-4 space-y-2 z-50"></div>
@@ -124,54 +101,41 @@
       arrow.classList.toggle("rotate-90");
     }
 
-    // ===== Database Barang =====
-    let barangDB = {};
+    // Navigasi antar halaman
+    function showPage(pageId) {
+      document.querySelectorAll(".page").forEach(p => p.classList.add("hidden"));
+      document.getElementById(pageId).classList.remove("hidden");
+    }
 
+    // Toast
+    function showToast(message, type="success") {
+      const container = document.getElementById("toastContainer");
+      const toast = document.createElement("div");
+      toast.className = `px-4 py-2 rounded shadow text-white ${type==="success"?"bg-green-500":"bg-red-500"}`;
+      toast.textContent = message;
+      container.appendChild(toast);
+      setTimeout(()=>toast.remove(),3000);
+    }
+
+    // Load Master Data dari Spreadsheet
     async function loadBarang() {
-      const res = await fetch(`${API_URL}?action=getBarang`);
-      barangDB = await res.json();
-      renderMasterData();
-    }
-
-    // Render Master Data
-    function renderMasterData() {
-      const body = document.getElementById("masterBody");
-      body.innerHTML = "";
-      Object.keys(barangDB).forEach(kode => {
-        const row = document.createElement("tr");
-        row.innerHTML = `
-          <td class="p-2 border">${kode}</td>
-          <td class="p-2 border">${barangDB[kode].nama}</td>
-          <td class="p-2 border">${barangDB[kode].jumlah}</td>
-          <td class="p-2 border space-x-2">
-            <button onclick="editBarang('${kode}')" class="bg-yellow-500 text-white px-2 py-1 rounded">Edit</button>
-            <button onclick="hapusBarang('${kode}')" class="bg-red-600 text-white px-2 py-1 rounded">Hapus</button>
-          </td>
-        `;
-        body.appendChild(row);
-      });
-    }
-
-    // Edit Barang
-    function editBarang(kode) {
-      const barang = barangDB[kode];
-      const namaBaru = prompt("Edit Nama Barang:", barang.nama);
-      const jumlahBaru = prompt("Edit Jumlah Barang:", barang.jumlah);
-      if (namaBaru && jumlahBaru) {
-        // TODO: update ke Spreadsheet (belum diimplementasi)
-        barangDB[kode] = { nama: namaBaru, jumlah: parseInt(jumlahBaru) };
-        renderMasterData();
-        showToast("Barang berhasil diupdate ✏️");
-      }
-    }
-
-    // Hapus Barang
-    function hapusBarang(kode) {
-      if (confirm(`Hapus barang ${kode}?`)) {
-        // TODO: hapus di Spreadsheet (belum diimplementasi)
-        delete barangDB[kode];
-        renderMasterData();
-        showToast("Barang berhasil dihapus 🗑️", "error");
+      try {
+        const res = await fetch(`${API_URL}?action=getBarang`);
+        const data = await res.json();
+        const body = document.getElementById("masterBody");
+        body.innerHTML = "";
+        data.forEach(item => {
+          const row = document.createElement("tr");
+          row.innerHTML = `
+            <td class="p-2">${item.kode}</td>
+            <td class="p-2">${item.nama}</td>
+            <td class="p-2">${item.jumlah}</td>
+          `;
+          body.appendChild(row);
+        });
+      } catch(err) {
+        console.error(err);
+        showToast("Gagal memuat data ❌", "error");
       }
     }
 
@@ -187,7 +151,6 @@
         return;
       }
 
-      // Kirim ke Spreadsheet
       await fetch(API_URL, {
         method: "POST",
         body: JSON.stringify({ action: "tambahBarang", kode, nama, jumlah }),
@@ -196,81 +159,33 @@
 
       showToast("Barang berhasil diterima ✅");
       this.reset();
-      loadBarang(); // refresh data dari sheet
+      loadBarang();
     });
 
-    // ===== Form Pemindahan Barang =====
-    document.getElementById("kodeBarang").addEventListener("input", function() {
-      let kode = this.value.trim().toUpperCase();
-      let namaInput = document.getElementById("namaBarang");
-      namaInput.value = barangDB[kode] ? barangDB[kode].nama : "";
-    });
-
-    document.getElementById("formPindah").addEventListener("submit", function(e) {
+    // ===== Form Barang Keluar =====
+    document.getElementById("formKeluar").addEventListener("submit", async function(e) {
       e.preventDefault();
-      let kode = document.getElementById("kodeBarang").value.trim().toUpperCase();
-      let jumlah = parseInt(document.getElementById("jumlahPindah").value);
-      let outlet = document.getElementById("outletPindah").value;
-      if (!kode || !jumlah || !outlet) {
+      let kode = document.getElementById("kodeKeluar").value.trim().toUpperCase();
+      let jumlah = parseInt(document.getElementById("jumlahKeluar").value);
+
+      if (!kode || !jumlah) {
         showToast("Lengkapi semua data ❌", "error");
         return;
       }
-      if (!barangDB[kode] || barangDB[kode].jumlah < jumlah) {
-        showToast("Stok tidak cukup ❌", "error");
-        return;
-      }
-      // TODO: update ke Spreadsheet (belum diimplementasi)
-      barangDB[kode].jumlah -= jumlah;
-      renderMasterData();
-      showToast("Pemindahan barang berhasil 🚚");
+
+      await fetch(API_URL, {
+        method: "POST",
+        body: JSON.stringify({ action: "keluarBarang", kode, jumlah }),
+        headers: { "Content-Type": "application/json" }
+      });
+
+      showToast("Barang berhasil dikeluarkan ✅");
       this.reset();
+      loadBarang();
     });
 
-    // ===== Toast Notification =====
-    function showToast(message, type = "success") {
-      const container = document.getElementById("toastContainer");
-      const toast = document.createElement("div");
-      toast.className = `px-4 py-2 rounded shadow text-white ${
-        type === "success" ? "bg-green-600" : "bg-red-600"
-      } animate-fadeIn`;
-      toast.innerText = message;
-      container.appendChild(toast);
-      setTimeout(() => {
-        toast.classList.add("opacity-0", "transition-opacity", "duration-500");
-        setTimeout(() => toast.remove(), 500);
-      }, 3000);
-    }
-
-    // ===== Mode Gelap/Terang =====
-    const themeToggle = document.getElementById("themeToggle");
-    const body = document.body;
-    if (localStorage.getItem("theme") === "dark") {
-      body.classList.add("dark", "bg-gray-900", "text-white");
-      themeToggle.textContent = "☀️";
-    }
-    themeToggle.addEventListener("click", () => {
-      body.classList.toggle("dark");
-      if (body.classList.contains("dark")) {
-        localStorage.setItem("theme", "dark");
-        themeToggle.textContent = "☀️";
-        body.classList.add("bg-gray-900", "text-white");
-      } else {
-        localStorage.setItem("theme", "light");
-        themeToggle.textContent = "🌙";
-        body.classList.remove("bg-gray-900", "text-white");
-      }
-    });
-
-    // Render awal master data
+    // Load awal
     loadBarang();
   </script>
-
-  <style>
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(-10px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-    .animate-fadeIn { animation: fadeIn 0.3s ease-out; }
-  </style>
 </body>
 </html>
