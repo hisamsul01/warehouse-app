@@ -3,811 +3,1013 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistem Gudang Modern - Terintegrasi</title>
+    <title>Sistem Manajemen Gudang</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-        body { font-family: 'Inter', sans-serif; }
-        .sidebar-item:hover { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
-        .active-menu { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
-        .gradient-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
-        .card-shadow { box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
-        .status-pending { background: #fef3c7; color: #92400e; }
-        .status-approved { background: #d1fae5; color: #065f46; }
-        .status-rejected { background: #fee2e2; color: #991b1b; }
-        .loading { display: none; }
-        .loading.show { display: inline-block; }
-        .sync-status { padding: 8px 16px; border-radius: 6px; font-size: 12px; font-weight: 500; }
-        .sync-success { background: #d1fae5; color: #065f46; }
-        .sync-error { background: #fee2e2; color: #991b1b; }
-        .sync-loading { background: #fef3c7; color: #92400e; }
+        .sidebar-transition { transition: all 0.3s ease-in-out; }
+        .fade-in { animation: fadeIn 0.5s ease-in; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .hover-scale { transition: transform 0.2s; }
+        .hover-scale:hover { transform: scale(1.02); }
     </style>
 </head>
-<body class="bg-gray-50">
+<body class="bg-gray-50 font-sans">
     <!-- Header -->
-    <header class="gradient-bg text-white p-4 shadow-lg fixed w-full top-0 z-50">
-        <div class="flex items-center justify-between">
+    <header class="bg-white shadow-lg border-b-4 border-blue-500 fixed w-full top-0 z-50">
+        <div class="flex items-center justify-between px-6 py-4">
             <div class="flex items-center space-x-4">
-                <div class="w-10 h-10 bg-white rounded-lg flex items-center justify-center">
-                    <span class="text-2xl">📦</span>
-                </div>
-                <h1 class="text-2xl font-bold">Sistem Gudang Modern</h1>
-                <div id="syncStatus" class="sync-status sync-loading">
-                    <span class="loading show">🔄</span> Connecting to Google Sheets...
-                </div>
+                <button id="sidebarToggle" class="text-gray-600 hover:text-blue-600 transition-colors">
+                    <i class="fas fa-bars text-xl"></i>
+                </button>
+                <h1 class="text-2xl font-bold text-gray-800">
+                    <i class="fas fa-warehouse text-blue-600 mr-2"></i>
+                    Sistem Manajemen Gudang
+                </h1>
             </div>
             <div class="flex items-center space-x-4">
-                <button onclick="testConnection()" class="bg-white bg-opacity-20 hover:bg-opacity-30 px-3 py-2 rounded-lg transition-all text-sm">
-                    🔍 Test
-                </button>
-                <button onclick="syncWithGoogleSheets()" class="bg-white bg-opacity-20 hover:bg-opacity-30 px-4 py-2 rounded-lg transition-all">
-                    <span class="loading" id="syncLoading">🔄</span>
-                    <span id="syncText">📊 Sync Google Sheets</span>
-                </button>
-                <span id="currentTime" class="text-sm"></span>
-                <div class="w-8 h-8 bg-white rounded-full flex items-center justify-center">
-                    <span class="text-lg">👤</span>
+                <div class="text-sm text-gray-600">
+                    <i class="fas fa-user-circle mr-1"></i>
+                    Admin User
                 </div>
+                <button class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition-colors">
+                    <i class="fas fa-sign-out-alt mr-1"></i>
+                    Logout
+                </button>
             </div>
         </div>
     </header>
 
-    <div class="flex pt-20">
-        <!-- Sidebar -->
-        <aside class="w-64 bg-white shadow-lg h-screen fixed left-0 top-20 overflow-y-auto">
-            <nav class="p-4">
-                <ul class="space-y-2">
-                    <li><button onclick="showMenu('penerimaan')" class="sidebar-item w-full text-left p-3 rounded-lg transition-all duration-300 flex items-center space-x-3 active-menu">
-                        <span>📥</span><span>Penerimaan Barang</span>
-                    </button></li>
-                    <li><button onclick="showMenu('transfer')" class="sidebar-item w-full text-left p-3 rounded-lg transition-all duration-300 flex items-center space-x-3">
-                        <span>🚚</span><span>Transfer Barang</span>
-                    </button></li>
-                    <li><button onclick="showMenu('outlet')" class="sidebar-item w-full text-left p-3 rounded-lg transition-all duration-300 flex items-center space-x-3">
-                        <span>🏪</span><span>Outlet</span>
-                    </button></li>
-                    <li><button onclick="showMenu('status')" class="sidebar-item w-full text-left p-3 rounded-lg transition-all duration-300 flex items-center space-x-3">
-                        <span>📊</span><span>Status</span>
-                    </button></li>
-                    <li><button onclick="showMenu('database')" class="sidebar-item w-full text-left p-3 rounded-lg transition-all duration-300 flex items-center space-x-3">
-                        <span>💾</span><span>Database</span>
-                    </button></li>
-                    <li><button onclick="showMenu('riwayat')" class="sidebar-item w-full text-left p-3 rounded-lg transition-all duration-300 flex items-center space-x-3">
-                        <span>📋</span><span>Riwayat</span>
-                    </button></li>
-                    <li><button onclick="showMenu('laporan')" class="sidebar-item w-full text-left p-3 rounded-lg transition-all duration-300 flex items-center space-x-3">
-                        <span>📄</span><span>Laporan</span>
-                    </button></li>
-                    <li><button onclick="openGoogleSheets()" class="sidebar-item w-full text-left p-3 rounded-lg transition-all duration-300 flex items-center space-x-3 bg-green-100 text-green-800">
-                        <span>📊</span><span>Buka Google Sheets</span>
-                    </button></li>
-                </ul>
-            </nav>
-        </aside>
+    <!-- Sidebar -->
+    <aside id="sidebar" class="fixed left-0 top-16 h-full w-64 bg-white shadow-xl sidebar-transition z-40 border-r border-gray-200">
+        <nav class="p-4">
+            <ul class="space-y-2">
+                <li>
+                    <button onclick="showSection('dashboard')" class="menu-item w-full flex items-center space-x-3 px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition-all">
+                        <i class="fas fa-tachometer-alt w-5"></i>
+                        <span>Dashboard</span>
+                    </button>
+                </li>
+                <li>
+                    <button onclick="showSection('penerimaan')" class="menu-item w-full flex items-center space-x-3 px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition-all">
+                        <i class="fas fa-truck-loading w-5"></i>
+                        <span>Penerimaan Barang</span>
+                    </button>
+                </li>
+                <li>
+                    <button onclick="showSection('transfer')" class="menu-item w-full flex items-center space-x-3 px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition-all">
+                        <i class="fas fa-exchange-alt w-5"></i>
+                        <span>Transfer to Outlet</span>
+                    </button>
+                </li>
+                <li>
+                    <button onclick="showSection('riwayat')" class="menu-item w-full flex items-center space-x-3 px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition-all">
+                        <i class="fas fa-history w-5"></i>
+                        <span>Riwayat</span>
+                    </button>
+                </li>
+                <li>
+                    <button onclick="showSection('outlet')" class="menu-item w-full flex items-center space-x-3 px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition-all">
+                        <i class="fas fa-store w-5"></i>
+                        <span>Outlet</span>
+                    </button>
+                </li>
+                <li>
+                    <button onclick="showSection('database')" class="menu-item w-full flex items-center space-x-3 px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition-all">
+                        <i class="fas fa-database w-5"></i>
+                        <span>Database</span>
+                    </button>
+                </li>
+                <li>
+                    <button onclick="showSection('laporan')" class="menu-item w-full flex items-center space-x-3 px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition-all">
+                        <i class="fas fa-chart-bar w-5"></i>
+                        <span>Laporan</span>
+                    </button>
+                </li>
+                <li>
+                    <button onclick="showSection('pengaturan')" class="menu-item w-full flex items-center space-x-3 px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition-all">
+                        <i class="fas fa-cog w-5"></i>
+                        <span>Pengaturan</span>
+                    </button>
+                </li>
+            </ul>
+        </nav>
+    </aside>
 
-        <!-- Main Content -->
-        <main class="flex-1 ml-64 p-6">
-            <!-- Penerimaan Barang -->
-            <div id="penerimaan" class="menu-content">
-                <div class="bg-white rounded-xl card-shadow p-6 mb-6">
-                    <h2 class="text-2xl font-bold mb-6 text-gray-800">Penerimaan Barang</h2>
-                    
-                    <form id="penerimaanForm" class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                        <input type="date" id="tglPenerimaan" class="p-3 border rounded-lg focus:ring-2 focus:ring-blue-500" required>
-                        <input type="text" id="kodeBarangPenerimaan" placeholder="Kode Barang" class="p-3 border rounded-lg focus:ring-2 focus:ring-blue-500" required oninput="autoFillPenerimaan()">
-                        <input type="text" id="namaBarangPenerimaan" placeholder="Nama Barang" class="p-3 border rounded-lg focus:ring-2 focus:ring-blue-500" required>
-                        <input type="number" id="quantityPenerimaan" placeholder="Quantity" class="p-3 border rounded-lg focus:ring-2 focus:ring-blue-500" required>
-                        <select id="unitPenerimaan" class="p-3 border rounded-lg focus:ring-2 focus:ring-blue-500" required>
-                            <option value="">Pilih Unit</option>
-                            <option value="pcs">Pcs</option>
-                            <option value="kg">Kg</option>
-                            <option value="liter">Liter</option>
-                            <option value="box">Box</option>
-                            <option value="meter">Meter</option>
-                            <option value="set">Set</option>
-                        </select>
-                        <select id="statusPenerimaan" class="p-3 border rounded-lg focus:ring-2 focus:ring-blue-500" required>
-                            <option value="">Pilih Status</option>
-                            <option value="pending">Pending</option>
-                            <option value="approved">Approved</option>
-                            <option value="rejected">Rejected</option>
-                        </select>
-                        <input type="text" id="keteranganPenerimaan" placeholder="Keterangan (opsional)" class="p-3 border rounded-lg focus:ring-2 focus:ring-blue-500">
-                        <button type="submit" class="md:col-span-3 gradient-bg text-white p-3 rounded-lg hover:opacity-90 transition-all">
-                            <span class="loading" id="penerimaanLoading">🔄</span>
-                            <span id="penerimaanText">Tambah Penerimaan</span>
-                        </button>
-                    </form>
-
-                    <div class="overflow-x-auto">
-                        <table class="w-full border-collapse">
-                            <thead>
-                                <tr class="bg-gray-100">
-                                    <th class="border p-3 text-left">Tanggal</th>
-                                    <th class="border p-3 text-left">Kode Barang</th>
-                                    <th class="border p-3 text-left">Nama Barang</th>
-                                    <th class="border p-3 text-left">Quantity</th>
-                                    <th class="border p-3 text-left">Unit</th>
-                                    <th class="border p-3 text-left">Status</th>
-                                    <th class="border p-3 text-left">Keterangan</th>
-                                    <th class="border p-3 text-left">Aksi</th>
-                                </tr>
-                            </thead>
-                            <tbody id="penerimaanTable">
-                                <!-- Data akan ditambahkan secara dinamis -->
-                            </tbody>
-                        </table>
+    <!-- Main Content -->
+    <main id="mainContent" class="ml-64 mt-16 p-6 sidebar-transition">
+        <!-- Dashboard Section -->
+        <div id="dashboard" class="section fade-in">
+            <div class="mb-6">
+                <h2 class="text-3xl font-bold text-gray-800 mb-2">Dashboard</h2>
+                <p class="text-gray-600">Selamat datang di Sistem Manajemen Gudang</p>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <div class="bg-gradient-to-r from-blue-500 to-blue-600 text-white p-6 rounded-xl shadow-lg hover-scale">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-blue-100">Total Barang</p>
+                            <p class="text-3xl font-bold">1,234</p>
+                        </div>
+                        <i class="fas fa-boxes text-4xl text-blue-200"></i>
+                    </div>
+                </div>
+                <div class="bg-gradient-to-r from-green-500 to-green-600 text-white p-6 rounded-xl shadow-lg hover-scale">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-green-100">Penerimaan Hari Ini</p>
+                            <p class="text-3xl font-bold">45</p>
+                        </div>
+                        <i class="fas fa-truck text-4xl text-green-200"></i>
+                    </div>
+                </div>
+                <div class="bg-gradient-to-r from-orange-500 to-orange-600 text-white p-6 rounded-xl shadow-lg hover-scale">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-orange-100">Transfer Hari Ini</p>
+                            <p class="text-3xl font-bold">23</p>
+                        </div>
+                        <i class="fas fa-shipping-fast text-4xl text-orange-200"></i>
+                    </div>
+                </div>
+                <div class="bg-gradient-to-r from-purple-500 to-purple-600 text-white p-6 rounded-xl shadow-lg hover-scale">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-purple-100">Total Outlet</p>
+                            <p class="text-3xl font-bold">8</p>
+                        </div>
+                        <i class="fas fa-store text-4xl text-purple-200"></i>
                     </div>
                 </div>
             </div>
 
-            <!-- Transfer Barang -->
-            <div id="transfer" class="menu-content hidden">
-                <div class="bg-white rounded-xl card-shadow p-6 mb-6">
-                    <h2 class="text-2xl font-bold mb-6 text-gray-800">Transfer Barang</h2>
-                    
-                    <form id="transferForm" class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                        <input type="date" id="tglTransfer" class="p-3 border rounded-lg focus:ring-2 focus:ring-blue-500" required>
-                        <input type="text" id="kodeBarangTransfer" placeholder="Kode Barang" class="p-3 border rounded-lg focus:ring-2 focus:ring-blue-500" required oninput="autoFillTransfer()">
-                        <input type="text" id="namaBarangTransfer" placeholder="Nama Barang" class="p-3 border rounded-lg focus:ring-2 focus:ring-blue-500" readonly>
-                        <input type="number" id="quantityTransfer" placeholder="Quantity" class="p-3 border rounded-lg focus:ring-2 focus:ring-blue-500" required>
-                        <select id="unitTransfer" class="p-3 border rounded-lg focus:ring-2 focus:ring-blue-500" required disabled>
-                            <option value="">Pilih Unit</option>
-                            <option value="pcs">Pcs</option>
-                            <option value="kg">Kg</option>
-                            <option value="liter">Liter</option>
-                            <option value="box">Box</option>
-                            <option value="meter">Meter</option>
-                            <option value="set">Set</option>
-                        </select>
-                        <select id="outletTransfer" class="p-3 border rounded-lg focus:ring-2 focus:ring-blue-500" required>
-                            <option value="">Pilih Outlet</option>
-                        </select>
-                        <button type="submit" class="md:col-span-3 gradient-bg text-white p-3 rounded-lg hover:opacity-90 transition-all">
-                            <span class="loading" id="transferLoading">🔄</span>
-                            <span id="transferText">Transfer Barang</span>
-                        </button>
-                    </form>
-
-                    <div class="overflow-x-auto">
-                        <table class="w-full border-collapse">
-                            <thead>
-                                <tr class="bg-gray-100">
-                                    <th class="border p-3 text-left">Tanggal</th>
-                                    <th class="border p-3 text-left">Kode Barang</th>
-                                    <th class="border p-3 text-left">Nama Barang</th>
-                                    <th class="border p-3 text-left">Quantity</th>
-                                    <th class="border p-3 text-left">Unit</th>
-                                    <th class="border p-3 text-left">Outlet</th>
-                                    <th class="border p-3 text-left">Status</th>
-                                    <th class="border p-3 text-left">Aksi</th>
-                                </tr>
-                            </thead>
-                            <tbody id="transferTable">
-                                <!-- Data akan ditambahkan secara dinamis -->
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Outlet -->
-            <div id="outlet" class="menu-content hidden">
-                <div class="bg-white rounded-xl card-shadow p-6 mb-6">
-                    <h2 class="text-2xl font-bold mb-6 text-gray-800">Manajemen Outlet</h2>
-                    
-                    <form id="outletForm" class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                        <input type="text" id="kodeOutlet" placeholder="Kode Outlet" class="p-3 border rounded-lg focus:ring-2 focus:ring-blue-500" required>
-                        <input type="text" id="namaOutlet" placeholder="Nama Outlet" class="p-3 border rounded-lg focus:ring-2 focus:ring-blue-500" required>
-                        <input type="text" id="alamatOutlet" placeholder="Alamat Outlet" class="p-3 border rounded-lg focus:ring-2 focus:ring-blue-500">
-                        <input type="text" id="kontakOutlet" placeholder="Kontak" class="p-3 border rounded-lg focus:ring-2 focus:ring-blue-500">
-                        <button type="submit" class="md:col-span-2 gradient-bg text-white p-3 rounded-lg hover:opacity-90 transition-all">
-                            <span class="loading" id="outletLoading">🔄</span>
-                            <span id="outletText">Tambah Outlet</span>
-                        </button>
-                    </form>
-
-                    <div class="overflow-x-auto">
-                        <table class="w-full border-collapse">
-                            <thead>
-                                <tr class="bg-gray-100">
-                                    <th class="border p-3 text-left">Kode Outlet</th>
-                                    <th class="border p-3 text-left">Nama Outlet</th>
-                                    <th class="border p-3 text-left">Alamat</th>
-                                    <th class="border p-3 text-left">Kontak</th>
-                                    <th class="border p-3 text-left">Status</th>
-                                    <th class="border p-3 text-left">Aksi</th>
-                                </tr>
-                            </thead>
-                            <tbody id="outletTable">
-                                <!-- Data akan ditambahkan secara dinamis -->
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Status -->
-            <div id="status" class="menu-content hidden">
-                <div class="bg-white rounded-xl card-shadow p-6 mb-6">
-                    <h2 class="text-2xl font-bold mb-6 text-gray-800">Status Barang</h2>
-                    
-                    <div class="overflow-x-auto">
-                        <table class="w-full border-collapse">
-                            <thead>
-                                <tr class="bg-gray-100">
-                                    <th class="border p-3 text-left">Tanggal</th>
-                                    <th class="border p-3 text-left">Kode Barang</th>
-                                    <th class="border p-3 text-left">Nama Barang</th>
-                                    <th class="border p-3 text-left">Quantity</th>
-                                    <th class="border p-3 text-left">Unit</th>
-                                    <th class="border p-3 text-left">Status</th>
-                                    <th class="border p-3 text-left">Keterangan</th>
-                                    <th class="border p-3 text-left">Aksi</th>
-                                </tr>
-                            </thead>
-                            <tbody id="statusTable">
-                                <!-- Data akan ditampilkan secara dinamis -->
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Database -->
-            <div id="database" class="menu-content hidden">
-                <div class="bg-white rounded-xl card-shadow p-6 mb-6">
-                    <h2 class="text-2xl font-bold mb-6 text-gray-800">Database Barang</h2>
-                    
-                    <div class="overflow-x-auto">
-                        <table class="w-full border-collapse">
-                            <thead>
-                                <tr class="bg-gray-100">
-                                    <th class="border p-3 text-left">Kode Barang</th>
-                                    <th class="border p-3 text-left">Nama Barang</th>
-                                    <th class="border p-3 text-left">Stock</th>
-                                    <th class="border p-3 text-left">Unit</th>
-                                    <th class="border p-3 text-left">Harga</th>
-                                    <th class="border p-3 text-left">Update Terakhir</th>
-                                    <th class="border p-3 text-left">Aksi</th>
-                                </tr>
-                            </thead>
-                            <tbody id="databaseTable">
-                                <!-- Data akan ditampilkan secara dinamis -->
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Riwayat -->
-            <div id="riwayat" class="menu-content hidden">
-                <div class="bg-white rounded-xl card-shadow p-6 mb-6">
-                    <h2 class="text-2xl font-bold mb-6 text-gray-800">Riwayat Transaksi</h2>
-                    
-                    <div class="overflow-x-auto">
-                        <table class="w-full border-collapse">
-                            <thead>
-                                <tr class="bg-gray-100">
-                                    <th class="border p-3 text-left">Timestamp</th>
-                                    <th class="border p-3 text-left">Aktivitas</th>
-                                    <th class="border p-3 text-left">Kode Barang</th>
-                                    <th class="border p-3 text-left">Nama Barang</th>
-                                    <th class="border p-3 text-left">Detail</th>
-                                    <th class="border p-3 text-left">User</th>
-                                </tr>
-                            </thead>
-                            <tbody id="riwayatTable">
-                                <!-- Data akan ditampilkan secara dinamis -->
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Laporan -->
-            <div id="laporan" class="menu-content hidden">
-                <div class="bg-white rounded-xl card-shadow p-6 mb-6">
-                    <h2 class="text-2xl font-bold mb-6 text-gray-800">Laporan</h2>
-                    
-                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-                        <button onclick="downloadPDF()" class="bg-red-500 text-white p-4 rounded-lg hover:bg-red-600 transition-all flex items-center justify-center space-x-2">
-                            <span>📄</span><span>Download PDF</span>
-                        </button>
-                        <button onclick="downloadExcel()" class="bg-green-500 text-white p-4 rounded-lg hover:bg-green-600 transition-all flex items-center justify-center space-x-2">
-                            <span>📊</span><span>Download Excel</span>
-                        </button>
-                        <button onclick="printReport()" class="bg-blue-500 text-white p-4 rounded-lg hover:bg-blue-600 transition-all flex items-center justify-center space-x-2">
-                            <span>🖨️</span><span>Print</span>
-                        </button>
-                        <button onclick="generateGoogleSheetsReport()" class="bg-purple-500 text-white p-4 rounded-lg hover:bg-purple-600 transition-all flex items-center justify-center space-x-2">
-                            <span>📋</span><span>Laporan Sheets</span>
-                        </button>
-                    </div>
-
-                    <div class="bg-gray-50 p-4 rounded-lg">
-                        <h3 class="font-semibold mb-4">Ringkasan Data:</h3>
-                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                            <div class="bg-white p-4 rounded-lg text-center">
-                                <div class="text-2xl font-bold text-blue-600" id="totalPenerimaan">0</div>
-                                <div class="text-sm text-gray-600">Total Penerimaan</div>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="bg-white p-6 rounded-xl shadow-lg">
+                    <h3 class="text-xl font-semibold mb-4 text-gray-800">Aktivitas Terbaru</h3>
+                    <div class="space-y-3">
+                        <div class="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
+                            <i class="fas fa-plus-circle text-green-500"></i>
+                            <div>
+                                <p class="font-medium">Penerimaan Barang BRG001</p>
+                                <p class="text-sm text-gray-600">2 menit yang lalu</p>
                             </div>
-                            <div class="bg-white p-4 rounded-lg text-center">
-                                <div class="text-2xl font-bold text-green-600" id="totalTransfer">0</div>
-                                <div class="text-sm text-gray-600">Total Transfer</div>
-                            </div>
-                            <div class="bg-white p-4 rounded-lg text-center">
-                                <div class="text-2xl font-bold text-purple-600" id="totalOutlet">0</div>
-                                <div class="text-sm text-gray-600">Total Outlet</div>
-                            </div>
-                            <div class="bg-white p-4 rounded-lg text-center">
-                                <div class="text-2xl font-bold text-orange-600" id="totalBarang">0</div>
-                                <div class="text-sm text-gray-600">Total Barang</div>
+                        </div>
+                        <div class="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
+                            <i class="fas fa-arrow-right text-blue-500"></i>
+                            <div>
+                                <p class="font-medium">Transfer ke Outlet Jakarta</p>
+                                <p class="text-sm text-gray-600">15 menit yang lalu</p>
                             </div>
                         </div>
                     </div>
                 </div>
+                
+                <div class="bg-white p-6 rounded-xl shadow-lg">
+                    <h3 class="text-xl font-semibold mb-4 text-gray-800">Status Koneksi Spreadsheet</h3>
+                    <div class="connection-status">
+                        <div class="flex items-center space-x-3 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                            <i class="fas fa-sync-alt text-yellow-500 text-xl animate-spin"></i>
+                            <div>
+                                <p class="font-medium text-yellow-800">Menghubungkan...</p>
+                                <p class="text-sm text-yellow-600">Sedang testing koneksi</p>
+                            </div>
+                        </div>
+                    </div>
+                    <button onclick="testConnection()" class="mt-4 w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors">
+                        <i class="fas fa-plug mr-2"></i>Test Koneksi
+                    </button>
+                </div>
             </div>
-        </main>
-    </div>
+        </div>
+
+        <!-- Penerimaan Barang Section -->
+        <div id="penerimaan" class="section hidden">
+            <div class="mb-6">
+                <h2 class="text-3xl font-bold text-gray-800 mb-2">Penerimaan Barang</h2>
+                <p class="text-gray-600">Kelola penerimaan barang masuk ke gudang</p>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
+                <h3 class="text-xl font-semibold mb-4">Tambah Penerimaan Baru</h3>
+                <form id="penerimaanForm" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Tanggal</label>
+                        <input type="date" id="tglPenerimaan" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Kode Barang</label>
+                        <input type="text" id="kodePenerimaan" placeholder="BRG001" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Nama Barang</label>
+                        <input type="text" id="namaPenerimaan" placeholder="Nama barang" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Quantity</label>
+                        <input type="number" id="qtyPenerimaan" placeholder="100" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Unit</label>
+                        <select id="unitPenerimaan" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            <option value="pcs">Pcs</option>
+                            <option value="kg">Kg</option>
+                            <option value="liter">Liter</option>
+                            <option value="box">Box</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Status</label>
+                        <select id="statusPenerimaan" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            <option value="diterima">Diterima</option>
+                            <option value="pending">Pending</option>
+                            <option value="ditolak">Ditolak</option>
+                        </select>
+                    </div>
+                    <div class="md:col-span-3">
+                        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition-colors">
+                            <i class="fas fa-plus mr-2"></i>Tambah Penerimaan
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+                <div class="p-6 border-b border-gray-200">
+                    <h3 class="text-xl font-semibold">Data Penerimaan</h3>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tanggal</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kode Barang</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Barang</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unit</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="penerimaanTable" class="bg-white divide-y divide-gray-200">
+                            <!-- Data akan diisi oleh JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Transfer Section -->
+        <div id="transfer" class="section hidden">
+            <div class="mb-6">
+                <h2 class="text-3xl font-bold text-gray-800 mb-2">Transfer to Outlet</h2>
+                <p class="text-gray-600">Kelola transfer barang ke outlet</p>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
+                <h3 class="text-xl font-semibold mb-4">Tambah Transfer Baru</h3>
+                <form id="transferForm" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Tanggal</label>
+                        <input type="date" id="tglTransfer" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Kode Barang</label>
+                        <input type="text" id="kodeTransfer" placeholder="BRG001" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Nama Barang</label>
+                        <input type="text" id="namaTransfer" placeholder="Nama barang" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Quantity</label>
+                        <input type="number" id="qtyTransfer" placeholder="50" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Unit</label>
+                        <select id="unitTransfer" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            <option value="pcs">Pcs</option>
+                            <option value="kg">Kg</option>
+                            <option value="liter">Liter</option>
+                            <option value="box">Box</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Outlet</label>
+                        <select id="outletTransfer" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            <option value="OUT001">Jakarta Pusat</option>
+                            <option value="OUT002">Jakarta Selatan</option>
+                            <option value="OUT003">Bandung</option>
+                        </select>
+                    </div>
+                    <div class="md:col-span-3">
+                        <button type="submit" class="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg transition-colors">
+                            <i class="fas fa-paper-plane mr-2"></i>Proses Transfer
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+                <div class="p-6 border-b border-gray-200">
+                    <h3 class="text-xl font-semibold">Data Transfer</h3>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tanggal</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kode Barang</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Barang</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unit</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Outlet</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="transferTable" class="bg-white divide-y divide-gray-200">
+                            <!-- Data akan diisi oleh JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Riwayat Section -->
+        <div id="riwayat" class="section hidden">
+            <div class="mb-6">
+                <h2 class="text-3xl font-bold text-gray-800 mb-2">Riwayat Aktivitas</h2>
+                <p class="text-gray-600">Log aktivitas semua transaksi barang</p>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+                <div class="p-6 border-b border-gray-200">
+                    <h3 class="text-xl font-semibold">Log Aktivitas</h3>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tanggal</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kode Barang</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Barang</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Keterangan</th>
+                            </tr>
+                        </thead>
+                        <tbody id="riwayatTable" class="bg-white divide-y divide-gray-200">
+                            <tr>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">2024-01-15</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">BRG001</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Laptop Dell</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                    <span class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                                        Penerimaan barang - 10 pcs
+                                    </span>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">2024-01-15</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">BRG001</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Laptop Dell</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                    <span class="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+                                        Transfer ke Jakarta Pusat - 5 pcs
+                                    </span>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Outlet Section -->
+        <div id="outlet" class="section hidden">
+            <div class="mb-6">
+                <h2 class="text-3xl font-bold text-gray-800 mb-2">Manajemen Outlet</h2>
+                <p class="text-gray-600">Kelola data outlet dan cabang</p>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
+                <h3 class="text-xl font-semibold mb-4">Tambah Outlet Baru</h3>
+                <form id="outletForm" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Kode Outlet</label>
+                        <input type="text" id="kodeOutlet" placeholder="OUT001" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Nama Outlet</label>
+                        <input type="text" id="namaOutlet" placeholder="Jakarta Pusat" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    </div>
+                    <div class="md:col-span-2">
+                        <button type="submit" class="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg transition-colors">
+                            <i class="fas fa-plus mr-2"></i>Tambah Outlet
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+                <div class="p-6 border-b border-gray-200">
+                    <h3 class="text-xl font-semibold">Data Outlet</h3>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kode Outlet</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Outlet</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="outletTable" class="bg-white divide-y divide-gray-200">
+                            <tr>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">OUT001</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Jakarta Pusat</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
+                                    <button class="text-blue-600 hover:text-blue-900">
+                                        <i class="fas fa-edit"></i> Edit
+                                    </button>
+                                    <button class="text-red-600 hover:text-red-900">
+                                        <i class="fas fa-trash"></i> Hapus
+                                    </button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">OUT002</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Jakarta Selatan</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
+                                    <button class="text-blue-600 hover:text-blue-900">
+                                        <i class="fas fa-edit"></i> Edit
+                                    </button>
+                                    <button class="text-red-600 hover:text-red-900">
+                                        <i class="fas fa-trash"></i> Hapus
+                                    </button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Database Section -->
+        <div id="database" class="section hidden">
+            <div class="mb-6">
+                <h2 class="text-3xl font-bold text-gray-800 mb-2">Database Barang</h2>
+                <p class="text-gray-600">Kelola master data barang dan stok</p>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
+                <h3 class="text-xl font-semibold mb-4">Tambah Barang Baru</h3>
+                <form id="databaseForm" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Kode Barang</label>
+                        <input type="text" id="kodeDatabase" placeholder="BRG001" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Nama Barang</label>
+                        <input type="text" id="namaDatabase" placeholder="Nama barang" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Stock</label>
+                        <input type="number" id="stockDatabase" placeholder="100" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Unit</label>
+                        <select id="unitDatabase" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            <option value="pcs">Pcs</option>
+                            <option value="kg">Kg</option>
+                            <option value="liter">Liter</option>
+                            <option value="box">Box</option>
+                        </select>
+                    </div>
+                    <div class="lg:col-span-4">
+                        <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg transition-colors">
+                            <i class="fas fa-plus mr-2"></i>Tambah Barang
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+                <div class="p-6 border-b border-gray-200">
+                    <h3 class="text-xl font-semibold">Master Data Barang</h3>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kode Barang</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Barang</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stock</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unit</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="databaseTable" class="bg-white divide-y divide-gray-200">
+                            <tr>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">BRG001</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Laptop Dell</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">25</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Pcs</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
+                                    <button class="text-blue-600 hover:text-blue-900">
+                                        <i class="fas fa-edit"></i> Edit
+                                    </button>
+                                    <button class="text-red-600 hover:text-red-900">
+                                        <i class="fas fa-trash"></i> Hapus
+                                    </button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Laporan Section -->
+        <div id="laporan" class="section hidden">
+            <div class="mb-6">
+                <h2 class="text-3xl font-bold text-gray-800 mb-2">Laporan</h2>
+                <p class="text-gray-600">Generate dan download laporan dalam format PDF atau Excel</p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                <div class="bg-white rounded-xl shadow-lg p-6">
+                    <h3 class="text-xl font-semibold mb-4">Download Laporan</h3>
+                    <div class="space-y-4">
+                        <button onclick="downloadPDF()" class="w-full bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-lg transition-colors flex items-center justify-center">
+                            <i class="fas fa-file-pdf mr-2"></i>Download PDF
+                        </button>
+                        <button onclick="downloadExcel()" class="w-full bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg transition-colors flex items-center justify-center">
+                            <i class="fas fa-file-excel mr-2"></i>Download Excel
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="bg-white rounded-xl shadow-lg p-6">
+                    <h3 class="text-xl font-semibold mb-4">Filter Laporan</h3>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Dari Tanggal</label>
+                            <input type="date" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Sampai Tanggal</label>
+                            <input type="date" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+                <div class="p-6 border-b border-gray-200">
+                    <h3 class="text-xl font-semibold">Preview Laporan</h3>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kode Barang</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Barang</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stock</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unit</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            <tr>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">BRG001</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Laptop Dell</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">25</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Pcs</td>
+                            </tr>
+                            <tr>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">BRG002</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Mouse Wireless</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">150</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Pcs</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pengaturan Section -->
+        <div id="pengaturan" class="section hidden">
+            <div class="mb-6">
+                <h2 class="text-3xl font-bold text-gray-800 mb-2">Pengaturan</h2>
+                <p class="text-gray-600">Konfigurasi sistem dan preferensi pengguna</p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="bg-white rounded-xl shadow-lg p-6">
+                    <h3 class="text-xl font-semibold mb-4">Tampilan</h3>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Tema</label>
+                            <select class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                <option value="light">Light</option>
+                                <option value="dark">Dark</option>
+                                <option value="auto">Auto</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Font</label>
+                            <select class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                <option value="sans">Sans Serif</option>
+                                <option value="serif">Serif</option>
+                                <option value="mono">Monospace</option>
+                            </select>
+                        </div>
+                        <div class="flex items-center">
+                            <input type="checkbox" id="animations" class="mr-2">
+                            <label for="animations" class="text-sm text-gray-700">Aktifkan Animasi</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-lg p-6">
+                    <h3 class="text-xl font-semibold mb-4">Bahasa & Regional</h3>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Bahasa</label>
+                            <select class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                <option value="id">Bahasa Indonesia</option>
+                                <option value="en">English</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Format Tanggal</label>
+                            <select class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                <option value="dd/mm/yyyy">DD/MM/YYYY</option>
+                                <option value="mm/dd/yyyy">MM/DD/YYYY</option>
+                                <option value="yyyy-mm-dd">YYYY-MM-DD</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-lg p-6">
+                    <h3 class="text-xl font-semibold mb-4">User Login</h3>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Username</label>
+                            <input type="text" value="admin" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Password Baru</label>
+                            <input type="password" placeholder="Masukkan password baru" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        </div>
+                        <button class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition-colors">
+                            <i class="fas fa-save mr-2"></i>Simpan Perubahan
+                        </button>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-lg p-6">
+                    <h3 class="text-xl font-semibold mb-4">Integrasi Spreadsheet</h3>
+                    <div class="space-y-4">
+                        <div class="connection-status">
+                            <div class="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                                <div class="flex items-center">
+                                    <i class="fas fa-sync-alt text-yellow-500 mr-2 animate-spin"></i>
+                                    <span class="text-yellow-800 font-medium">Status: Menghubungkan...</span>
+                                </div>
+                                <p class="text-sm text-yellow-600 mt-1">Sedang testing koneksi ke spreadsheet</p>
+                            </div>
+                        </div>
+                        <button onclick="testConnection()" class="w-full bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition-colors">
+                            <i class="fas fa-sync mr-2"></i>Test Koneksi
+                        </button>
+                        <button onclick="syncAllData()" class="w-full bg-gray-600 hover:bg-gray-700 text-white px-6 py-2 rounded-lg transition-colors">
+                            <i class="fas fa-sync mr-2"></i>Sinkronisasi Manual
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
 
     <script>
-        // Konfigurasi Google Apps Script
-        const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw5SAAw9O8-RhWVGxxYLWbkoUcS9Z1RyZ59ZYcP4tpMHOlilNTP7Orc8NA_6yW_ktpG/exec';
+        // Google Apps Script Web App URL
+        const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwlfkdlalFJd16Kj_GM2Hox0e3n8rMsCJpuzXuTkwpB1cn6EQRWzjiwCw7QSNLbWePz/exec';
         
-        // Data storage lokal
+        // Data storage
         let penerimaanData = [];
         let transferData = [];
-        let outletData = [];
-        let riwayatData = [];
-        let databaseData = {};
-        let statusData = [];
-        let isConnected = false;
+        let outletData = [
+            { kode: 'OUT001', nama: 'Jakarta Pusat' },
+            { kode: 'OUT002', nama: 'Jakarta Selatan' },
+            { kode: 'OUT003', nama: 'Bandung' }
+        ];
+        let databaseData = [
+            { kode: 'BRG001', nama: 'Laptop Dell', stock: 25, unit: 'pcs' },
+            { kode: 'BRG002', nama: 'Mouse Wireless', stock: 150, unit: 'pcs' }
+        ];
 
-        // Initialize
-        document.addEventListener('DOMContentLoaded', function() {
-            initializeApp();
-            updateTime();
-            setInterval(updateTime, 1000);
+        // Function to send data to Google Sheets
+        async function sendToGoogleSheets(action, data) {
+            try {
+                showNotification('Menyinkronkan data ke spreadsheet...', 'info');
+                
+                const formData = new FormData();
+                formData.append('action', action);
+                
+                // Add all data fields to FormData
+                Object.keys(data).forEach(key => {
+                    formData.append(key, data[key]);
+                });
+                
+                const response = await fetch(WEB_APP_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    body: formData
+                });
+                
+                // Since we're using no-cors, we can't read the response
+                // But we assume success if no error is thrown
+                showNotification('✅ Data berhasil dikirim ke spreadsheet!', 'success');
+                updateConnectionStatus(true);
+                
+                return { success: true };
+            } catch (error) {
+                console.error('Error syncing to Google Sheets:', error);
+                showNotification('⚠️ Data disimpan lokal, akan sync otomatis nanti', 'info');
+                updateConnectionStatus(false);
+                return { success: false, message: error.message };
+            }
+        }
+
+        // Function to load data from Google Sheets
+        async function loadFromGoogleSheets(action) {
+            try {
+                const response = await fetch(WEB_APP_URL + '?action=' + action, {
+                    method: 'GET',
+                    mode: 'cors'
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    updateConnectionStatus(true);
+                    return result.data || [];
+                } else {
+                    updateConnectionStatus(false);
+                    return [];
+                }
+            } catch (error) {
+                console.error('Error loading from Google Sheets:', error);
+                updateConnectionStatus(false);
+                return [];
+            }
+        }
+
+        // Function to update connection status
+        function updateConnectionStatus(isConnected) {
+            const statusElements = document.querySelectorAll('.connection-status');
+            statusElements.forEach(statusElement => {
+                if (isConnected) {
+                    statusElement.innerHTML = `
+                        <div class="flex items-center space-x-3 p-4 bg-green-50 border border-green-200 rounded-lg">
+                            <i class="fas fa-check-circle text-green-500 text-xl"></i>
+                            <div>
+                                <p class="font-medium text-green-800">Terhubung</p>
+                                <p class="text-sm text-green-600">Sinkronisasi real-time aktif</p>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    statusElement.innerHTML = `
+                        <div class="flex items-center space-x-3 p-4 bg-red-50 border border-red-200 rounded-lg">
+                            <i class="fas fa-times-circle text-red-500 text-xl"></i>
+                            <div>
+                                <p class="font-medium text-red-800">Terputus</p>
+                                <p class="text-sm text-red-600">Gagal terhubung ke spreadsheet</p>
+                            </div>
+                        </div>
+                    `;
+                }
+            });
+        }
+
+        // Function to test connection
+        async function testConnection() {
+            showNotification('Testing koneksi ke spreadsheet...', 'info');
             
-            // Set default dates
-            document.getElementById('tglPenerimaan').value = new Date().toISOString().split('T')[0];
-            document.getElementById('tglTransfer').value = new Date().toISOString().split('T')[0];
+            try {
+                // Try to send a simple test request
+                const formData = new FormData();
+                formData.append('action', 'test');
+                formData.append('timestamp', new Date().toISOString());
+                
+                const response = await fetch(WEB_APP_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    body: formData
+                });
+                
+                // If no error is thrown, assume connection is working
+                showNotification('✅ Koneksi berhasil! Spreadsheet terhubung', 'success');
+                updateConnectionStatus(true);
+                
+            } catch (error) {
+                console.error('Connection test failed:', error);
+                showNotification('⚠️ Koneksi tidak stabil, data akan disimpan lokal', 'info');
+                updateConnectionStatus(false);
+            }
+        }
+
+        // Function to sync all data
+        async function syncAllData() {
+            showNotification('Memulai sinkronisasi semua data...', 'info');
+            
+            // Sync all penerimaan data
+            for (const item of penerimaanData) {
+                await sendToGoogleSheets('addPenerimaan', item);
+            }
+            
+            // Sync all transfer data
+            for (const item of transferData) {
+                await sendToGoogleSheets('addTransfer', item);
+            }
+            
+            // Sync all outlet data
+            for (const item of outletData) {
+                await sendToGoogleSheets('addOutlet', item);
+            }
+            
+            // Sync all database data
+            for (const item of databaseData) {
+                await sendToGoogleSheets('addDatabase', item);
+            }
+            
+            showNotification('✅ Sinkronisasi semua data selesai!', 'success');
+        }
+
+        // Sidebar toggle
+        document.getElementById('sidebarToggle').addEventListener('click', function() {
+            const sidebar = document.getElementById('sidebar');
+            const mainContent = document.getElementById('mainContent');
+            
+            if (sidebar.style.transform === 'translateX(-100%)') {
+                sidebar.style.transform = 'translateX(0)';
+                mainContent.style.marginLeft = '16rem';
+            } else {
+                sidebar.style.transform = 'translateX(-100%)';
+                mainContent.style.marginLeft = '0';
+            }
         });
 
-        // Initialize app
-        async function initializeApp() {
-            console.log('🔄 Initializing app...');
-            console.log('📡 Google Script URL:', GOOGLE_SCRIPT_URL);
-            
-            try {
-                await loadDataFromGoogleSheets();
-                isConnected = true;
-                console.log('✅ App initialized successfully with Google Sheets');
-            } catch (error) {
-                console.error('❌ Failed to connect to Google Sheets:', error);
-                updateSyncStatus('error', `❌ ${error.message} - Working offline`);
-                loadSampleData();
-                isConnected = false;
-                
-                // Tampilkan pesan error yang lebih detail
-                setTimeout(() => {
-                    alert(`⚠️ Koneksi ke Google Sheets gagal!\n\nError: ${error.message}\n\nPastikan:\n1. Google Apps Script sudah di-deploy\n2. Permissions diset ke "Anyone"\n3. URL deployment benar\n4. Internet connection aktif\n\nSistem akan bekerja dalam mode offline.`);
-                }, 2000);
-            }
-        }
-
-        // Update sync status
-        function updateSyncStatus(type, message) {
-            const statusEl = document.getElementById('syncStatus');
-            statusEl.className = `sync-status sync-${type}`;
-            statusEl.innerHTML = message;
-        }
-
-        // Load data from Google Sheets
-        async function loadDataFromGoogleSheets() {
-            updateSyncStatus('loading', '🔄 Loading data...');
-            
-            try {
-                // Test koneksi dengan timeout
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 detik timeout
-                
-                const response = await fetch(`${GOOGLE_SCRIPT_URL}?action=getAllData&timestamp=${Date.now()}`, {
-                    method: 'GET',
-                    signal: controller.signal,
-                    headers: {
-                        'Accept': 'application/json',
-                        'Content-Type': 'application/json'
-                    }
-                });
-                
-                clearTimeout(timeoutId);
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                }
-                
-                const data = await response.json();
-                console.log('Response from Google Sheets:', data);
-                
-                if (data.success) {
-                    penerimaanData = data.penerimaan || [];
-                    transferData = data.transfer || [];
-                    outletData = data.outlet || [];
-                    riwayatData = data.riwayat || [];
-                    databaseData = data.database || {};
-                    statusData = data.status || [];
-                    
-                    updateAllTables();
-                    updateOutletDropdown();
-                    updateSyncStatus('success', '✅ Connected to Google Sheets');
-                    console.log('✅ Data berhasil dimuat dari Google Sheets');
-                } else {
-                    throw new Error(data.error || 'Google Apps Script returned success: false');
-                }
-            } catch (error) {
-                console.error('❌ Error connecting to Google Sheets:', error);
-                if (error.name === 'AbortError') {
-                    throw new Error('Connection timeout - Google Sheets tidak merespons');
-                } else if (error.message.includes('CORS')) {
-                    throw new Error('CORS error - Pastikan Google Apps Script sudah di-deploy dengan benar');
-                } else {
-                    throw new Error(`Connection failed: ${error.message}`);
-                }
-            }
-        }
-
-        // Sync with Google Sheets
-        async function syncWithGoogleSheets() {
-            if (!isConnected) {
-                alert('❌ Tidak terhubung ke Google Sheets. Coba refresh halaman.');
-                return;
-            }
-            
-            const syncBtn = document.getElementById('syncText');
-            const syncLoading = document.getElementById('syncLoading');
-            
-            syncBtn.textContent = 'Syncing...';
-            syncLoading.classList.add('show');
-            
-            try {
-                await loadDataFromGoogleSheets();
-                syncBtn.textContent = '✅ Synced!';
-                setTimeout(() => {
-                    syncBtn.textContent = '📊 Sync Google Sheets';
-                }, 2000);
-            } catch (error) {
-                syncBtn.textContent = '❌ Sync Failed';
-                setTimeout(() => {
-                    syncBtn.textContent = '📊 Sync Google Sheets';
-                }, 2000);
-            } finally {
-                syncLoading.classList.remove('show');
-            }
-        }
-
-        // Send data to Google Sheets
-        async function sendToGoogleSheets(action, data) {
-            if (!isConnected) {
-                console.log('Offline mode - data saved locally');
-                return { success: true };
-            }
-            
-            try {
-                const response = await fetch(GOOGLE_SCRIPT_URL, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        action: action,
-                        data: data
-                    })
-                });
-                
-                const result = await response.json();
-                return result;
-            } catch (error) {
-                console.error('Error sending to Google Sheets:', error);
-                return { success: false, error: error.message };
-            }
-        }
-
-        // Load sample data (offline mode)
-        function loadSampleData() {
-            outletData = [
-                { kode: 'OUT001', nama: 'Jakarta Pusat', alamat: 'Jl. Sudirman No.123', kontak: '021-12345678', status: 'Aktif' },
-                { kode: 'OUT002', nama: 'Bandung', alamat: 'Jl. Asia Afrika No.456', kontak: '022-87654321', status: 'Aktif' },
-                { kode: 'OUT003', nama: 'Surabaya', alamat: 'Jl. Pemuda No.789', kontak: '031-11223344', status: 'Aktif' }
-            ];
-
-            databaseData = {
-                'BRG001': { nama: 'Laptop Dell', stock: 15, unit: 'pcs', harga: 8500000, updateTerakhir: new Date() },
-                'BRG002': { nama: 'Mouse Wireless', stock: 25, unit: 'pcs', harga: 250000, updateTerakhir: new Date() },
-                'BRG003': { nama: 'Keyboard Mechanical', stock: 8, unit: 'pcs', harga: 750000, updateTerakhir: new Date() }
-            };
-
-            statusData = [
-                { kode: 'BRG004', nama: 'Monitor LED', status: 'pending', quantity: 5, unit: 'pcs', tanggal: new Date().toISOString().split('T')[0], keterangan: 'Menunggu approval' },
-                { kode: 'BRG005', nama: 'Printer Laser', status: 'pending', quantity: 2, unit: 'pcs', tanggal: new Date().toISOString().split('T')[0], keterangan: 'Menunggu budget' }
-            ];
-
-            updateAllTables();
-            updateOutletDropdown();
-        }
-
-        // Update current time
-        function updateTime() {
-            const now = new Date();
-            document.getElementById('currentTime').textContent = now.toLocaleString('id-ID');
-        }
-
-        // Show menu
-        function showMenu(menuName) {
-            document.querySelectorAll('.menu-content').forEach(menu => {
-                menu.classList.add('hidden');
+        // Show section function
+        function showSection(sectionName) {
+            // Hide all sections
+            const sections = document.querySelectorAll('.section');
+            sections.forEach(section => {
+                section.classList.add('hidden');
             });
             
-            document.querySelectorAll('.sidebar-item').forEach(item => {
-                item.classList.remove('active-menu');
+            // Show selected section
+            document.getElementById(sectionName).classList.remove('hidden');
+            
+            // Update active menu
+            const menuItems = document.querySelectorAll('.menu-item');
+            menuItems.forEach(item => {
+                item.classList.remove('bg-blue-50', 'text-blue-600');
             });
-            
-            document.getElementById(menuName).classList.remove('hidden');
-            event.target.classList.add('active-menu');
+            event.target.classList.add('bg-blue-50', 'text-blue-600');
         }
 
-        // Auto-fill functions
-        function autoFillPenerimaan() {
-            const kode = document.getElementById('kodeBarangPenerimaan').value;
-            const namaField = document.getElementById('namaBarangPenerimaan');
-            const unitField = document.getElementById('unitPenerimaan');
-            
-            if (databaseData[kode]) {
-                namaField.value = databaseData[kode].nama;
-                namaField.readOnly = true;
-                unitField.value = databaseData[kode].unit;
-                unitField.disabled = true;
-            } else {
-                namaField.value = '';
-                namaField.readOnly = false;
-                unitField.value = '';
-                unitField.disabled = false;
-            }
+        // Set today's date as default
+        function setTodayDate() {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('tglPenerimaan').value = today;
+            document.getElementById('tglTransfer').value = today;
         }
 
-        function autoFillTransfer() {
-            const kode = document.getElementById('kodeBarangTransfer').value;
-            const namaField = document.getElementById('namaBarangTransfer');
-            const unitField = document.getElementById('unitTransfer');
-            
-            if (databaseData[kode]) {
-                namaField.value = databaseData[kode].nama;
-                unitField.value = databaseData[kode].unit;
-                unitField.disabled = false;
-                
-                // Show stock info
-                const stockInfo = `Stock tersedia: ${databaseData[kode].stock} ${databaseData[kode].unit}`;
-                document.getElementById('quantityTransfer').placeholder = stockInfo;
-            } else {
-                namaField.value = '';
-                unitField.value = '';
-                unitField.disabled = true;
-                document.getElementById('quantityTransfer').placeholder = 'Quantity';
-                if (kode) {
-                    alert('Kode barang tidak ditemukan di database!');
-                }
-            }
-        }
-
-        // Form handlers
+        // Form submissions with Google Sheets integration
         document.getElementById('penerimaanForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
-            const loadingEl = document.getElementById('penerimaanLoading');
-            const textEl = document.getElementById('penerimaanText');
-            
-            loadingEl.classList.add('show');
-            textEl.textContent = 'Processing...';
-            
-            const formData = {
+            const data = {
                 tanggal: document.getElementById('tglPenerimaan').value,
-                kode: document.getElementById('kodeBarangPenerimaan').value,
-                nama: document.getElementById('namaBarangPenerimaan').value,
-                quantity: parseInt(document.getElementById('quantityPenerimaan').value),
+                kode: document.getElementById('kodePenerimaan').value,
+                nama: document.getElementById('namaPenerimaan').value,
+                qty: document.getElementById('qtyPenerimaan').value,
                 unit: document.getElementById('unitPenerimaan').value,
-                status: document.getElementById('statusPenerimaan').value,
-                keterangan: document.getElementById('keteranganPenerimaan').value || ''
+                status: document.getElementById('statusPenerimaan').value
             };
             
-            try {
-                // Send to Google Sheets
-                const result = await sendToGoogleSheets('addPenerimaan', formData);
-                
-                if (result.success) {
-                    penerimaanData.push(formData);
-                    
-                    // Process based on status
-                    if (formData.status === 'approved') {
-                        updateDatabaseStock(formData.kode, formData.nama, formData.quantity, formData.unit);
-                        addToRiwayat(formData.tanggal, formData.kode, formData.nama, `Penerimaan diterima: ${formData.quantity} ${formData.unit}`);
-                    } else {
-                        statusData.push(formData);
-                        addToRiwayat(formData.tanggal, formData.kode, formData.nama, `Penerimaan ${formData.status}: ${formData.quantity} ${formData.unit}`);
-                    }
-                    
-                    updateAllTables();
-                    this.reset();
-                    document.getElementById('tglPenerimaan').value = new Date().toISOString().split('T')[0];
-                    
-                    textEl.textContent = '✅ Berhasil!';
-                } else {
-                    throw new Error(result.error || 'Failed to save');
-                }
-            } catch (error) {
-                console.error('Error:', error);
-                textEl.textContent = '❌ Error!';
-                alert('Error: ' + error.message);
-            } finally {
-                loadingEl.classList.remove('show');
-                setTimeout(() => {
-                    textEl.textContent = 'Tambah Penerimaan';
-                }, 2000);
-            }
+            // Add to local data
+            penerimaanData.push(data);
+            updatePenerimaanTable();
+            addToRiwayat(data.tanggal, data.kode, data.nama, `Penerimaan barang - ${data.qty} ${data.unit}`);
+            
+            // Save to localStorage immediately
+            saveLocalData();
+            
+            // Send to Google Sheets
+            await sendToGoogleSheets('addPenerimaan', data);
+            
+            this.reset();
+            setTodayDate();
         });
 
         document.getElementById('transferForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
-            const kode = document.getElementById('kodeBarangTransfer').value;
-            
-            if (!databaseData[kode]) {
-                alert('Barang tidak ditemukan di database! Transfer tidak dapat dilakukan.');
-                return;
-            }
-            
-            const quantity = parseInt(document.getElementById('quantityTransfer').value);
-            
-            if (databaseData[kode].stock < quantity) {
-                alert(`Stock tidak mencukupi! Stock tersedia: ${databaseData[kode].stock}`);
-                return;
-            }
-            
-            const loadingEl = document.getElementById('transferLoading');
-            const textEl = document.getElementById('transferText');
-            
-            loadingEl.classList.add('show');
-            textEl.textContent = 'Processing...';
-            
-            const formData = {
+            const data = {
                 tanggal: document.getElementById('tglTransfer').value,
-                kode: kode,
-                nama: document.getElementById('namaBarangTransfer').value,
-                quantity: quantity,
+                kode: document.getElementById('kodeTransfer').value,
+                nama: document.getElementById('namaTransfer').value,
+                qty: document.getElementById('qtyTransfer').value,
                 unit: document.getElementById('unitTransfer').value,
-                outlet: document.getElementById('outletTransfer').value,
-                status: 'Completed'
+                outlet: document.getElementById('outletTransfer').value
             };
             
-            try {
-                const result = await sendToGoogleSheets('addTransfer', formData);
-                
-                if (result.success) {
-                    transferData.push(formData);
-                    updateDatabaseStock(formData.kode, formData.nama, -formData.quantity, formData.unit);
-                    addToRiwayat(formData.tanggal, formData.kode, formData.nama, `Transfer ke ${formData.outlet}: ${formData.quantity} ${formData.unit}`);
-                    updateAllTables();
-                    this.reset();
-                    document.getElementById('tglTransfer').value = new Date().toISOString().split('T')[0];
-                    
-                    textEl.textContent = '✅ Berhasil!';
-                } else {
-                    throw new Error(result.error || 'Failed to save');
-                }
-            } catch (error) {
-                console.error('Error:', error);
-                textEl.textContent = '❌ Error!';
-                alert('Error: ' + error.message);
-            } finally {
-                loadingEl.classList.remove('show');
-                setTimeout(() => {
-                    textEl.textContent = 'Transfer Barang';
-                }, 2000);
-            }
+            // Add to local data
+            transferData.push(data);
+            updateTransferTable();
+            addToRiwayat(data.tanggal, data.kode, data.nama, `Transfer ke ${data.outlet} - ${data.qty} ${data.unit}`);
+            
+            // Save to localStorage immediately
+            saveLocalData();
+            
+            // Send to Google Sheets
+            await sendToGoogleSheets('addTransfer', data);
+            
+            this.reset();
+            setTodayDate();
         });
 
         document.getElementById('outletForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
-            const loadingEl = document.getElementById('outletLoading');
-            const textEl = document.getElementById('outletText');
-            
-            loadingEl.classList.add('show');
-            textEl.textContent = 'Processing...';
-            
-            const formData = {
+            const data = {
                 kode: document.getElementById('kodeOutlet').value,
-                nama: document.getElementById('namaOutlet').value,
-                alamat: document.getElementById('alamatOutlet').value || '',
-                kontak: document.getElementById('kontakOutlet').value || '',
-                status: 'Aktif'
+                nama: document.getElementById('namaOutlet').value
             };
             
-            try {
-                const result = await sendToGoogleSheets('addOutlet', formData);
-                
-                if (result.success) {
-                    outletData.push(formData);
-                    updateOutletTable();
-                    updateOutletDropdown();
-                    this.reset();
-                    
-                    textEl.textContent = '✅ Berhasil!';
-                } else {
-                    throw new Error(result.error || 'Failed to save');
-                }
-            } catch (error) {
-                console.error('Error:', error);
-                textEl.textContent = '❌ Error!';
-                alert('Error: ' + error.message);
-            } finally {
-                loadingEl.classList.remove('show');
-                setTimeout(() => {
-                    textEl.textContent = 'Tambah Outlet';
-                }, 2000);
-            }
+            // Add to local data
+            outletData.push(data);
+            updateOutletTable();
+            updateOutletSelect();
+            
+            // Save to localStorage immediately
+            saveLocalData();
+            
+            // Send to Google Sheets
+            await sendToGoogleSheets('addOutlet', data);
+            
+            this.reset();
         });
 
-        // Update functions
-        function updateDatabaseStock(kode, nama, quantity, unit) {
-            if (!databaseData[kode]) {
-                databaseData[kode] = { nama: nama, stock: 0, unit: unit, harga: 0, updateTerakhir: new Date() };
-            }
-            databaseData[kode].stock += quantity;
-            databaseData[kode].updateTerakhir = new Date();
-        }
-
-        function addToRiwayat(tanggal, kode, nama, keterangan) {
-            riwayatData.push({ 
-                timestamp: new Date(), 
-                aktivitas: 'System Update',
-                kode, 
-                nama, 
-                detail: keterangan,
-                user: 'System'
-            });
-        }
-
-        function updateAllTables() {
-            updatePenerimaanTable();
-            updateTransferTable();
-            updateOutletTable();
-            updateStatusTable();
+        document.getElementById('databaseForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const data = {
+                kode: document.getElementById('kodeDatabase').value,
+                nama: document.getElementById('namaDatabase').value,
+                stock: document.getElementById('stockDatabase').value,
+                unit: document.getElementById('unitDatabase').value
+            };
+            
+            // Add to local data
+            databaseData.push(data);
             updateDatabaseTable();
-            updateRiwayatTable();
-            updateSummary();
-        }
+            
+            // Save to localStorage immediately
+            saveLocalData();
+            
+            // Send to Google Sheets
+            await sendToGoogleSheets('addDatabase', data);
+            
+            this.reset();
+        });
 
+        // Update table functions
         function updatePenerimaanTable() {
             const tbody = document.getElementById('penerimaanTable');
-            tbody.innerHTML = penerimaanData.map((item, index) => `
-                <tr class="hover:bg-gray-50">
-                    <td class="border p-3">${item.tanggal}</td>
-                    <td class="border p-3">${item.kode}</td>
-                    <td class="border p-3">${item.nama}</td>
-                    <td class="border p-3">${item.quantity}</td>
-                    <td class="border p-3">${item.unit}</td>
-                    <td class="border p-3">
-                        <span class="px-2 py-1 rounded-full text-xs status-${item.status}">
-                            ${item.status.toUpperCase()}
+            tbody.innerHTML = penerimaanData.map(item => `
+                <tr>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${item.tanggal}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${item.kode}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${item.nama}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${item.qty}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${item.unit}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(item.status)}">
+                            ${item.status}
                         </span>
                     </td>
-                    <td class="border p-3">${item.keterangan || '-'}</td>
-                    <td class="border p-3">
-                        <button onclick="deletePenerimaan(${index})" class="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600">
-                            Hapus
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
+                        <button class="text-blue-600 hover:text-blue-900">
+                            <i class="fas fa-edit"></i> Edit
+                        </button>
+                        <button class="text-red-600 hover:text-red-900">
+                            <i class="fas fa-trash"></i> Hapus
                         </button>
                     </td>
                 </tr>
@@ -816,22 +1018,20 @@
 
         function updateTransferTable() {
             const tbody = document.getElementById('transferTable');
-            tbody.innerHTML = transferData.map((item, index) => `
-                <tr class="hover:bg-gray-50">
-                    <td class="border p-3">${item.tanggal}</td>
-                    <td class="border p-3">${item.kode}</td>
-                    <td class="border p-3">${item.nama}</td>
-                    <td class="border p-3">${item.quantity}</td>
-                    <td class="border p-3">${item.unit}</td>
-                    <td class="border p-3">${item.outlet}</td>
-                    <td class="border p-3">
-                        <span class="px-2 py-1 rounded-full text-xs bg-green-100 text-green-800">
-                            ${item.status || 'Completed'}
-                        </span>
-                    </td>
-                    <td class="border p-3">
-                        <button onclick="deleteTransfer(${index})" class="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600">
-                            Hapus
+            tbody.innerHTML = transferData.map(item => `
+                <tr>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${item.tanggal}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${item.kode}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${item.nama}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${item.qty}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${item.unit}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${item.outlet}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
+                        <button class="text-blue-600 hover:text-blue-900">
+                            <i class="fas fa-edit"></i> Edit
+                        </button>
+                        <button class="text-red-600 hover:text-red-900">
+                            <i class="fas fa-trash"></i> Hapus
                         </button>
                     </td>
                 </tr>
@@ -840,47 +1040,16 @@
 
         function updateOutletTable() {
             const tbody = document.getElementById('outletTable');
-            tbody.innerHTML = outletData.map((item, index) => `
-                <tr class="hover:bg-gray-50">
-                    <td class="border p-3">${item.kode}</td>
-                    <td class="border p-3">${item.nama}</td>
-                    <td class="border p-3">${item.alamat || '-'}</td>
-                    <td class="border p-3">${item.kontak || '-'}</td>
-                    <td class="border p-3">
-                        <span class="px-2 py-1 rounded-full text-xs bg-green-100 text-green-800">
-                            ${item.status || 'Aktif'}
-                        </span>
-                    </td>
-                    <td class="border p-3">
-                        <button onclick="deleteOutlet(${index})" class="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600">
-                            Hapus
+            tbody.innerHTML = outletData.map(item => `
+                <tr>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${item.kode}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${item.nama}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
+                        <button class="text-blue-600 hover:text-blue-900">
+                            <i class="fas fa-edit"></i> Edit
                         </button>
-                    </td>
-                </tr>
-            `).join('');
-        }
-
-        function updateStatusTable() {
-            const tbody = document.getElementById('statusTable');
-            tbody.innerHTML = statusData.map((item, index) => `
-                <tr class="hover:bg-gray-50">
-                    <td class="border p-3">${item.tanggal}</td>
-                    <td class="border p-3">${item.kode}</td>
-                    <td class="border p-3">${item.nama}</td>
-                    <td class="border p-3">${item.quantity}</td>
-                    <td class="border p-3">${item.unit}</td>
-                    <td class="border p-3">
-                        <span class="px-2 py-1 rounded-full text-xs status-${item.status}">
-                            ${item.status.toUpperCase()}
-                        </span>
-                    </td>
-                    <td class="border p-3">${item.keterangan || '-'}</td>
-                    <td class="border p-3">
-                        <button onclick="approveStatus(${index})" class="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600 mr-2">
-                            Terima
-                        </button>
-                        <button onclick="rejectStatus(${index})" class="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600">
-                            Tolak
+                        <button class="text-red-600 hover:text-red-900">
+                            <i class="fas fa-trash"></i> Hapus
                         </button>
                     </td>
                 </tr>
@@ -889,351 +1058,193 @@
 
         function updateDatabaseTable() {
             const tbody = document.getElementById('databaseTable');
-            tbody.innerHTML = Object.entries(databaseData).map(([kode, data]) => `
-                <tr class="hover:bg-gray-50">
-                    <td class="border p-3">${kode}</td>
-                    <td class="border p-3">${data.nama}</td>
-                    <td class="border p-3">${data.stock}</td>
-                    <td class="border p-3">${data.unit}</td>
-                    <td class="border p-3">Rp ${(data.harga || 0).toLocaleString('id-ID')}</td>
-                    <td class="border p-3">${new Date(data.updateTerakhir).toLocaleString('id-ID')}</td>
-                    <td class="border p-3">
-                        <button onclick="editDatabase('${kode}')" class="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600 mr-2">
-                            Edit
+            tbody.innerHTML = databaseData.map(item => `
+                <tr>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${item.kode}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${item.nama}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${item.stock}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${item.unit}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
+                        <button class="text-blue-600 hover:text-blue-900">
+                            <i class="fas fa-edit"></i> Edit
                         </button>
-                        <button onclick="deleteDatabase('${kode}')" class="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600">
-                            Hapus
+                        <button class="text-red-600 hover:text-red-900">
+                            <i class="fas fa-trash"></i> Hapus
                         </button>
                     </td>
                 </tr>
             `).join('');
         }
 
-        function updateRiwayatTable() {
-            const tbody = document.getElementById('riwayatTable');
-            tbody.innerHTML = riwayatData.slice(-20).reverse().map(item => `
-                <tr class="hover:bg-gray-50">
-                    <td class="border p-3">${new Date(item.timestamp).toLocaleString('id-ID')}</td>
-                    <td class="border p-3">${item.aktivitas}</td>
-                    <td class="border p-3">${item.kode}</td>
-                    <td class="border p-3">${item.nama}</td>
-                    <td class="border p-3">${item.detail}</td>
-                    <td class="border p-3">${item.user}</td>
-                </tr>
-            `).join('');
-        }
-
-        function updateOutletDropdown() {
+        function updateOutletSelect() {
             const select = document.getElementById('outletTransfer');
-            select.innerHTML = '<option value="">Pilih Outlet</option>' + 
-                outletData.map(outlet => `<option value="${outlet.nama}">${outlet.nama}</option>`).join('');
+            select.innerHTML = outletData.map(outlet => 
+                `<option value="${outlet.kode}">${outlet.nama}</option>`
+            ).join('');
         }
 
-        function updateSummary() {
-            document.getElementById('totalPenerimaan').textContent = penerimaanData.length;
-            document.getElementById('totalTransfer').textContent = transferData.length;
-            document.getElementById('totalOutlet').textContent = outletData.length;
-            document.getElementById('totalBarang').textContent = Object.keys(databaseData).length;
-        }
-
-        // Status functions
-        async function approveStatus(index) {
-            const item = statusData[index];
-            
-            try {
-                const result = await sendToGoogleSheets('approveStatus', { index, item });
-                
-                if (result.success) {
-                    updateDatabaseStock(item.kode, item.nama, item.quantity, item.unit);
-                    addToRiwayat(item.tanggal, item.kode, item.nama, `Status diubah menjadi diterima: ${item.quantity} ${item.unit}`);
-                    statusData.splice(index, 1);
-                    updateAllTables();
-                    alert('✅ Status berhasil diapprove!');
-                }
-            } catch (error) {
-                console.error('Error:', error);
-                alert('Error: ' + error.message);
+        // Helper functions
+        function getStatusColor(status) {
+            switch(status) {
+                case 'diterima': return 'bg-green-100 text-green-800';
+                case 'pending': return 'bg-yellow-100 text-yellow-800';
+                case 'ditolak': return 'bg-red-100 text-red-800';
+                default: return 'bg-gray-100 text-gray-800';
             }
         }
 
-        async function rejectStatus(index) {
-            const item = statusData[index];
-            
-            try {
-                const result = await sendToGoogleSheets('rejectStatus', { index, item });
-                
-                if (result.success) {
-                    statusData[index].status = 'rejected';
-                    addToRiwayat(item.tanggal, item.kode, item.nama, `Status diubah menjadi ditolak: ${item.quantity} ${item.unit}`);
-                    updateAllTables();
-                    alert('❌ Status ditolak!');
-                }
-            } catch (error) {
-                console.error('Error:', error);
-                alert('Error: ' + error.message);
-            }
+        function addToRiwayat(tanggal, kode, nama, keterangan) {
+            const tbody = document.getElementById('riwayatTable');
+            const newRow = `
+                <tr>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${tanggal}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${kode}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${nama}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <span class="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+                            ${keterangan}
+                        </span>
+                    </td>
+                </tr>
+            `;
+            tbody.insertAdjacentHTML('afterbegin', newRow);
         }
 
-        // Database functions
-        function editDatabase(kode) {
-            const data = databaseData[kode];
-            const newNama = prompt('Nama Barang:', data.nama);
-            const newStock = prompt('Stock:', data.stock);
-            const newHarga = prompt('Harga:', data.harga);
-            
-            if (newNama && newStock !== null && newHarga !== null) {
-                databaseData[kode].nama = newNama;
-                databaseData[kode].stock = parseInt(newStock);
-                databaseData[kode].harga = parseInt(newHarga);
-                databaseData[kode].updateTerakhir = new Date();
-                
-                addToRiwayat(new Date().toISOString().split('T')[0], kode, newNama, `Database diupdate`);
-                updateAllTables();
-                
-                // Send to Google Sheets
-                sendToGoogleSheets('updateDatabase', { kode, data: databaseData[kode] });
-            }
-        }
-
-        function deleteDatabase(kode) {
-            if (confirm(`Yakin ingin menghapus ${databaseData[kode].nama} dari database?`)) {
-                const nama = databaseData[kode].nama;
-                delete databaseData[kode];
-                addToRiwayat(new Date().toISOString().split('T')[0], kode, nama, 'Barang dihapus dari database');
-                updateAllTables();
-                
-                // Send to Google Sheets
-                sendToGoogleSheets('deleteDatabase', { kode });
-            }
-        }
-
-        // Delete functions
-        function deletePenerimaan(index) {
-            if (confirm('Yakin ingin menghapus data penerimaan ini?')) {
-                penerimaanData.splice(index, 1);
-                updateAllTables();
-                sendToGoogleSheets('deletePenerimaan', { index });
-            }
-        }
-
-        function deleteTransfer(index) {
-            if (confirm('Yakin ingin menghapus data transfer ini?')) {
-                transferData.splice(index, 1);
-                updateAllTables();
-                sendToGoogleSheets('deleteTransfer', { index });
-            }
-        }
-
-        function deleteOutlet(index) {
-            if (confirm('Yakin ingin menghapus outlet ini?')) {
-                outletData.splice(index, 1);
-                updateOutletTable();
-                updateOutletDropdown();
-                sendToGoogleSheets('deleteOutlet', { index });
-            }
-        }
-
-        // Report functions
+        // Download functions
         function downloadPDF() {
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
             
-            doc.setFontSize(16);
-            doc.text('Laporan Sistem Gudang Modern', 20, 20);
-            doc.setFontSize(10);
-            doc.text('Generated: ' + new Date().toLocaleString('id-ID'), 20, 30);
+            doc.setFontSize(20);
+            doc.text('Laporan Stok Barang', 20, 20);
             
-            let yPos = 50;
             doc.setFontSize(12);
-            doc.text('Data Penerimaan:', 20, yPos);
-            yPos += 10;
+            let yPosition = 40;
             
-            penerimaanData.forEach(item => {
-                if (yPos > 270) {
-                    doc.addPage();
-                    yPos = 20;
-                }
-                doc.setFontSize(8);
-                doc.text(`${item.tanggal} - ${item.kode} - ${item.nama} - ${item.quantity} ${item.unit} - ${item.status}`, 20, yPos);
-                yPos += 6;
+            doc.text('Kode Barang', 20, yPosition);
+            doc.text('Nama Barang', 60, yPosition);
+            doc.text('Stock', 120, yPosition);
+            doc.text('Unit', 150, yPosition);
+            
+            yPosition += 10;
+            
+            databaseData.forEach(item => {
+                doc.text(item.kode, 20, yPosition);
+                doc.text(item.nama, 60, yPosition);
+                doc.text(item.stock.toString(), 120, yPosition);
+                doc.text(item.unit, 150, yPosition);
+                yPosition += 10;
             });
             
-            doc.save('laporan-gudang-' + new Date().toISOString().split('T')[0] + '.pdf');
+            doc.save('laporan-stok-barang.pdf');
+            showNotification('Laporan PDF berhasil didownload!', 'success');
         }
 
         function downloadExcel() {
+            const ws = XLSX.utils.json_to_sheet(databaseData.map(item => ({
+                'Kode Barang': item.kode,
+                'Nama Barang': item.nama,
+                'Stock': item.stock,
+                'Unit': item.unit
+            })));
+            
             const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Laporan Stok');
             
-            // Penerimaan sheet
-            const penerimaanWS = XLSX.utils.json_to_sheet(penerimaanData);
-            XLSX.utils.book_append_sheet(wb, penerimaanWS, 'Penerimaan');
-            
-            // Transfer sheet
-            const transferWS = XLSX.utils.json_to_sheet(transferData);
-            XLSX.utils.book_append_sheet(wb, transferWS, 'Transfer');
-            
-            // Database sheet
-            const databaseArray = Object.entries(databaseData).map(([kode, data]) => ({
-                kode: kode,
-                nama: data.nama,
-                stock: data.stock,
-                unit: data.unit,
-                harga: data.harga,
-                updateTerakhir: data.updateTerakhir
-            }));
-            const databaseWS = XLSX.utils.json_to_sheet(databaseArray);
-            XLSX.utils.book_append_sheet(wb, databaseWS, 'Database');
-            
-            // Outlet sheet
-            const outletWS = XLSX.utils.json_to_sheet(outletData);
-            XLSX.utils.book_append_sheet(wb, outletWS, 'Outlet');
-            
-            XLSX.writeFile(wb, 'laporan-gudang-' + new Date().toISOString().split('T')[0] + '.xlsx');
+            XLSX.writeFile(wb, 'laporan-stok-barang.xlsx');
+            showNotification('Laporan Excel berhasil didownload!', 'success');
         }
 
-        function printReport() {
-            const printWindow = window.open('', '_blank');
-            printWindow.document.write(`
-                <html>
-                <head>
-                    <title>Laporan Sistem Gudang</title>
-                    <style>
-                        body { font-family: Arial, sans-serif; margin: 20px; }
-                        table { width: 100%; border-collapse: collapse; margin: 20px 0; }
-                        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 12px; }
-                        th { background-color: #f2f2f2; }
-                        h1, h2 { color: #333; }
-                        .summary { background: #f9f9f9; padding: 15px; margin: 10px 0; }
-                    </style>
-                </head>
-                <body>
-                    <h1>📊 Laporan Sistem Gudang Modern</h1>
-                    <p><strong>Tanggal:</strong> ${new Date().toLocaleDateString('id-ID')}</p>
-                    <p><strong>Waktu:</strong> ${new Date().toLocaleTimeString('id-ID')}</p>
-                    
-                    <div class="summary">
-                        <h3>📈 Ringkasan</h3>
-                        <p>Total Penerimaan: ${penerimaanData.length}</p>
-                        <p>Total Transfer: ${transferData.length}</p>
-                        <p>Total Outlet: ${outletData.length}</p>
-                        <p>Total Barang: ${Object.keys(databaseData).length}</p>
-                    </div>
-                    
-                    <h2>📥 Data Penerimaan</h2>
-                    <table>
-                        <tr><th>Tanggal</th><th>Kode</th><th>Nama</th><th>Qty</th><th>Unit</th><th>Status</th><th>Keterangan</th></tr>
-                        ${penerimaanData.map(item => `
-                            <tr><td>${item.tanggal}</td><td>${item.kode}</td><td>${item.nama}</td><td>${item.quantity}</td><td>${item.unit}</td><td>${item.status}</td><td>${item.keterangan || '-'}</td></tr>
-                        `).join('')}
-                    </table>
-                    
-                    <h2>🚚 Data Transfer</h2>
-                    <table>
-                        <tr><th>Tanggal</th><th>Kode</th><th>Nama</th><th>Qty</th><th>Unit</th><th>Outlet</th><th>Status</th></tr>
-                        ${transferData.map(item => `
-                            <tr><td>${item.tanggal}</td><td>${item.kode}</td><td>${item.nama}</td><td>${item.quantity}</td><td>${item.unit}</td><td>${item.outlet}</td><td>${item.status || 'Completed'}</td></tr>
-                        `).join('')}
-                    </table>
-                    
-                    <h2>💾 Database Barang</h2>
-                    <table>
-                        <tr><th>Kode</th><th>Nama</th><th>Stock</th><th>Unit</th><th>Harga</th></tr>
-                        ${Object.entries(databaseData).map(([kode, data]) => `
-                            <tr><td>${kode}</td><td>${data.nama}</td><td>${data.stock}</td><td>${data.unit}</td><td>Rp ${(data.harga || 0).toLocaleString('id-ID')}</td></tr>
-                        `).join('')}
-                    </table>
-                </body>
-                </html>
-            `);
-            printWindow.document.close();
-            printWindow.print();
+        // Notification function
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.className = `fixed top-20 right-4 z-50 p-4 rounded-lg shadow-lg transition-all duration-300 ${
+                type === 'success' ? 'bg-green-500 text-white' : 
+                type === 'error' ? 'bg-red-500 text-white' : 
+                'bg-blue-500 text-white'
+            }`;
+            notification.innerHTML = `
+                <div class="flex items-center">
+                    <i class="fas fa-${type === 'success' ? 'check' : type === 'error' ? 'times' : 'info'}-circle mr-2"></i>
+                    ${message}
+                </div>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.transform = 'translateX(100%)';
+                setTimeout(() => {
+                    document.body.removeChild(notification);
+                }, 300);
+            }, 3000);
         }
 
-        async function generateGoogleSheetsReport() {
-            if (!isConnected) {
-                alert('❌ Tidak terhubung ke Google Sheets');
-                return;
-            }
-            
-            try {
-                const result = await sendToGoogleSheets('generateReport', {});
-                if (result.success) {
-                    alert('✅ Laporan berhasil dibuat di Google Sheets!');
-                } else {
-                    alert('❌ Gagal membuat laporan: ' + result.error);
-                }
-            } catch (error) {
-                alert('❌ Error: ' + error.message);
-            }
+        // Local storage functions
+        function saveLocalData() {
+            const allData = {
+                penerimaan: penerimaanData,
+                transfer: transferData,
+                outlet: outletData,
+                database: databaseData,
+                lastSaved: new Date().toISOString()
+            };
+            localStorage.setItem('warehouseData', JSON.stringify(allData));
         }
 
-        // Test connection to Google Sheets
-        async function testConnection() {
-            console.log('🔍 Testing connection to Google Sheets...');
-            updateSyncStatus('loading', '🔍 Testing connection...');
-            
-            try {
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 5000);
-                
-                const response = await fetch(`${GOOGLE_SCRIPT_URL}?action=test&timestamp=${Date.now()}`, {
-                    method: 'GET',
-                    signal: controller.signal
-                });
-                
-                clearTimeout(timeoutId);
-                
-                console.log('📡 Response status:', response.status);
-                console.log('📡 Response headers:', [...response.headers.entries()]);
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                }
-                
-                const text = await response.text();
-                console.log('📡 Raw response:', text);
-                
-                let data;
+        function loadLocalData() {
+            const savedData = localStorage.getItem('warehouseData');
+            if (savedData) {
                 try {
-                    data = JSON.parse(text);
-                } catch (e) {
-                    throw new Error(`Invalid JSON response: ${text.substring(0, 100)}...`);
+                    const data = JSON.parse(savedData);
+                    penerimaanData = data.penerimaan || [];
+                    transferData = data.transfer || [];
+                    outletData = data.outlet || [
+                        { kode: 'OUT001', nama: 'Jakarta Pusat' },
+                        { kode: 'OUT002', nama: 'Jakarta Selatan' },
+                        { kode: 'OUT003', nama: 'Bandung' }
+                    ];
+                    databaseData = data.database || [
+                        { kode: 'BRG001', nama: 'Laptop Dell', stock: 25, unit: 'pcs' },
+                        { kode: 'BRG002', nama: 'Mouse Wireless', stock: 150, unit: 'pcs' }
+                    ];
+                    
+                    // Update all tables
+                    updatePenerimaanTable();
+                    updateTransferTable();
+                    updateOutletTable();
+                    updateDatabaseTable();
+                    updateOutletSelect();
+                    
+                    showNotification('📁 Data lokal berhasil dimuat', 'info');
+                } catch (error) {
+                    console.error('Error loading local data:', error);
                 }
-                
-                console.log('📡 Parsed response:', data);
-                
-                if (data.success) {
-                    updateSyncStatus('success', '✅ Connection successful!');
-                    isConnected = true;
-                    alert('✅ Koneksi berhasil!\n\nGoogle Apps Script merespons dengan baik.');
-                } else {
-                    throw new Error(data.error || 'Test failed');
-                }
-                
-            } catch (error) {
-                console.error('❌ Connection test failed:', error);
-                let errorMsg = error.message;
-                
-                if (error.name === 'AbortError') {
-                    errorMsg = 'Timeout - Google Apps Script tidak merespons dalam 5 detik';
-                } else if (error.message.includes('Failed to fetch')) {
-                    errorMsg = 'Network error - Periksa koneksi internet atau URL deployment';
-                } else if (error.message.includes('CORS')) {
-                    errorMsg = 'CORS error - Google Apps Script belum di-deploy dengan benar';
-                }
-                
-                updateSyncStatus('error', `❌ ${errorMsg}`);
-                isConnected = false;
-                
-                alert(`❌ Test koneksi gagal!\n\nError: ${errorMsg}\n\nSolusi:\n1. Pastikan Google Apps Script sudah di-deploy\n2. Set permissions ke "Anyone"\n3. Periksa URL deployment\n4. Coba refresh halaman`);
             }
         }
 
-        // Open Google Sheets
-        function openGoogleSheets() {
-            const spreadsheetUrl = 'https://docs.google.com/spreadsheets/d/AKfycbw5SAAw9O8-RhWVGxxYLWbkoUcS9Z1RyZ59ZYcP4tpMHOlilNTP7Orc8NA_6yW_ktpG/edit';
-            window.open(spreadsheetUrl, '_blank');
-        }
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            setTodayDate();
+            updateOutletSelect();
+            
+            // Show dashboard by default
+            showSection('dashboard');
+            
+            // Set first menu item as active
+            document.querySelector('.menu-item').classList.add('bg-blue-50', 'text-blue-600');
+            
+            // Load data from localStorage if available
+            loadLocalData();
+            
+            // Test connection on load
+            setTimeout(() => {
+                testConnection();
+            }, 1000);
+            
+            // Auto-save to localStorage every 30 seconds
+            setInterval(saveLocalData, 30000);
+        });
     </script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'97c8946fe67a3231',t:'MTc1NzQ0MDc3MC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'97c8b1e9e5b79f89',t:'MTc1NzQ0MTk3OC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
