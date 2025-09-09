@@ -152,7 +152,7 @@
       });
     }
 
-    // Edit Barang (update ke Spreadsheet)
+    // Edit Barang
     async function editBarang(kode) {
       const barang = barangDB[kode];
       const namaBaru = prompt("Edit Nama Barang:", barang.nama);
@@ -168,7 +168,7 @@
       }
     }
 
-    // Hapus Barang (hapus di Spreadsheet)
+    // Hapus Barang
     async function hapusBarang(kode) {
       if (confirm(`Hapus barang ${kode}?`)) {
         await fetch(API_URL, {
@@ -224,12 +224,13 @@
         showToast("Stok tidak cukup ❌", "error");
         return;
       }
-      // kirim pemindahan ke log + kurangi stok
+
       await fetch(API_URL, {
         method: "POST",
-        body: JSON.stringify({ action: "updateBarang", kode, nama: barangDB[kode].nama, jumlah: barangDB[kode].jumlah - jumlah }),
+        body: JSON.stringify({ action: "pindahBarang", kode, jumlah, outlet }),
         headers: { "Content-Type": "application/json" }
       });
+
       showToast("Pemindahan barang berhasil 🚚");
       this.reset();
       loadBarang();
