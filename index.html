@@ -114,7 +114,7 @@
 
   <script>
     // URL Web App dari Google Apps Script
-    const API_URL = "https://script.google.com/macros/s/AKfycbx123456789/exec";
+    const API_URL = "https://script.google.com/macros/s/AKfycbw-_J6HmN6wQvpMFQ7D8JY-P3yK3eaOezyykpaHp6tsJ5ltxpsvKpcpkohGFZd486Mu/exec";
 
     // Toggle submenu
     function toggleMenu(menuId, arrowId) {
@@ -152,26 +152,32 @@
       });
     }
 
-    // Edit Barang
-    function editBarang(kode) {
+    // Edit Barang (update ke Spreadsheet)
+    async function editBarang(kode) {
       const barang = barangDB[kode];
       const namaBaru = prompt("Edit Nama Barang:", barang.nama);
       const jumlahBaru = prompt("Edit Jumlah Barang:", barang.jumlah);
       if (namaBaru && jumlahBaru) {
-        // TODO: update ke Spreadsheet (belum diimplementasi)
-        barangDB[kode] = { nama: namaBaru, jumlah: parseInt(jumlahBaru) };
-        renderMasterData();
+        await fetch(API_URL, {
+          method: "POST",
+          body: JSON.stringify({ action: "updateBarang", kode, nama: namaBaru, jumlah: parseInt(jumlahBaru) }),
+          headers: { "Content-Type": "application/json" }
+        });
         showToast("Barang berhasil diupdate ✏️");
+        loadBarang();
       }
     }
 
-    // Hapus Barang
-    function hapusBarang(kode) {
+    // Hapus Barang (hapus di Spreadsheet)
+    async function hapusBarang(kode) {
       if (confirm(`Hapus barang ${kode}?`)) {
-        // TODO: hapus di Spreadsheet (belum diimplementasi)
-        delete barangDB[kode];
-        renderMasterData();
+        await fetch(API_URL, {
+          method: "POST",
+          body: JSON.stringify({ action: "hapusBarang", kode }),
+          headers: { "Content-Type": "application/json" }
+        });
         showToast("Barang berhasil dihapus 🗑️", "error");
+        loadBarang();
       }
     }
 
@@ -187,7 +193,6 @@
         return;
       }
 
-      // Kirim ke Spreadsheet
       await fetch(API_URL, {
         method: "POST",
         body: JSON.stringify({ action: "tambahBarang", kode, nama, jumlah }),
@@ -196,7 +201,7 @@
 
       showToast("Barang berhasil diterima ✅");
       this.reset();
-      loadBarang(); // refresh data dari sheet
+      loadBarang();
     });
 
     // ===== Form Pemindahan Barang =====
@@ -206,7 +211,7 @@
       namaInput.value = barangDB[kode] ? barangDB[kode].nama : "";
     });
 
-    document.getElementById("formPindah").addEventListener("submit", function(e) {
+    document.getElementById("formPindah").addEventListener("submit", async function(e) {
       e.preventDefault();
       let kode = document.getElementById("kodeBarang").value.trim().toUpperCase();
       let jumlah = parseInt(document.getElementById("jumlahPindah").value);
@@ -219,11 +224,15 @@
         showToast("Stok tidak cukup ❌", "error");
         return;
       }
-      // TODO: update ke Spreadsheet (belum diimplementasi)
-      barangDB[kode].jumlah -= jumlah;
-      renderMasterData();
+      // kirim pemindahan ke log + kurangi stok
+      await fetch(API_URL, {
+        method: "POST",
+        body: JSON.stringify({ action: "updateBarang", kode, nama: barangDB[kode].nama, jumlah: barangDB[kode].jumlah - jumlah }),
+        headers: { "Content-Type": "application/json" }
+      });
       showToast("Pemindahan barang berhasil 🚚");
       this.reset();
+      loadBarang();
     });
 
     // ===== Toast Notification =====
