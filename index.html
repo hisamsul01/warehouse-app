@@ -15,21 +15,10 @@
       Warehouse
     </div>
     <nav class="flex-1 p-4 space-y-3">
-      <a href="#terima" class="flex items-center gap-2 p-2 rounded-lg hover:bg-blue-600">
-        📥 Terima Barang
-      </a>
-      <a href="#pindah" class="flex items-center gap-2 p-2 rounded-lg hover:bg-blue-600">
-        🔄 Pemindahan
-      </a>
-      <a href="#outlet" class="flex items-center gap-2 p-2 rounded-lg hover:bg-blue-600">
-        🏪 Outlet
-      </a>
-      <a href="#admin" class="flex items-center gap-2 p-2 rounded-lg hover:bg-blue-600">
-        👤 Admin
-      </a>
-      <a href="#pengaturan" class="flex items-center gap-2 p-2 rounded-lg hover:bg-blue-600">
-        ⚙️ Pengaturan
-      </a>
+      <a href="#terima" class="block p-2 rounded-lg hover:bg-blue-600">📥 Terima Barang</a>
+      <a href="#pindah" class="block p-2 rounded-lg hover:bg-blue-600">🔄 Pemindahan</a>
+      <a href="#outlet" class="block p-2 rounded-lg hover:bg-blue-600">🏪 Outlet</a>
+      <a href="#admin" class="block p-2 rounded-lg hover:bg-blue-600">👤 Admin</a>
     </nav>
     <div class="p-4 border-t border-blue-500 text-sm">
       © 2025 Warehouse Manager
@@ -39,65 +28,125 @@
   <!-- Konten -->
   <main class="flex-1 p-8 space-y-12 overflow-y-auto">
 
-    <!-- Terima Barang -->
+    <!-- 📥 Terima Barang -->
     <section id="terima" class="bg-white p-6 rounded-xl shadow-md">
       <h2 class="text-xl font-semibold mb-4">📥 Terima Barang</h2>
-      <form class="grid gap-4">
+      <form class="grid gap-4 max-w-md">
+        <input type="text" placeholder="Kode Barang" class="border p-2 rounded">
         <input type="text" placeholder="Nama Barang" class="border p-2 rounded">
         <input type="number" placeholder="Jumlah" class="border p-2 rounded">
-        <input type="text" placeholder="Supplier" class="border p-2 rounded">
         <button type="submit" class="bg-blue-600 text-white py-2 rounded">Simpan</button>
       </form>
     </section>
 
-    <!-- Pemindahan Barang -->
+    <!-- 🔄 Pemindahan Barang -->
     <section id="pindah" class="bg-white p-6 rounded-xl shadow-md">
       <h2 class="text-xl font-semibold mb-4">🔄 Pemindahan Barang</h2>
-      <form class="grid gap-4">
-        <input type="text" placeholder="Nama Barang" class="border p-2 rounded">
+      <form class="grid gap-4 max-w-md">
+        <input type="text" id="kodeBarang" placeholder="Kode Barang" class="border p-2 rounded">
+        <input type="text" id="namaBarang" placeholder="Nama Barang (otomatis)" class="border p-2 rounded bg-gray-100" readonly>
         <input type="number" placeholder="Jumlah" class="border p-2 rounded">
-        <input type="text" placeholder="Lokasi Asal" class="border p-2 rounded">
-        <input type="text" placeholder="Lokasi Tujuan" class="border p-2 rounded">
+        <select class="border p-2 rounded">
+          <option value="">Pilih Outlet</option>
+          <option value="OUT001">OUT001 - Outlet Jakarta</option>
+          <option value="OUT002">OUT002 - Outlet Bandung</option>
+          <option value="OUT003">OUT003 - Outlet Surabaya</option>
+        </select>
         <button type="submit" class="bg-blue-600 text-white py-2 rounded">Proses</button>
       </form>
     </section>
 
-    <!-- Outlet -->
+    <!-- 🏪 Outlet -->
     <section id="outlet" class="bg-white p-6 rounded-xl shadow-md">
-      <h2 class="text-xl font-semibold mb-4">🏪 Outlet</h2>
-      <form class="grid gap-4">
+      <h2 class="text-xl font-semibold mb-4">🏪 Master Outlet</h2>
+      <form class="grid gap-4 max-w-md mb-6">
+        <input type="text" placeholder="Kode Outlet" class="border p-2 rounded">
         <input type="text" placeholder="Nama Outlet" class="border p-2 rounded">
-        <input type="text" placeholder="Nama Barang" class="border p-2 rounded">
-        <input type="number" placeholder="Jumlah" class="border p-2 rounded">
-        <button type="submit" class="bg-blue-600 text-white py-2 rounded">Kirim</button>
+        <button type="submit" class="bg-green-600 text-white py-2 rounded">Tambah Outlet</button>
       </form>
+      <!-- Tabel Outlet -->
+      <table class="w-full border text-left">
+        <thead class="bg-gray-200">
+          <tr>
+            <th class="p-2 border">Kode Outlet</th>
+            <th class="p-2 border">Nama Outlet</th>
+            <th class="p-2 border">Aksi</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="p-2 border">OUT001</td>
+            <td class="p-2 border">Outlet Jakarta</td>
+            <td class="p-2 border">
+              <button class="bg-yellow-500 text-white px-2 py-1 rounded">Edit</button>
+              <button class="bg-red-600 text-white px-2 py-1 rounded">Hapus</button>
+            </td>
+          </tr>
+          <tr>
+            <td class="p-2 border">OUT002</td>
+            <td class="p-2 border">Outlet Bandung</td>
+            <td class="p-2 border">
+              <button class="bg-yellow-500 text-white px-2 py-1 rounded">Edit</button>
+              <button class="bg-red-600 text-white px-2 py-1 rounded">Hapus</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
     </section>
 
-    <!-- Admin -->
+    <!-- 👤 Admin -->
     <section id="admin" class="bg-white p-6 rounded-xl shadow-md">
-      <h2 class="text-xl font-semibold mb-4">👤 Admin</h2>
-      <form class="grid gap-4">
-        <input type="text" placeholder="Nama Admin" class="border p-2 rounded">
-        <input type="email" placeholder="Email Admin" class="border p-2 rounded">
-        <button type="submit" class="bg-blue-600 text-white py-2 rounded">Tambah Admin</button>
-      </form>
-    </section>
-
-    <!-- Pengaturan -->
-    <section id="pengaturan" class="bg-white p-6 rounded-xl shadow-md">
-      <h2 class="text-xl font-semibold mb-4">⚙️ Pengaturan</h2>
-      <form class="grid gap-4">
+      <h2 class="text-xl font-semibold mb-4">👤 Manajemen Admin</h2>
+      <form class="grid gap-4 max-w-md mb-6">
+        <input type="text" placeholder="Nama User" class="border p-2 rounded">
+        <input type="email" placeholder="Email User" class="border p-2 rounded">
         <select class="border p-2 rounded">
-          <option>Pilih Tema</option>
-          <option>Terang</option>
-          <option>Gelap</option>
+          <option>Role</option>
+          <option>Admin</option>
+          <option>Staff</option>
         </select>
-        <input type="text" placeholder="Tambah Store" class="border p-2 rounded">
-        <button type="submit" class="bg-blue-600 text-white py-2 rounded">Simpan Pengaturan</button>
+        <button type="submit" class="bg-green-600 text-white py-2 rounded">Tambah User</button>
       </form>
+      <!-- Tabel User -->
+      <table class="w-full border text-left">
+        <thead class="bg-gray-200">
+          <tr>
+            <th class="p-2 border">Nama</th>
+            <th class="p-2 border">Email</th>
+            <th class="p-2 border">Role</th>
+            <th class="p-2 border">Aksi</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="p-2 border">Samsul</td>
+            <td class="p-2 border">samsul@example.com</td>
+            <td class="p-2 border">Admin</td>
+            <td class="p-2 border">
+              <button class="bg-yellow-500 text-white px-2 py-1 rounded">Edit</button>
+              <button class="bg-red-600 text-white px-2 py-1 rounded">Hapus</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
     </section>
 
   </main>
+
+  <script>
+    // Simulasi Nama Barang otomatis berdasarkan Kode Barang
+    document.getElementById("kodeBarang").addEventListener("input", function() {
+      let kode = this.value.trim().toUpperCase();
+      let namaInput = document.getElementById("namaBarang");
+      if (kode === "BRG001") {
+        namaInput.value = "Beras Premium 5kg";
+      } else if (kode === "BRG002") {
+        namaInput.value = "Minyak Goreng 2L";
+      } else {
+        namaInput.value = "";
+      }
+    });
+  </script>
 
 </body>
 </html>
