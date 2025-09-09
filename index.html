@@ -17,6 +17,7 @@
     <nav class="flex-1 p-4 space-y-2">
       <a href="#terima" class="flex items-center gap-2 p-2 rounded-lg hover:bg-blue-600">📥 <span>Terima Barang</span></a>
       <a href="#pindah" class="flex items-center gap-2 p-2 rounded-lg hover:bg-blue-600">🔄 <span>Pemindahan</span></a>
+      <a href="#master" class="flex items-center gap-2 p-2 rounded-lg hover:bg-blue-600">📊 <span>Master Data</span></a>
       <div>
         <button onclick="toggleMenu('outletMenu', 'outletArrow')" 
                 class="w-full flex justify-between items-center p-2 rounded-lg hover:bg-blue-600">
@@ -77,6 +78,22 @@
       </form>
     </section>
 
+    <!-- 📊 Master Data -->
+    <section id="master" class="bg-white dark:bg-gray-800 dark:text-gray-100 p-6 rounded-xl shadow-md">
+      <h2 class="text-xl font-semibold mb-4">📊 Master Data Barang</h2>
+      <table id="masterTable" class="w-full border text-left">
+        <thead class="bg-gray-200 dark:bg-gray-700">
+          <tr>
+            <th class="p-2 border">Kode</th>
+            <th class="p-2 border">Nama Barang</th>
+            <th class="p-2 border">Jumlah</th>
+            <th class="p-2 border">Aksi</th>
+          </tr>
+        </thead>
+        <tbody id="masterBody"></tbody>
+      </table>
+    </section>
+
     <!-- ⚙️ Pengaturan -->
     <section id="pengaturan" class="bg-white dark:bg-gray-800 dark:text-gray-100 p-6 rounded-xl shadow-md">
       <h2 class="text-xl font-semibold mb-4">⚙️ Pengaturan</h2>
@@ -104,19 +121,59 @@
       arrow.classList.toggle("rotate-90");
     }
 
-    // ===== Database lokal barang (contoh) =====
-    const barangDB = {
-      "BRG001": "Beras Premium 5kg",
-      "BRG002": "Minyak Goreng 2L",
-      "BRG003": "Gula Pasir 1kg"
+    // ===== Database Barang =====
+    let barangDB = {
+      "BRG001": { nama: "Beras Premium 5kg", jumlah: 10 },
+      "BRG002": { nama: "Minyak Goreng 2L", jumlah: 20 },
+      "BRG003": { nama: "Gula Pasir 1kg", jumlah: 15 }
     };
 
-    // Form Terima Barang -> Cek kode
+    // Render Master Data
+    function renderMasterData() {
+      const body = document.getElementById("masterBody");
+      body.innerHTML = "";
+      Object.keys(barangDB).forEach(kode => {
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td class="p-2 border">${kode}</td>
+          <td class="p-2 border">${barangDB[kode].nama}</td>
+          <td class="p-2 border">${barangDB[kode].jumlah}</td>
+          <td class="p-2 border space-x-2">
+            <button onclick="editBarang('${kode}')" class="bg-yellow-500 text-white px-2 py-1 rounded">Edit</button>
+            <button onclick="hapusBarang('${kode}')" class="bg-red-600 text-white px-2 py-1 rounded">Hapus</button>
+          </td>
+        `;
+        body.appendChild(row);
+      });
+    }
+
+    // Edit Barang
+    function editBarang(kode) {
+      const barang = barangDB[kode];
+      const namaBaru = prompt("Edit Nama Barang:", barang.nama);
+      const jumlahBaru = prompt("Edit Jumlah Barang:", barang.jumlah);
+      if (namaBaru && jumlahBaru) {
+        barangDB[kode] = { nama: namaBaru, jumlah: parseInt(jumlahBaru) };
+        renderMasterData();
+        showToast("Barang berhasil diupdate ✏️");
+      }
+    }
+
+    // Hapus Barang
+    function hapusBarang(kode) {
+      if (confirm(`Hapus barang ${kode}?`)) {
+        delete barangDB[kode];
+        renderMasterData();
+        showToast("Barang berhasil dihapus 🗑️", "error");
+      }
+    }
+
+    // ===== Form Terima Barang =====
     document.getElementById("kodeTerima").addEventListener("input", function() {
       let kode = this.value.trim().toUpperCase();
       let namaInput = document.getElementById("namaTerima");
       if (barangDB[kode]) {
-        namaInput.value = barangDB[kode];
+        namaInput.value = barangDB[kode].nama;
         namaInput.readOnly = true;
         namaInput.classList.add("bg-gray-100");
       } else {
@@ -126,53 +183,73 @@
       }
     });
 
-    // Pemindahan Barang Nama otomatis
+    document.getElementById("formTerima").addEventListener("submit", function(e) {
+      e.preventDefault();
+      let kode = document.getElementById("kodeTerima").value.trim().toUpperCase();
+      let nama = document.getElementById("namaTerima").value.trim();
+      let jumlah = parseInt(document.getElementById("jumlahTerima").value);
+      if (!kode || !nama || !jumlah) {
+        showToast("Lengkapi semua data ❌", "error");
+        return;
+      }
+      if (barangDB[kode]) {
+        barangDB[kode].jumlah += jumlah;
+      } else {
+        barangDB[kode] = { nama, jumlah };
+      }
+      renderMasterData();
+      showToast("Barang berhasil diterima ✅");
+      this.reset();
+    });
+
+    // ===== Form Pemindahan Barang =====
     document.getElementById("kodeBarang").addEventListener("input", function() {
       let kode = this.value.trim().toUpperCase();
       let namaInput = document.getElementById("namaBarang");
-      namaInput.value = barangDB[kode] || "";
+      namaInput.value = barangDB[kode] ? barangDB[kode].nama : "";
+    });
+
+    document.getElementById("formPindah").addEventListener("submit", function(e) {
+      e.preventDefault();
+      let kode = document.getElementById("kodeBarang").value.trim().toUpperCase();
+      let jumlah = parseInt(document.getElementById("jumlahPindah").value);
+      let outlet = document.getElementById("outletPindah").value;
+      if (!kode || !jumlah || !outlet) {
+        showToast("Lengkapi semua data ❌", "error");
+        return;
+      }
+      if (!barangDB[kode] || barangDB[kode].jumlah < jumlah) {
+        showToast("Stok tidak cukup ❌", "error");
+        return;
+      }
+      barangDB[kode].jumlah -= jumlah;
+      renderMasterData();
+      showToast("Pemindahan barang berhasil 🚚");
+      this.reset();
     });
 
     // ===== Toast Notification =====
     function showToast(message, type = "success") {
       const container = document.getElementById("toastContainer");
       const toast = document.createElement("div");
-
       toast.className = `px-4 py-2 rounded shadow text-white ${
         type === "success" ? "bg-green-600" : "bg-red-600"
       } animate-fadeIn`;
-
       toast.innerText = message;
       container.appendChild(toast);
-
       setTimeout(() => {
         toast.classList.add("opacity-0", "transition-opacity", "duration-500");
         setTimeout(() => toast.remove(), 500);
       }, 3000);
     }
 
-    // Form submit handler
-    document.getElementById("formTerima").addEventListener("submit", function(e) {
-      e.preventDefault();
-      showToast("Barang berhasil diterima ✅", "success");
-      this.reset();
-    });
-
-    document.getElementById("formPindah").addEventListener("submit", function(e) {
-      e.preventDefault();
-      showToast("Pemindahan barang berhasil 🚚", "success");
-      this.reset();
-    });
-
     // ===== Mode Gelap/Terang =====
     const themeToggle = document.getElementById("themeToggle");
     const body = document.body;
-
     if (localStorage.getItem("theme") === "dark") {
       body.classList.add("dark", "bg-gray-900", "text-white");
       themeToggle.textContent = "☀️";
     }
-
     themeToggle.addEventListener("click", () => {
       body.classList.toggle("dark");
       if (body.classList.contains("dark")) {
@@ -185,6 +262,9 @@
         body.classList.remove("bg-gray-900", "text-white");
       }
     });
+
+    // Render awal master data
+    renderMasterData();
   </script>
 
   <style>
@@ -192,10 +272,7 @@
       from { opacity: 0; transform: translateY(-10px); }
       to { opacity: 1; transform: translateY(0); }
     }
-    .animate-fadeIn {
-      animation: fadeIn 0.3s ease-out;
-    }
+    .animate-fadeIn { animation: fadeIn 0.3s ease-out; }
   </style>
-
 </body>
 </html>
