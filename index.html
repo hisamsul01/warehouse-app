@@ -128,9 +128,13 @@
     let barangDB = {};
 
     async function loadBarang() {
-      const res = await fetch(`${API_URL}?action=getBarang`);
-      barangDB = await res.json();
-      renderMasterData();
+      try {
+        const res = await fetch(`${API_URL}?action=getBarang`);
+        barangDB = await res.json();
+        renderMasterData();
+      } catch (err) {
+        showToast("Gagal memuat data ❌", "error");
+      }
     }
 
     // Render Master Data
@@ -157,28 +161,31 @@
       const barang = barangDB[kode];
       const namaBaru = prompt("Edit Nama Barang:", barang.nama);
       const jumlahBaru = prompt("Edit Jumlah Barang:", barang.jumlah);
-      if (namaBaru && jumlahBaru) {
-        await fetch(API_URL, {
-          method: "POST",
-          body: JSON.stringify({ action: "updateBarang", kode, nama: namaBaru, jumlah: parseInt(jumlahBaru) }),
-          headers: { "Content-Type": "application/json" }
-        });
-        showToast("Barang berhasil diupdate ✏️");
-        loadBarang();
+      if (!namaBaru || Number.isNaN(parseInt(jumlahBaru)) || parseInt(jumlahBaru) <= 0) {
+        showToast("Input tidak valid ❌", "error");
+        return;
       }
+      const res = await fetch(API_URL, {
+        method: "POST",
+        body: JSON.stringify({ action: "updateBarang", kode, nama: namaBaru, jumlah: parseInt(jumlahBaru) }),
+        headers: { "Content-Type": "application/json" }
+      });
+      const result = await res.json();
+      showToast(result.message, result.success ? "success" : "error");
+      loadBarang();
     }
 
     // Hapus Barang
     async function hapusBarang(kode) {
-      if (confirm(`Hapus barang ${kode}?`)) {
-        await fetch(API_URL, {
-          method: "POST",
-          body: JSON.stringify({ action: "hapusBarang", kode }),
-          headers: { "Content-Type": "application/json" }
-        });
-        showToast("Barang berhasil dihapus 🗑️", "error");
-        loadBarang();
-      }
+      if (!confirm(`Hapus barang ${kode}?`)) return;
+      const res = await fetch(API_URL, {
+        method: "POST",
+        body: JSON.stringify({ action: "hapusBarang", kode }),
+        headers: { "Content-Type": "application/json" }
+      });
+      const result = await res.json();
+      showToast(result.message, result.success ? "success" : "error");
+      loadBarang();
     }
 
     // ===== Form Terima Barang =====
@@ -188,18 +195,18 @@
       let nama = document.getElementById("namaTerima").value.trim();
       let jumlah = parseInt(document.getElementById("jumlahTerima").value);
 
-      if (!kode || !nama || !jumlah) {
+      if (!kode || !nama || Number.isNaN(jumlah) || jumlah <= 0) {
         showToast("Lengkapi semua data ❌", "error");
         return;
       }
 
-      await fetch(API_URL, {
+      const res = await fetch(API_URL, {
         method: "POST",
         body: JSON.stringify({ action: "tambahBarang", kode, nama, jumlah }),
         headers: { "Content-Type": "application/json" }
       });
-
-      showToast("Barang berhasil diterima ✅");
+      const result = await res.json();
+      showToast(result.message, result.success ? "success" : "error");
       this.reset();
       loadBarang();
     });
@@ -216,7 +223,7 @@
       let kode = document.getElementById("kodeBarang").value.trim().toUpperCase();
       let jumlah = parseInt(document.getElementById("jumlahPindah").value);
       let outlet = document.getElementById("outletPindah").value;
-      if (!kode || !jumlah || !outlet) {
+      if (!kode || Number.isNaN(jumlah) || jumlah <= 0 || !outlet) {
         showToast("Lengkapi semua data ❌", "error");
         return;
       }
@@ -225,13 +232,13 @@
         return;
       }
 
-      await fetch(API_URL, {
+      const res = await fetch(API_URL, {
         method: "POST",
         body: JSON.stringify({ action: "pindahBarang", kode, jumlah, outlet }),
         headers: { "Content-Type": "application/json" }
       });
-
-      showToast("Pemindahan barang berhasil 🚚");
+      const result = await res.json();
+      showToast(result.message, result.success ? "success" : "error");
       this.reset();
       loadBarang();
     });
@@ -255,7 +262,7 @@
     const themeToggle = document.getElementById("themeToggle");
     const body = document.body;
     if (localStorage.getItem("theme") === "dark") {
-      body.classList.add("dark", "bg-gray-900", "text-white");
+      body.classList.add("dark");
       themeToggle.textContent = "☀️";
     }
     themeToggle.addEventListener("click", () => {
@@ -263,11 +270,9 @@
       if (body.classList.contains("dark")) {
         localStorage.setItem("theme", "dark");
         themeToggle.textContent = "☀️";
-        body.classList.add("bg-gray-900", "text-white");
       } else {
         localStorage.setItem("theme", "light");
         themeToggle.textContent = "🌙";
-        body.classList.remove("bg-gray-900", "text-white");
       }
     });
 
