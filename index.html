@@ -113,6 +113,9 @@
   <div id="toastContainer" class="fixed top-4 right-4 space-y-2 z-50"></div>
 
   <script>
+      <script>
+    // URL Web App dari Google Apps Script
+    const API_URL = "https://script.google.com/macros/s/AKfycbx123456789/exec";
     // Toggle submenu
     function toggleMenu(menuId, arrowId) {
       let menu = document.getElementById(menuId);
@@ -122,11 +125,14 @@
     }
 
     // ===== Database Barang =====
-    let barangDB = {
-      "BRG001": { nama: "Beras Premium 5kg", jumlah: 10 },
-      "BRG002": { nama: "Minyak Goreng 2L", jumlah: 20 },
-      "BRG003": { nama: "Gula Pasir 1kg", jumlah: 15 }
-    };
+    let barangDB = {};
+
+async function loadBarang() {
+  const res = await fetch(`${API_URL}?action=getBarang`);
+  barangDB = await res.json();
+  renderMasterData();
+}
+
 
     // Render Master Data
     function renderMasterData() {
@@ -169,19 +175,29 @@
     }
 
     // ===== Form Terima Barang =====
-    document.getElementById("kodeTerima").addEventListener("input", function() {
-      let kode = this.value.trim().toUpperCase();
-      let namaInput = document.getElementById("namaTerima");
-      if (barangDB[kode]) {
-        namaInput.value = barangDB[kode].nama;
-        namaInput.readOnly = true;
-        namaInput.classList.add("bg-gray-100");
-      } else {
-        namaInput.value = "";
-        namaInput.readOnly = false;
-        namaInput.classList.remove("bg-gray-100");
-      }
-    });
+    document.getElementById("formTerima").addEventListener("submit", async function(e) {
+  e.preventDefault();
+  let kode = document.getElementById("kodeTerima").value.trim().toUpperCase();
+  let nama = document.getElementById("namaTerima").value.trim();
+  let jumlah = parseInt(document.getElementById("jumlahTerima").value);
+
+  if (!kode || !nama || !jumlah) {
+    showToast("Lengkapi semua data ❌", "error");
+    return;
+  }
+
+  // Kirim ke Spreadsheet
+  await fetch(API_URL, {
+    method: "POST",
+    body: JSON.stringify({ action: "tambahBarang", kode, nama, jumlah }),
+    headers: { "Content-Type": "application/json" }
+  });
+
+  showToast("Barang berhasil diterima ✅");
+  this.reset();
+  loadBarang(); // refresh data dari sheet
+});
+
 
     document.getElementById("formTerima").addEventListener("submit", function(e) {
       e.preventDefault();
@@ -264,7 +280,7 @@
     });
 
     // Render awal master data
-    renderMasterData();
+    loadBarang();
   </script>
 
   <style>
