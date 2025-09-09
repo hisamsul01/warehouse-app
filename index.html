@@ -15,18 +15,8 @@
       Warehouse
     </div>
     <nav class="flex-1 p-4 space-y-2">
-
-      <!-- Terima Barang -->
-      <a href="#terima" class="flex items-center gap-2 p-2 rounded-lg hover:bg-blue-600">
-        📥 <span>Terima Barang</span>
-      </a>
-
-      <!-- Pemindahan -->
-      <a href="#pindah" class="flex items-center gap-2 p-2 rounded-lg hover:bg-blue-600">
-        🔄 <span>Pemindahan</span>
-      </a>
-
-      <!-- Outlet -->
+      <a href="#terima" class="flex items-center gap-2 p-2 rounded-lg hover:bg-blue-600">📥 <span>Terima Barang</span></a>
+      <a href="#pindah" class="flex items-center gap-2 p-2 rounded-lg hover:bg-blue-600">🔄 <span>Pemindahan</span></a>
       <div>
         <button onclick="toggleMenu('outletMenu', 'outletArrow')" 
                 class="w-full flex justify-between items-center p-2 rounded-lg hover:bg-blue-600">
@@ -38,8 +28,6 @@
           <a href="#outlet-daftar" class="block p-2 rounded hover:bg-blue-600">📋 Daftar Outlet</a>
         </div>
       </div>
-
-      <!-- Admin -->
       <div>
         <button onclick="toggleMenu('adminMenu', 'adminArrow')" 
                 class="w-full flex justify-between items-center p-2 rounded-lg hover:bg-blue-600">
@@ -51,12 +39,7 @@
           <a href="#admin-daftar" class="block p-2 rounded hover:bg-blue-600">📋 Daftar User</a>
         </div>
       </div>
-
-      <!-- Pengaturan -->
-      <a href="#pengaturan" class="flex items-center gap-2 p-2 rounded-lg hover:bg-blue-600">
-        ⚙️ <span>Pengaturan</span>
-      </a>
-
+      <a href="#pengaturan" class="flex items-center gap-2 p-2 rounded-lg hover:bg-blue-600">⚙️ <span>Pengaturan</span></a>
     </nav>
     <div class="p-4 border-t border-blue-500 text-sm flex justify-between items-center">
       © 2025 WMS
@@ -70,10 +53,10 @@
     <!-- 📥 Terima Barang -->
     <section id="terima" class="bg-white dark:bg-gray-800 dark:text-gray-100 p-6 rounded-xl shadow-md">
       <h2 class="text-xl font-semibold mb-4">📥 Terima Barang</h2>
-      <form class="grid gap-4 max-w-md">
+      <form id="formTerima" class="grid gap-4 max-w-md">
         <input type="text" id="kodeTerima" placeholder="Kode Barang" class="border p-2 rounded">
         <input type="text" id="namaTerima" placeholder="Nama Barang" class="border p-2 rounded">
-        <input type="number" placeholder="Jumlah" class="border p-2 rounded">
+        <input type="number" id="jumlahTerima" placeholder="Jumlah" class="border p-2 rounded">
         <button type="submit" class="bg-blue-600 text-white py-2 rounded">Simpan</button>
       </form>
     </section>
@@ -81,11 +64,11 @@
     <!-- 🔄 Pemindahan Barang -->
     <section id="pindah" class="bg-white dark:bg-gray-800 dark:text-gray-100 p-6 rounded-xl shadow-md">
       <h2 class="text-xl font-semibold mb-4">🔄 Pemindahan Barang</h2>
-      <form class="grid gap-4 max-w-md">
+      <form id="formPindah" class="grid gap-4 max-w-md">
         <input type="text" id="kodeBarang" placeholder="Kode Barang" class="border p-2 rounded">
         <input type="text" id="namaBarang" placeholder="Nama Barang (otomatis)" class="border p-2 rounded bg-gray-100" readonly>
-        <input type="number" placeholder="Jumlah" class="border p-2 rounded">
-        <select class="border p-2 rounded">
+        <input type="number" id="jumlahPindah" placeholder="Jumlah" class="border p-2 rounded">
+        <select id="outletPindah" class="border p-2 rounded">
           <option value="">Pilih Outlet</option>
           <option value="OUT001">OUT001 - Outlet Jakarta</option>
           <option value="OUT002">OUT002 - Outlet Bandung</option>
@@ -108,6 +91,9 @@
     </section>
 
   </main>
+
+  <!-- Toast Notification -->
+  <div id="toastContainer" class="fixed top-4 right-4 space-y-2 z-50"></div>
 
   <script>
     // Toggle submenu
@@ -147,11 +133,41 @@
       namaInput.value = barangDB[kode] || "";
     });
 
+    // ===== Toast Notification =====
+    function showToast(message, type = "success") {
+      const container = document.getElementById("toastContainer");
+      const toast = document.createElement("div");
+
+      toast.className = `px-4 py-2 rounded shadow text-white ${
+        type === "success" ? "bg-green-600" : "bg-red-600"
+      } animate-fadeIn`;
+
+      toast.innerText = message;
+      container.appendChild(toast);
+
+      setTimeout(() => {
+        toast.classList.add("opacity-0", "transition-opacity", "duration-500");
+        setTimeout(() => toast.remove(), 500);
+      }, 3000);
+    }
+
+    // Form submit handler
+    document.getElementById("formTerima").addEventListener("submit", function(e) {
+      e.preventDefault();
+      showToast("Barang berhasil diterima ✅", "success");
+      this.reset();
+    });
+
+    document.getElementById("formPindah").addEventListener("submit", function(e) {
+      e.preventDefault();
+      showToast("Pemindahan barang berhasil 🚚", "success");
+      this.reset();
+    });
+
     // ===== Mode Gelap/Terang =====
     const themeToggle = document.getElementById("themeToggle");
     const body = document.body;
 
-    // Cek preferensi dari localStorage
     if (localStorage.getItem("theme") === "dark") {
       body.classList.add("dark", "bg-gray-900", "text-white");
       themeToggle.textContent = "☀️";
@@ -170,6 +186,16 @@
       }
     });
   </script>
+
+  <style>
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-fadeIn {
+      animation: fadeIn 0.3s ease-out;
+    }
+  </style>
 
 </body>
 </html>
