@@ -1,224 +1,95 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Warehouse Manager — Full (Google Sheets)</title>
-  <style>
-    :root {
-      --primary:#4e73df;--ok:#1cc88a;--warn:#f6c23e;--danger:#e74a3b;
-      --bg:#f6f7fb;--card:#fff;--muted:#64748b;
-      --radius:12px;--shadow:0 8px 20px rgba(2,6,23,0.06)
-    }
-    *{box-sizing:border-box}
-    body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial;
-      background:var(--bg);color:#0f1724}
-    a{color:inherit;text-decoration:none}
-    .topbar{position:sticky;top:0;z-index:60;background:#fff;display:flex;
-      justify-content:space-between;align-items:center;
-      padding:12px 16px;border-bottom:1px solid #eef2f6}
-    .brand{display:flex;gap:10px;align-items:center;color:var(--primary);
-      font-weight:600;font-size:18px}
-    .sidebar{width:220px;flex-shrink:0;background:#fff;height:100vh;
-      position:fixed;top:0;left:0;overflow-y:auto;padding:16px;
-      border-right:1px solid #eef2f6}
-    .menu{display:flex;flex-direction:column;gap:8px;margin-top:24px}
-    .menu a{padding:10px 14px;border-radius:var(--radius);
-      transition:.2s;background:transparent}
-    .menu a:hover{background:#f1f5f9}
-    .main{margin-left:220px;padding:20px}
-    .card{background:var(--card);border-radius:var(--radius);
-      box-shadow:var(--shadow);padding:20px;margin-bottom:20px}
-    h2{margin:0 0 12px}
-    table{width:100%;border-collapse:collapse}
-    th,td{padding:8px 12px;border-bottom:1px solid #eef2f6;text-align:left}
-    th{background:#f9fafb}
-    button{padding:8px 14px;border:none;border-radius:var(--radius);
-      cursor:pointer;font-weight:500}
-    .btn-primary{background:var(--primary);color:#fff}
-    .btn-ok{background:var(--ok);color:#fff}
-    .btn-warn{background:var(--warn);color:#fff}
-    .btn-danger{background:var(--danger);color:#fff}
-    .modal{position:fixed;top:0;left:0;right:0;bottom:0;
-      background:rgba(0,0,0,.5);display:none;align-items:center;
-      justify-content:center;z-index:100}
-    .modal-content{background:#fff;padding:20px;border-radius:var(--radius);
-      width:90%;max-width:400px}
-    .modal.show{display:flex}
-  </style>
+  <meta charset="UTF-8">
+  <title>📦 Sistem Manajemen Gudang</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- TailwindCSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
-  <div class="topbar">
-    <div class="brand">📦 Warehouse Manager</div>
-    <div id="user-info"></div>
-  </div>
+<body class="bg-gray-100 min-h-screen flex flex-col">
 
-  <div class="sidebar">
-    <div class="menu">
-      <a href="#" onclick="showView('items')">📋 Items</a>
-      <a href="#" onclick="showView('outlets')">🏪 Outlets</a>
-      <a href="#" onclick="showView('receipts')">📥 Receipts</a>
-      <a href="#" onclick="showView('transfers')">📤 Transfers</a>
-      <a href="#" onclick="showView('settings')">⚙️ Settings</a>
+  <!-- Navbar -->
+  <nav class="bg-blue-600 text-white shadow-md">
+    <div class="container mx-auto flex justify-between items-center p-4">
+      <h1 class="text-xl font-bold">Warehouse Manager</h1>
+      <ul class="flex space-x-6">
+        <li><a href="#terima" class="hover:underline">Terima Barang</a></li>
+        <li><a href="#pindah" class="hover:underline">Pemindahan Barang</a></li>
+        <li><a href="#outlet" class="hover:underline">Outlet</a></li>
+        <li><a href="#admin" class="hover:underline">Admin</a></li>
+        <li><a href="#pengaturan" class="hover:underline">Pengaturan</a></li>
+      </ul>
     </div>
-  </div>
+  </nav>
 
-  <div class="main" id="main-view"></div>
+  <!-- Konten -->
+  <main class="container mx-auto flex-1 p-6 space-y-12">
 
-  <!-- Modal -->
-  <div class="modal" id="modal">
-    <div class="modal-content">
-      <h3 id="modal-title"></h3>
-      <div id="modal-body"></div>
-      <div style="margin-top:12px;display:flex;gap:8px;justify-content:end">
-        <button onclick="closeModal()">Batal</button>
-        <button class="btn-primary" id="modal-save">Simpan</button>
-      </div>
-    </div>
-  </div>
+    <!-- Terima Barang -->
+    <section id="terima" class="bg-white p-6 rounded-xl shadow-md">
+      <h2 class="text-lg font-semibold mb-4">📥 Terima Barang</h2>
+      <form class="grid gap-4">
+        <input type="text" placeholder="Nama Barang" class="border p-2 rounded">
+        <input type="number" placeholder="Jumlah" class="border p-2 rounded">
+        <input type="text" placeholder="Supplier" class="border p-2 rounded">
+        <button type="submit" class="bg-blue-600 text-white py-2 rounded">Simpan</button>
+      </form>
+    </section>
 
-  <script>
-    /* ========== CONFIG ========== */
-    const API_URL = "https://script.google.com/macros/s/AKfycbxeuTBzHypvDoASva600WAjXeLNR8WCQ57UhASBcNxloe44E1D0_XqY8S88_jVQ_pgF/exec";
-    const DB_KEY = 'whm.gs.fallback.v2';
+    <!-- Pemindahan Barang -->
+    <section id="pindah" class="bg-white p-6 rounded-xl shadow-md">
+      <h2 class="text-lg font-semibold mb-4">🔄 Pemindahan Barang</h2>
+      <form class="grid gap-4">
+        <input type="text" placeholder="Nama Barang" class="border p-2 rounded">
+        <input type="number" placeholder="Jumlah" class="border p-2 rounded">
+        <input type="text" placeholder="Lokasi Asal" class="border p-2 rounded">
+        <input type="text" placeholder="Lokasi Tujuan" class="border p-2 rounded">
+        <button type="submit" class="bg-blue-600 text-white py-2 rounded">Proses</button>
+      </form>
+    </section>
 
-    /* ========== STATE ========== */
-    let db = {items:[], outlets:[], receipts:[], transfers:[], settings:[]};
+    <!-- Outlet -->
+    <section id="outlet" class="bg-white p-6 rounded-xl shadow-md">
+      <h2 class="text-lg font-semibold mb-4">🏪 Outlet</h2>
+      <form class="grid gap-4">
+        <input type="text" placeholder="Nama Outlet" class="border p-2 rounded">
+        <input type="text" placeholder="Nama Barang" class="border p-2 rounded">
+        <input type="number" placeholder="Jumlah" class="border p-2 rounded">
+        <button type="submit" class="bg-blue-600 text-white py-2 rounded">Kirim</button>
+      </form>
+    </section>
 
-    /* ========== API HELPERS ========== */
-    async function api(action, payload={}) {
-      try {
-        const res = await fetch(API_URL, {
-          method:'POST',
-          body: JSON.stringify({action,...payload})
-        });
-        return await res.json();
-      } catch (err) {
-        console.error('API error, fallback:', err);
-        return {success:false,error:String(err)};
-      }
-    }
+    <!-- Admin -->
+    <section id="admin" class="bg-white p-6 rounded-xl shadow-md">
+      <h2 class="text-lg font-semibold mb-4">👤 Admin</h2>
+      <form class="grid gap-4">
+        <input type="text" placeholder="Nama Admin" class="border p-2 rounded">
+        <input type="email" placeholder="Email Admin" class="border p-2 rounded">
+        <button type="submit" class="bg-blue-600 text-white py-2 rounded">Tambah Admin</button>
+      </form>
+    </section>
 
-    /* ========== UI ========== */
-    function showView(view) {
-      const main = document.getElementById('main-view');
-      if (view==='items') renderItems(main);
-      else if (view==='outlets') renderOutlets(main);
-      else if (view==='receipts') renderReceipts(main);
-      else if (view==='transfers') renderTransfers(main);
-      else if (view==='settings') renderSettings(main);
-    }
+    <!-- Pengaturan -->
+    <section id="pengaturan" class="bg-white p-6 rounded-xl shadow-md">
+      <h2 class="text-lg font-semibold mb-4">⚙️ Pengaturan</h2>
+      <form class="grid gap-4">
+        <select class="border p-2 rounded">
+          <option>Pilih Tema</option>
+          <option>Terang</option>
+          <option>Gelap</option>
+        </select>
+        <input type="text" placeholder="Tambah Store" class="border p-2 rounded">
+        <button type="submit" class="bg-blue-600 text-white py-2 rounded">Simpan Pengaturan</button>
+      </form>
+    </section>
 
-    function renderItems(el) {
-      el.innerHTML = `
-        <div class="card">
-          <h2>Items</h2>
-          <button class="btn-primary" onclick="openAddItem()">+ Add Item</button>
-          <table><thead><tr><th>Kode</th><th>Nama</th><th>Qty</th></tr></thead>
-          <tbody>${db.items.map(r=>`<tr><td>${r.Kode}</td><td>${r.Nama}</td><td>${r.Qty}</td></tr>`).join('')}</tbody></table>
-        </div>`;
-    }
-    function renderOutlets(el) {
-      el.innerHTML = `
-        <div class="card">
-          <h2>Outlets</h2>
-          <button class="btn-primary" onclick="openAddOutlet()">+ Add Outlet</button>
-          <table><thead><tr><th>Kode</th><th>Nama</th></tr></thead>
-          <tbody>${db.outlets.map(r=>`<tr><td>${r.Kode}</td><td>${r.Nama}</td></tr>`).join('')}</tbody></table>
-        </div>`;
-    }
-    function renderReceipts(el) {
-      el.innerHTML = `
-        <div class="card">
-          <h2>Receipts</h2>
-          <button class="btn-primary" onclick="openAddReceipt()">+ Add Receipt</button>
-          <table><thead><tr><th>ID</th><th>Tanggal</th><th>Kode</th><th>Nama</th><th>Qty</th></tr></thead>
-          <tbody>${db.receipts.map(r=>`<tr><td>${r.ID}</td><td>${r.Tanggal}</td><td>${r.Kode}</td><td>${r.Nama}</td><td>${r.Qty}</td></tr>`).join('')}</tbody></table>
-        </div>`;
-    }
-    function renderTransfers(el) {
-      el.innerHTML = `
-        <div class="card">
-          <h2>Transfers</h2>
-          <button class="btn-primary" onclick="openAddTransfer()">+ Add Transfer</button>
-          <table><thead><tr><th>ID</th><th>Tanggal</th><th>Kode</th><th>Nama</th><th>Qty</th><th>Outlet</th></tr></thead>
-          <tbody>${db.transfers.map(r=>`<tr><td>${r.ID}</td><td>${r.Tanggal}</td><td>${r.Kode}</td><td>${r.Nama}</td><td>${r.Qty}</td><td>${r.Outlet}</td></tr>`).join('')}</tbody></table>
-        </div>`;
-    }
-    function renderSettings(el) {
-      el.innerHTML = `
-        <div class="card">
-          <h2>Settings</h2>
-          <table><thead><tr><th>Username</th><th>Password</th><th>ShowWidgets</th><th>Lang</th></tr></thead>
-          <tbody>${db.settings.map(r=>`<tr><td>${r.Username}</td><td>${r.Password}</td><td>${r.ShowWidgets}</td><td>${r.Lang}</td></tr>`).join('')}</tbody></table>
-        </div>`;
-    }
+  </main>
 
-    /* ========== MODAL ========== */
-    function openModal(title,bodyHtml,onSave){
-      document.getElementById('modal-title').innerText=title;
-      document.getElementById('modal-body').innerHTML=bodyHtml;
-      document.getElementById('modal-save').onclick=async()=>{
-        await onSave();
-        closeModal();loadAll();
-      };
-      document.getElementById('modal').classList.add('show');
-    }
-    function closeModal(){document.getElementById('modal').classList.remove('show')}
+  <!-- Footer -->
+  <footer class="bg-gray-800 text-white text-center p-4">
+    <p>© 2025 Warehouse Manager</p>
+  </footer>
 
-    /* ========== ADD FORMS ========== */
-    function openAddItem(){
-      openModal('Add Item',`
-        <input id="f-kode" placeholder="Kode" /><br><br>
-        <input id="f-nama" placeholder="Nama" /><br><br>
-        <input id="f-qty" placeholder="Qty" type="number" />`, async()=>{
-        await api('addItem',{Kode:fKode().value,Nama:fNama().value,Qty:fQty().value});
-      });
-    }
-    function openAddOutlet(){
-      openModal('Add Outlet',`
-        <input id="f-kode" placeholder="Kode" /><br><br>
-        <input id="f-nama" placeholder="Nama" />`, async()=>{
-        await api('addOutlet',{Kode:fKode().value,Nama:fNama().value});
-      });
-    }
-    function openAddReceipt(){
-      openModal('Add Receipt',`
-        <input id="f-id" placeholder="ID" /><br><br>
-        <input id="f-tanggal" type="date" /><br><br>
-        <input id="f-kode" placeholder="Kode" /><br><br>
-        <input id="f-nama" placeholder="Nama" /><br><br>
-        <input id="f-qty" type="number" placeholder="Qty" />`, async()=>{
-        await api('addReceipt',{ID:fId().value,Tanggal:fTanggal().value,Kode:fKode().value,Nama:fNama().value,Qty:fQty().value});
-      });
-    }
-    function openAddTransfer(){
-      openModal('Add Transfer',`
-        <input id="f-id" placeholder="ID" /><br><br>
-        <input id="f-tanggal" type="date" /><br><br>
-        <input id="f-kode" placeholder="Kode" /><br><br>
-        <input id="f-nama" placeholder="Nama" /><br><br>
-        <input id="f-qty" type="number" placeholder="Qty" /><br><br>
-        <input id="f-outlet" placeholder="Outlet" />`, async()=>{
-        await api('addTransfer',{ID:fId().value,Tanggal:fTanggal().value,Kode:fKode().value,Nama:fNama().value,Qty:fQty().value,Outlet:fOutlet().value});
-      });
-    }
-
-    /* helpers */
-    const fId=()=>document.getElementById('f-id');
-    const fTanggal=()=>document.getElementById('f-tanggal');
-    const fKode=()=>document.getElementById('f-kode');
-    const fNama=()=>document.getElementById('f-nama');
-    const fQty=()=>document.getElementById('f-qty');
-    const fOutlet=()=>document.getElementById('f-outlet');
-
-    /* ========== INIT ========== */
-    async function loadAll(){
-      const res = await api('getAll');
-      if(res.success) db=res.data;
-      showView('items');
-    }
-    loadAll();
-  </script>
 </body>
 </html>
