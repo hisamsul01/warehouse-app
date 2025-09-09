@@ -115,6 +115,7 @@
   <script>
     // URL Web App dari Google Apps Script
     const API_URL = "https://script.google.com/macros/s/AKfycbx123456789/exec";
+
     // Toggle submenu
     function toggleMenu(menuId, arrowId) {
       let menu = document.getElementById(menuId);
@@ -126,12 +127,11 @@
     // ===== Database Barang =====
     let barangDB = {};
 
-async function loadBarang() {
-  const res = await fetch(`${API_URL}?action=getBarang`);
-  barangDB = await res.json();
-  renderMasterData();
-}
-
+    async function loadBarang() {
+      const res = await fetch(`${API_URL}?action=getBarang`);
+      barangDB = await res.json();
+      renderMasterData();
+    }
 
     // Render Master Data
     function renderMasterData() {
@@ -158,6 +158,7 @@ async function loadBarang() {
       const namaBaru = prompt("Edit Nama Barang:", barang.nama);
       const jumlahBaru = prompt("Edit Jumlah Barang:", barang.jumlah);
       if (namaBaru && jumlahBaru) {
+        // TODO: update ke Spreadsheet (belum diimplementasi)
         barangDB[kode] = { nama: namaBaru, jumlah: parseInt(jumlahBaru) };
         renderMasterData();
         showToast("Barang berhasil diupdate ✏️");
@@ -167,6 +168,7 @@ async function loadBarang() {
     // Hapus Barang
     function hapusBarang(kode) {
       if (confirm(`Hapus barang ${kode}?`)) {
+        // TODO: hapus di Spreadsheet (belum diimplementasi)
         delete barangDB[kode];
         renderMasterData();
         showToast("Barang berhasil dihapus 🗑️", "error");
@@ -175,46 +177,26 @@ async function loadBarang() {
 
     // ===== Form Terima Barang =====
     document.getElementById("formTerima").addEventListener("submit", async function(e) {
-  e.preventDefault();
-  let kode = document.getElementById("kodeTerima").value.trim().toUpperCase();
-  let nama = document.getElementById("namaTerima").value.trim();
-  let jumlah = parseInt(document.getElementById("jumlahTerima").value);
-
-  if (!kode || !nama || !jumlah) {
-    showToast("Lengkapi semua data ❌", "error");
-    return;
-  }
-
-  // Kirim ke Spreadsheet
-  await fetch(API_URL, {
-    method: "POST",
-    body: JSON.stringify({ action: "tambahBarang", kode, nama, jumlah }),
-    headers: { "Content-Type": "application/json" }
-  });
-
-  showToast("Barang berhasil diterima ✅");
-  this.reset();
-  loadBarang(); // refresh data dari sheet
-});
-
-
-    document.getElementById("formTerima").addEventListener("submit", function(e) {
       e.preventDefault();
       let kode = document.getElementById("kodeTerima").value.trim().toUpperCase();
       let nama = document.getElementById("namaTerima").value.trim();
       let jumlah = parseInt(document.getElementById("jumlahTerima").value);
+
       if (!kode || !nama || !jumlah) {
         showToast("Lengkapi semua data ❌", "error");
         return;
       }
-      if (barangDB[kode]) {
-        barangDB[kode].jumlah += jumlah;
-      } else {
-        barangDB[kode] = { nama, jumlah };
-      }
-      renderMasterData();
+
+      // Kirim ke Spreadsheet
+      await fetch(API_URL, {
+        method: "POST",
+        body: JSON.stringify({ action: "tambahBarang", kode, nama, jumlah }),
+        headers: { "Content-Type": "application/json" }
+      });
+
       showToast("Barang berhasil diterima ✅");
       this.reset();
+      loadBarang(); // refresh data dari sheet
     });
 
     // ===== Form Pemindahan Barang =====
@@ -237,6 +219,7 @@ async function loadBarang() {
         showToast("Stok tidak cukup ❌", "error");
         return;
       }
+      // TODO: update ke Spreadsheet (belum diimplementasi)
       barangDB[kode].jumlah -= jumlah;
       renderMasterData();
       showToast("Pemindahan barang berhasil 🚚");
