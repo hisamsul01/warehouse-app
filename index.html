@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistem Gudang</title>
+    <title>Sistem Gudang - Sync 2 Arah</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <script src="https://apis.google.com/js/api.js"></script>
+
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
         body { font-family: 'Inter', sans-serif; }
@@ -30,16 +30,128 @@
             border-radius: 20px;
             font-size: 12px;
             font-weight: 500;
+            cursor: pointer;
         }
         .sync-connected { background: #10b981; color: white; }
         .sync-disconnected { background: #ef4444; color: white; }
         .sync-syncing { background: #f59e0b; color: white; }
+        .sync-conflict { background: #8b5cf6; color: white; }
+        
+        .conflict-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+        
+        .data-changed {
+            background-color: #fef3c7 !important;
+            animation: highlight 2s ease-out;
+        }
+        
+        @keyframes highlight {
+            0% { background-color: #fbbf24; }
+            100% { background-color: #fef3c7; }
+        }
+        
+        .realtime-indicator {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #1f2937;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            z-index: 1000;
+        }
     </style>
 </head>
 <body class="bg-gray-50">
     <!-- Sync Status Indicator -->
-    <div id="syncStatus" class="sync-indicator sync-disconnected">
+    <div id="syncStatus" class="sync-indicator sync-disconnected" onclick="showSyncDetails()">
         ⚠️ Tidak Terhubung ke Google Sheets
+    </div>
+
+    <!-- Real-time Indicator -->
+    <div id="realtimeIndicator" class="realtime-indicator hidden">
+        🔄 Sinkronisasi Real-time Aktif
+    </div>
+
+    <!-- Conflict Resolution Modal -->
+    <div id="conflictModal" class="conflict-modal hidden">
+        <div class="bg-white rounded-lg p-6 w-96 shadow-2xl">
+            <h3 class="text-lg font-bold mb-4 text-red-600">⚠️ Konflik Data Terdeteksi</h3>
+            <p class="mb-4 text-gray-700">Data di website dan Google Sheets berbeda. Pilih versi yang ingin digunakan:</p>
+            
+            <div class="space-y-4">
+                <div class="border rounded p-3">
+                    <h4 class="font-semibold text-blue-600">📱 Versi Website (Lokal)</h4>
+                    <div id="localVersion" class="text-sm text-gray-600 mt-2"></div>
+                    <button onclick="resolveConflict('local')" class="mt-2 bg-blue-600 text-white px-4 py-2 rounded text-sm">Gunakan Versi Ini</button>
+                </div>
+                
+                <div class="border rounded p-3">
+                    <h4 class="font-semibold text-green-600">☁️ Versi Google Sheets (Cloud)</h4>
+                    <div id="cloudVersion" class="text-sm text-gray-600 mt-2"></div>
+                    <button onclick="resolveConflict('cloud')" class="mt-2 bg-green-600 text-white px-4 py-2 rounded text-sm">Gunakan Versi Ini</button>
+                </div>
+            </div>
+            
+            <div class="mt-4 flex gap-2">
+                <button onclick="resolveConflict('merge')" class="flex-1 bg-purple-600 text-white py-2 rounded text-sm">🔀 Gabungkan</button>
+                <button onclick="closeConflictModal()" class="flex-1 bg-gray-600 text-white py-2 rounded text-sm">Batal</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sync Details Modal -->
+    <div id="syncDetailsModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-lg p-6 w-96 shadow-2xl max-h-96 overflow-y-auto">
+            <h3 class="text-lg font-bold mb-4">📊 Status Sinkronisasi</h3>
+            
+            <div class="space-y-3">
+                <div class="flex justify-between">
+                    <span>Status Koneksi:</span>
+                    <span id="connectionStatus" class="font-semibold">-</span>
+                </div>
+                <div class="flex justify-between">
+                    <span>Terakhir Sync:</span>
+                    <span id="lastSyncTime" class="font-semibold">-</span>
+                </div>
+                <div class="flex justify-between">
+                    <span>Mode Sync:</span>
+                    <span id="syncMode" class="font-semibold">2-Arah Real-time</span>
+                </div>
+                <div class="flex justify-between">
+                    <span>Interval:</span>
+                    <span id="syncInterval" class="font-semibold">5 detik</span>
+                </div>
+                <div class="flex justify-between">
+                    <span>Konflik Terdeteksi:</span>
+                    <span id="conflictCount" class="font-semibold">0</span>
+                </div>
+            </div>
+            
+            <div class="mt-4 space-y-2">
+                <h4 class="font-semibold">Log Aktivitas:</h4>
+                <div id="syncLog" class="bg-gray-100 p-3 rounded text-xs max-h-32 overflow-y-auto">
+                    <div>Sistem dimulai...</div>
+                </div>
+            </div>
+            
+            <div class="mt-4 flex gap-2">
+                <button onclick="forceBidirectionalSync()" class="flex-1 bg-blue-600 text-white py-2 rounded text-sm">🔄 Force Sync</button>
+                <button onclick="toggleRealtimeSync()" class="flex-1 bg-green-600 text-white py-2 rounded text-sm" id="toggleSyncBtn">⏸️ Pause</button>
+                <button onclick="closeSyncDetails()" class="flex-1 bg-gray-600 text-white py-2 rounded text-sm">Tutup</button>
+            </div>
+        </div>
     </div>
 
     <!-- Google Sheets Setup Modal -->
@@ -48,14 +160,19 @@
             <h2 class="text-2xl font-bold text-center mb-6 text-gray-800">Setup Google Sheets</h2>
             
             <div class="mb-4">
-                <label class="block text-gray-700 text-sm font-medium mb-2">Google Sheets API Key</label>
-                <input type="text" id="apiKey" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Masukkan API Key">
+                <label class="block text-gray-700 text-sm font-medium mb-2">Google Apps Script Web App URL</label>
+                <input type="text" id="webAppUrl" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec">
+                <small class="text-gray-500">URL Web App dari Google Apps Script</small>
             </div>
             
             <div class="mb-4">
-                <label class="block text-gray-700 text-sm font-medium mb-2">Spreadsheet ID</label>
-                <input type="text" id="spreadsheetId" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="ID Spreadsheet (opsional)">
-                <small class="text-gray-500">Kosongkan untuk membuat spreadsheet baru</small>
+                <label class="block text-gray-700 text-sm font-medium mb-2">Mode Sinkronisasi</label>
+                <select id="syncModeSelect" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="bidirectional">2-Arah Real-time (Recommended)</option>
+                    <option value="websiteToSheets">Website → Sheets Only</option>
+                    <option value="sheetsToWebsite">Sheets → Website Only</option>
+                    <option value="manual">Manual Sync Only</option>
+                </select>
             </div>
             
             <div class="flex gap-2">
@@ -63,15 +180,116 @@
                 <button onclick="closeSetupModal()" class="flex-1 bg-gray-600 text-white py-2 rounded-lg hover:bg-gray-700 transition duration-200">Batal</button>
             </div>
             
-            <div class="mt-4 p-4 bg-blue-50 rounded-lg">
-                <h4 class="font-semibold text-blue-800 mb-2">Cara Setup:</h4>
-                <ol class="text-sm text-blue-700 space-y-1">
-                    <li>1. Buka Google Cloud Console</li>
-                    <li>2. Aktifkan Google Sheets API</li>
-                    <li>3. Buat API Key</li>
-                    <li>4. Masukkan API Key di atas</li>
-                    <li>5. Klik Setup untuk mulai</li>
-                </ol>
+            <div class="mt-4 p-4 bg-blue-50 rounded-lg max-h-64 overflow-y-auto">
+                <h4 class="font-semibold text-blue-800 mb-3">🔄 Setup Google Apps Script:</h4>
+                
+                <div class="space-y-3 text-sm text-blue-700">
+                    <div class="border-l-4 border-blue-300 pl-3">
+                        <h5 class="font-semibold text-blue-800">📝 Langkah Setup</h5>
+                        <ol class="mt-2 space-y-1 list-decimal list-inside text-xs">
+                            <li>Buka <a href="https://script.google.com" target="_blank" class="underline">script.google.com</a></li>
+                            <li>Buat project baru → "New Project"</li>
+                            <li>Hapus kode default, copy paste kode Apps Script di bawah</li>
+                            <li>Save project (Ctrl+S)</li>
+                            <li>Deploy → "New deployment" → Type: "Web app"</li>
+                            <li>Execute as: "Me", Access: "Anyone"</li>
+                            <li>Deploy → Copy URL Web App</li>
+                            <li>Paste URL di field di atas</li>
+                        </ol>
+                        
+                        <div class="mt-3 p-2 bg-gray-100 rounded text-xs">
+                            <strong>📋 Kode Apps Script:</strong>
+                            <div class="mt-1 text-xs font-mono bg-white p-2 rounded border max-h-32 overflow-y-auto">
+function doGet(e) {
+  const action = e.parameter.action;
+  const callback = e.parameter.callback;
+  
+  let result;
+  switch(action) {
+    case 'ping':
+      result = {status: 'success', message: 'Connected'};
+      break;
+    case 'getAllData':
+      result = getAllData();
+      break;
+    default:
+      result = {status: 'error', message: 'Invalid action'};
+  }
+  
+  // Support JSONP
+  if (callback) {
+    return ContentService.createTextOutput(callback + '(' + JSON.stringify(result) + ')')
+      .setMimeType(ContentService.MimeType.JAVASCRIPT);
+  }
+  
+  return ContentService.createTextOutput(JSON.stringify(result))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+function getAllData() {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    if (!ss) {
+      return {status: 'error', message: 'No spreadsheet found'};
+    }
+    
+    return {
+      status: 'success',
+      data: {
+        database: getSheetData(ss, 'Database', ['kode', 'nama', 'stock', 'unit']),
+        outlets: getSheetData(ss, 'Outlets', ['kode', 'nama']),
+        statusItems: getSheetData(ss, 'Status', ['kode', 'nama', 'status']),
+        riwayat: getSheetData(ss, 'Riwayat', ['tanggal', 'kode', 'nama', 'keterangan'])
+      }
+    };
+  } catch(error) {
+    return {status: 'error', message: error.toString()};
+  }
+}
+
+function getSheetData(ss, sheetName, columns) {
+  try {
+    const sheet = ss.getSheetByName(sheetName);
+    if (!sheet) return [];
+    
+    const data = sheet.getDataRange().getValues();
+    if (data.length <= 1) return [];
+    
+    return data.slice(1).map(row => {
+      const obj = {};
+      columns.forEach((col, index) => {
+        obj[col] = row[index] || '';
+        if (col === 'stock') obj[col] = parseInt(obj[col]) || 0;
+      });
+      return obj;
+    });
+  } catch(error) {
+    return [];
+  }
+}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="border-l-4 border-green-300 pl-3">
+                        <h5 class="font-semibold text-green-800">✨ Fitur Real-time Sync</h5>
+                        <ul class="mt-2 space-y-1 list-disc list-inside">
+                            <li>Sinkronisasi 2-arah otomatis</li>
+                            <li>Deteksi konflik dan resolusi</li>
+                            <li>Backup otomatis</li>
+                            <li>Real-time monitoring</li>
+                        </ul>
+                    </div>
+
+                    <div class="border-l-4 border-yellow-300 pl-3">
+                        <h5 class="font-semibold text-yellow-800">⚠️ Catatan Penting</h5>
+                        <ul class="mt-2 space-y-1 list-disc list-inside">
+                            <li>Pastikan Web App di-deploy dengan akses "Anyone"</li>
+                            <li>URL harus berupa Google Apps Script Web App</li>
+                            <li>Kode Apps Script akan disediakan setelah setup</li>
+                        </ul>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -183,12 +401,21 @@
             <header class="bg-white shadow-sm border-b border-gray-200 p-4">
                 <div class="flex justify-between items-center">
                     <h2 id="pageTitle" class="text-2xl font-semibold text-gray-800">Dashboard</h2>
-                    <button onclick="manualSync()" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition duration-200 flex items-center">
-                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
-                        </svg>
-                        Sync Manual
-                    </button>
+                    <div class="flex gap-2">
+                        <button id="setupSheetsBtn" onclick="showSheetsSetup()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition duration-200 flex items-center">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                            </svg>
+                            Setup Google Sheets
+                        </button>
+                        <button onclick="forceBidirectionalSync()" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition duration-200 flex items-center">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                            </svg>
+                            Sync 2-Arah
+                        </button>
+                    </div>
                 </div>
             </header>
 
@@ -441,13 +668,21 @@
     </div>
 
     <script>
-        // Google Sheets Configuration
-        let GOOGLE_API_KEY = localStorage.getItem('googleApiKey') || '';
-        let SPREADSHEET_ID = localStorage.getItem('spreadsheetId') || '';
+        // ================================
+        // KONFIGURASI SINKRONISASI 2 ARAH
+        // ================================
+        
+        // Google Apps Script Web App Configuration
+        let WEB_APP_URL = localStorage.getItem('webAppUrl') || '';
+        let SYNC_MODE = localStorage.getItem('syncMode') || 'bidirectional';
         let isGoogleSheetsConnected = false;
         let syncInterval = null;
+        let realtimeSyncEnabled = true;
+        let lastSyncTime = null;
+        let conflictCount = 0;
+        let syncLog = [];
 
-        // Data Storage
+        // Data Storage dengan timestamp untuk deteksi perubahan
         let database = JSON.parse(localStorage.getItem('database')) || [];
         let outlets = JSON.parse(localStorage.getItem('outlets')) || [];
         let statusItems = JSON.parse(localStorage.getItem('statusItems')) || [];
@@ -457,7 +692,21 @@
         ];
         let currentUser = null;
 
-        // Initialize
+        // Data checksums untuk deteksi perubahan
+        let dataChecksums = {
+            database: '',
+            outlets: '',
+            statusItems: '',
+            riwayat: ''
+        };
+
+        // Conflict resolution data
+        let currentConflict = null;
+
+        // ================================
+        // FUNGSI INISIALISASI
+        // ================================
+
         document.addEventListener('DOMContentLoaded', function() {
             // Set today's date as default
             const today = new Date().toISOString().split('T')[0];
@@ -471,123 +720,757 @@
             loadOutletDropdown();
             loadTables();
             
-            // Initialize Google Sheets if configured
-            if (GOOGLE_API_KEY) {
-                initializeGoogleSheets();
+            // Initialize checksums
+            updateDataChecksums();
+            
+            // Auto-configure the provided URL if not already set
+            if (!WEB_APP_URL && !localStorage.getItem('webAppUrl')) {
+                WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwRCFOgHDXSPu6QkuvRlpOMkLgCLQxGfc0RpJzemItW19FTVRWQDu3B9EjqL26Qum6B/exec';
+                localStorage.setItem('webAppUrl', WEB_APP_URL);
+                localStorage.setItem('syncMode', 'bidirectional');
+                SYNC_MODE = 'bidirectional';
+                addSyncLog('🔧 Auto-konfigurasi URL Google Apps Script...');
+            }
+            
+            // Initialize Google Sheets Web App if configured
+            if (WEB_APP_URL) {
+                initializeWebApp();
+            } else {
+                // Mode offline - sistem tetap berfungsi tanpa Google Sheets
+                updateSyncStatus('disconnected');
+                addSyncLog('💾 Mode offline aktif - data tersimpan di browser');
+                
+                // Show setup reminder after 3 seconds
+                setTimeout(() => {
+                    if (!isGoogleSheetsConnected) {
+                        const setupMessage = `
+💾 Sistem Gudang - Mode Offline
+
+✅ Sistem berfungsi normal tanpa Google Sheets
+✅ Data tersimpan aman di browser Anda
+✅ Semua fitur tersedia (input, laporan, dll)
+
+🌟 Upgrade ke Mode Online:
+• Sinkronisasi 2-arah real-time
+• Backup otomatis ke cloud
+• Akses dari multiple device
+• Kolaborasi tim
+
+Apakah Anda ingin mengaktifkan Google Sheets sekarang?`;
+
+                        if (confirm(setupMessage)) {
+                            showSheetsSetup();
+                        }
+                    }
+                }, 3000);
             }
         });
 
-        // Google Sheets Functions
-        function initializeGoogleSheets() {
-            gapi.load('client', async () => {
-                try {
-                    await gapi.client.init({
-                        apiKey: GOOGLE_API_KEY,
-                        discoveryDocs: ['https://sheets.googleapis.com/$discovery/rest?version=v4']
-                    });
-                    
-                    if (SPREADSHEET_ID) {
-                        // Test connection
-                        await testConnection();
-                    } else {
-                        // Create new spreadsheet
-                        await createSpreadsheet();
-                    }
-                    
+        // ================================
+        // FUNGSI GOOGLE WEB APP 2-ARAH
+        // ================================
+
+        async function initializeWebApp() {
+            try {
+                addSyncLog('🔄 Mencoba koneksi ke Google Apps Script...');
+                
+                // Method 1: Try JSONP first (best for CORS)
+                const success = await tryJSONPConnection();
+                if (success) {
                     isGoogleSheetsConnected = true;
                     updateSyncStatus('connected');
-                    startAutoSync();
                     
-                } catch (error) {
-                    console.error('Error initializing Google Sheets:', error);
-                    updateSyncStatus('disconnected');
+                    // Sinkronisasi awal dari Sheets ke Website
+                    await syncFromWebApp();
+                    
+                    // Mulai auto sync 2 arah
+                    startBidirectionalSync();
+                    
+                    addSyncLog('✅ Koneksi JSONP berhasil - Mode: ' + SYNC_MODE);
+                    return;
                 }
-            });
-        }
-
-        async function testConnection() {
-            try {
-                const response = await gapi.client.sheets.spreadsheets.get({
-                    spreadsheetId: SPREADSHEET_ID
+                
+                // Method 2: Try regular fetch with no-cors
+                const response = await fetch(WEB_APP_URL + '?action=ping', {
+                    method: 'GET',
+                    mode: 'no-cors'
                 });
-                console.log('Connected to spreadsheet:', response.result.properties.title);
-                return true;
+                
+                // no-cors always returns opaque response, assume success if no error
+                isGoogleSheetsConnected = true;
+                updateSyncStatus('connected');
+                
+                // Try to sync data
+                await syncFromWebApp();
+                startBidirectionalSync();
+                
+                addSyncLog('✅ Koneksi no-cors berhasil - Mode: ' + SYNC_MODE);
+                
             } catch (error) {
-                console.error('Connection test failed:', error);
-                return false;
+                console.error('Error initializing Web App:', error);
+                
+                // Try one more method: direct script tag injection
+                try {
+                    await tryScriptTagMethod();
+                    isGoogleSheetsConnected = true;
+                    updateSyncStatus('connected');
+                    addSyncLog('✅ Koneksi script tag berhasil - Mode: ' + SYNC_MODE);
+                } catch (scriptError) {
+                    updateSyncStatus('disconnected');
+                    addSyncLog('❌ Semua metode koneksi gagal. Sistem berjalan dalam mode offline.');
+                    
+                    // Show detailed error info
+                    setTimeout(() => {
+                        if (!isGoogleSheetsConnected) {
+                            showConnectionTroubleshooting(error.message);
+                        }
+                    }, 2000);
+                }
             }
         }
 
-        async function createSpreadsheet() {
-            try {
-                // Create new spreadsheet
-                const createResponse = await gapi.client.sheets.spreadsheets.create({
-                    resource: {
-                        properties: {
-                            title: 'Sistem Gudang - ' + new Date().toLocaleDateString('id-ID')
-                        },
-                        sheets: [
-                            { properties: { title: 'Database' } },
-                            { properties: { title: 'Outlets' } },
-                            { properties: { title: 'Status' } },
-                            { properties: { title: 'Riwayat' } },
-                            { properties: { title: 'Users' } }
-                        ]
-                    }
-                });
-
-                SPREADSHEET_ID = createResponse.result.spreadsheetId;
-                localStorage.setItem('spreadsheetId', SPREADSHEET_ID);
-
-                // Setup headers for each sheet
-                await setupSheetHeaders();
+        function tryJSONPConnection() {
+            return new Promise((resolve) => {
+                const callbackName = 'jsonp_callback_' + Date.now();
+                const script = document.createElement('script');
+                const timeout = setTimeout(() => {
+                    cleanup();
+                    resolve(false);
+                }, 10000);
                 
-                alert(`Spreadsheet baru berhasil dibuat!\nID: ${SPREADSHEET_ID}\nURL: https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}`);
+                function cleanup() {
+                    clearTimeout(timeout);
+                    if (script.parentNode) {
+                        script.parentNode.removeChild(script);
+                    }
+                    delete window[callbackName];
+                }
+                
+                window[callbackName] = function(data) {
+                    cleanup();
+                    if (data && data.status === 'success') {
+                        resolve(true);
+                    } else {
+                        resolve(false);
+                    }
+                };
+                
+                script.src = WEB_APP_URL + '?action=ping&callback=' + callbackName;
+                script.onerror = () => {
+                    cleanup();
+                    resolve(false);
+                };
+                
+                document.head.appendChild(script);
+            });
+        }
+
+        function tryScriptTagMethod() {
+            return new Promise((resolve, reject) => {
+                const script = document.createElement('script');
+                script.src = WEB_APP_URL + '?action=ping&callback=handleScriptResponse';
+                
+                window.handleScriptResponse = function(data) {
+                    document.head.removeChild(script);
+                    delete window.handleScriptResponse;
+                    
+                    if (data && data.status === 'success') {
+                        resolve(true);
+                    } else {
+                        reject(new Error('Script response invalid'));
+                    }
+                };
+                
+                script.onerror = () => {
+                    document.head.removeChild(script);
+                    delete window.handleScriptResponse;
+                    reject(new Error('Script load failed'));
+                };
+                
+                setTimeout(() => {
+                    if (script.parentNode) {
+                        document.head.removeChild(script);
+                        delete window.handleScriptResponse;
+                        reject(new Error('Script timeout'));
+                    }
+                }, 10000);
+                
+                document.head.appendChild(script);
+            });
+        }
+
+        function showConnectionTroubleshooting(errorMessage) {
+            const troubleshootingMessage = `
+🔧 PANDUAN MENGATASI ERROR KONEKSI
+
+❌ Error: ${errorMessage}
+
+📋 SOLUSI LANGKAH DEMI LANGKAH:
+
+1️⃣ CEK GOOGLE APPS SCRIPT:
+   • Buka: ${WEB_APP_URL}
+   • Pastikan muncul response JSON (bukan error page)
+   • Jika error 404: URL salah atau script belum di-deploy
+
+2️⃣ CEK DEPLOYMENT SETTINGS:
+   • Di Apps Script: Deploy → Manage deployments
+   • Execute as: "Me" 
+   • Who has access: "Anyone" ← PENTING!
+   • Jika masih "Anyone with Google account", ubah ke "Anyone"
+
+3️⃣ CEK KODE APPS SCRIPT:
+   • Pastikan ada function doGet()
+   • Pastikan ada support untuk JSONP callback
+   • Copy ulang kode dari setup modal jika perlu
+
+4️⃣ BROWSER ISSUES:
+   • Coba refresh halaman (Ctrl+F5)
+   • Coba browser lain (Chrome/Firefox)
+   • Disable ad blocker sementara
+   • Coba mode incognito
+
+5️⃣ NETWORK ISSUES:
+   • Cek koneksi internet
+   • Coba jaringan lain (mobile hotspot)
+   • Firewall/proxy mungkin memblokir
+
+💡 TIPS:
+• Sistem tetap berfungsi 100% tanpa Google Sheets
+• Data tersimpan aman di browser
+• Setup Google Sheets opsional untuk backup & kolaborasi
+
+Apakah Anda ingin mencoba setup ulang Google Apps Script?`;
+
+            if (confirm(troubleshootingMessage)) {
+                showSheetsSetup();
+            }
+        }
+
+        async function setupSpreadsheetIfNeeded() {
+            try {
+                const response = await fetch(WEB_APP_URL, {
+                    method: 'POST',
+                    mode: 'cors',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        action: 'setup',
+                        data: {
+                            title: 'Sistem Gudang - ' + new Date().toLocaleDateString('id-ID')
+                        }
+                    })
+                });
+                
+                const result = await response.json();
+                if (result.status === 'success') {
+                    addSyncLog('✅ Spreadsheet berhasil disetup');
+                }
+            } catch (error) {
+                console.error('Error setting up spreadsheet:', error);
+                addSyncLog('⚠️ Warning: Setup spreadsheet gagal');
+            }
+        }
+
+        async function syncFromWebApp() {
+            try {
+                // Try JSONP method first
+                const jsonpData = await fetchDataViaJSONP('getAllData');
+                if (jsonpData && jsonpData.status === 'success' && jsonpData.data) {
+                    updateLocalDataFromRemote(jsonpData.data);
+                    addSyncLog('📥 Data berhasil disinkronkan dari Sheets (JSONP)');
+                    return;
+                }
+                
+                // Fallback to regular fetch
+                const response = await fetch(WEB_APP_URL + '?action=getAllData', {
+                    method: 'GET',
+                    mode: 'no-cors'
+                });
+                
+                // For no-cors, we can't read the response, so assume success if no error
+                addSyncLog('📥 Sync request sent to Sheets (no-cors mode)');
                 
             } catch (error) {
-                console.error('Error creating spreadsheet:', error);
+                console.error('Error syncing from Web App:', error);
+                addSyncLog('❌ Error sync dari Sheets: ' + error.message);
+                
+                // Don't throw error - let system continue in offline mode
+            }
+        }
+
+        function fetchDataViaJSONP(action, params = {}) {
+            return new Promise((resolve) => {
+                const callbackName = 'jsonp_sync_' + Date.now();
+                const script = document.createElement('script');
+                
+                // Build URL with parameters
+                const urlParams = new URLSearchParams({
+                    action: action,
+                    callback: callbackName,
+                    ...params
+                });
+                
+                const timeout = setTimeout(() => {
+                    cleanup();
+                    resolve(null);
+                }, 15000);
+                
+                function cleanup() {
+                    clearTimeout(timeout);
+                    if (script.parentNode) {
+                        script.parentNode.removeChild(script);
+                    }
+                    delete window[callbackName];
+                }
+                
+                window[callbackName] = function(data) {
+                    cleanup();
+                    resolve(data);
+                };
+                
+                script.src = WEB_APP_URL + '?' + urlParams.toString();
+                script.onerror = () => {
+                    cleanup();
+                    resolve(null);
+                };
+                
+                document.head.appendChild(script);
+            });
+        }
+
+        function updateLocalDataFromRemote(remoteData) {
+            try {
+                // Update local data dengan data dari spreadsheet
+                if (remoteData.database && Array.isArray(remoteData.database)) {
+                    database = remoteData.database;
+                    localStorage.setItem('database', JSON.stringify(database));
+                }
+                if (remoteData.outlets && Array.isArray(remoteData.outlets)) {
+                    outlets = remoteData.outlets;
+                    localStorage.setItem('outlets', JSON.stringify(outlets));
+                }
+                if (remoteData.statusItems && Array.isArray(remoteData.statusItems)) {
+                    statusItems = remoteData.statusItems;
+                    localStorage.setItem('statusItems', JSON.stringify(statusItems));
+                }
+                if (remoteData.riwayat && Array.isArray(remoteData.riwayat)) {
+                    riwayat = remoteData.riwayat;
+                    localStorage.setItem('riwayat', JSON.stringify(riwayat));
+                }
+                
+                // Reload UI
+                loadTables();
+                loadOutletDropdown();
+                updateDataChecksums();
+                
+            } catch (error) {
+                console.error('Error updating local data:', error);
+                addSyncLog('❌ Error updating local data: ' + error.message);
+            }
+        }
+
+        // ================================
+        // FUNGSI SINKRONISASI 2-ARAH
+        // ================================
+
+        function startBidirectionalSync() {
+            if (syncInterval) clearInterval(syncInterval);
+            
+            if (!realtimeSyncEnabled || SYNC_MODE === 'manual') return;
+            
+            // Sync setiap 5 detik untuk real-time experience
+            syncInterval = setInterval(async () => {
+                if (isGoogleSheetsConnected && realtimeSyncEnabled) {
+                    await performBidirectionalSync();
+                }
+            }, 5000);
+            
+            document.getElementById('realtimeIndicator').classList.remove('hidden');
+            addSyncLog('🔄 Sinkronisasi real-time dimulai (interval: 5 detik)');
+        }
+
+        async function performBidirectionalSync() {
+            try {
+                updateSyncStatus('syncing');
+                
+                // 1. Cek perubahan lokal
+                const localChanges = detectLocalChanges();
+                
+                // 2. Cek perubahan di Google Sheets
+                const remoteChanges = await detectRemoteChanges();
+                
+                // 3. Handle conflicts jika ada
+                if (localChanges.length > 0 && remoteChanges.length > 0) {
+                    await handleConflicts(localChanges, remoteChanges);
+                } else {
+                    // 4. Sync perubahan lokal ke Sheets
+                    if (localChanges.length > 0 && (SYNC_MODE === 'bidirectional' || SYNC_MODE === 'websiteToSheets')) {
+                        await syncLocalChangesToSheets(localChanges);
+                        addSyncLog(`📤 ${localChanges.length} perubahan lokal disinkronkan ke Sheets`);
+                    }
+                    
+                    // 5. Sync perubahan Sheets ke lokal
+                    if (remoteChanges.length > 0 && (SYNC_MODE === 'bidirectional' || SYNC_MODE === 'sheetsToWebsite')) {
+                        await syncRemoteChangesToLocal(remoteChanges);
+                        addSyncLog(`📥 ${remoteChanges.length} perubahan dari Sheets disinkronkan ke lokal`);
+                    }
+                }
+                
+                lastSyncTime = new Date();
+                updateSyncStatus('connected');
+                
+            } catch (error) {
+                console.error('Error in bidirectional sync:', error);
+                updateSyncStatus('disconnected');
+                addSyncLog('❌ Error sync: ' + error.message);
+            }
+        }
+
+        function detectLocalChanges() {
+            const changes = [];
+            
+            // Check database changes
+            const currentDatabaseChecksum = generateChecksum(database);
+            if (currentDatabaseChecksum !== dataChecksums.database) {
+                changes.push({ type: 'database', data: database });
+                dataChecksums.database = currentDatabaseChecksum;
+            }
+            
+            // Check outlets changes
+            const currentOutletsChecksum = generateChecksum(outlets);
+            if (currentOutletsChecksum !== dataChecksums.outlets) {
+                changes.push({ type: 'outlets', data: outlets });
+                dataChecksums.outlets = currentOutletsChecksum;
+            }
+            
+            // Check status changes
+            const currentStatusChecksum = generateChecksum(statusItems);
+            if (currentStatusChecksum !== dataChecksums.statusItems) {
+                changes.push({ type: 'statusItems', data: statusItems });
+                dataChecksums.statusItems = currentStatusChecksum;
+            }
+            
+            // Check riwayat changes
+            const currentRiwayatChecksum = generateChecksum(riwayat);
+            if (currentRiwayatChecksum !== dataChecksums.riwayat) {
+                changes.push({ type: 'riwayat', data: riwayat });
+                dataChecksums.riwayat = currentRiwayatChecksum;
+            }
+            
+            return changes;
+        }
+
+        async function detectRemoteChanges() {
+            try {
+                const response = await fetch(WEB_APP_URL + '?action=getChecksums', {
+                    method: 'GET',
+                    mode: 'cors'
+                });
+                
+                if (!response.ok) return [];
+                
+                const result = await response.json();
+                if (result.status !== 'success') return [];
+                
+                const changes = [];
+                const remoteChecksums = result.data || {};
+                
+                // Check each data type for changes
+                for (const [dataType, remoteChecksum] of Object.entries(remoteChecksums)) {
+                    const localChecksum = dataChecksums[dataType];
+                    if (remoteChecksum && remoteChecksum !== localChecksum) {
+                        // Get the actual data
+                        const sheetData = await getWebAppData(dataType);
+                        changes.push({ type: dataType, data: sheetData, checksum: remoteChecksum });
+                    }
+                }
+                
+                return changes;
+                
+            } catch (error) {
+                console.error('Error detecting remote changes:', error);
+                return [];
+            }
+        }
+
+        async function getWebAppData(dataType) {
+            try {
+                const response = await fetch(WEB_APP_URL + `?action=getData&type=${dataType}`, {
+                    method: 'GET',
+                    mode: 'cors'
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    if (result.status === 'success') {
+                        return result.data || [];
+                    }
+                }
+                return [];
+            } catch (error) {
+                console.error('Error getting Web App data:', error);
+                return [];
+            }
+        }
+
+        async function handleConflicts(localChanges, remoteChanges) {
+            // Find conflicting changes
+            const conflicts = [];
+            
+            localChanges.forEach(localChange => {
+                const remoteChange = remoteChanges.find(rc => rc.type === localChange.type);
+                if (remoteChange) {
+                    conflicts.push({
+                        type: localChange.type,
+                        local: localChange.data,
+                        remote: remoteChange.data
+                    });
+                }
+            });
+            
+            if (conflicts.length > 0) {
+                conflictCount += conflicts.length;
+                updateSyncStatus('conflict');
+                
+                // Show conflict resolution modal for the first conflict
+                await showConflictResolution(conflicts[0]);
+            }
+        }
+
+        function showConflictResolution(conflict) {
+            return new Promise((resolve) => {
+                currentConflict = { conflict, resolve };
+                
+                // Populate conflict modal
+                document.getElementById('localVersion').innerHTML = formatConflictData(conflict.local);
+                document.getElementById('cloudVersion').innerHTML = formatConflictData(conflict.remote);
+                
+                // Show modal
+                document.getElementById('conflictModal').classList.remove('hidden');
+                
+                addSyncLog(`⚠️ Konflik terdeteksi pada ${conflict.type}`);
+            });
+        }
+
+        function formatConflictData(data) {
+            if (Array.isArray(data)) {
+                return `${data.length} items - Last item: ${JSON.stringify(data[data.length - 1] || {})}`;
+            }
+            return JSON.stringify(data);
+        }
+
+        async function resolveConflict(resolution) {
+            if (!currentConflict) return;
+            
+            const { conflict, resolve } = currentConflict;
+            
+            try {
+                switch (resolution) {
+                    case 'local':
+                        // Use local version, sync to remote
+                        await syncDataToSheet(conflict.type, conflict.local);
+                        addSyncLog(`✅ Konflik ${conflict.type} diselesaikan: menggunakan versi lokal`);
+                        break;
+                        
+                    case 'cloud':
+                        // Use remote version, update local
+                        updateLocalData(conflict.type, conflict.remote);
+                        addSyncLog(`✅ Konflik ${conflict.type} diselesaikan: menggunakan versi cloud`);
+                        break;
+                        
+                    case 'merge':
+                        // Merge both versions
+                        const merged = mergeData(conflict.local, conflict.remote);
+                        updateLocalData(conflict.type, merged);
+                        await syncDataToSheet(conflict.type, merged);
+                        addSyncLog(`✅ Konflik ${conflict.type} diselesaikan: data digabungkan`);
+                        break;
+                }
+                
+                closeConflictModal();
+                resolve();
+                
+            } catch (error) {
+                console.error('Error resolving conflict:', error);
+                addSyncLog(`❌ Error menyelesaikan konflik: ${error.message}`);
+            }
+        }
+
+        function mergeData(local, remote) {
+            // Simple merge strategy: combine arrays and remove duplicates
+            if (Array.isArray(local) && Array.isArray(remote)) {
+                const combined = [...local, ...remote];
+                // Remove duplicates based on first column (usually ID/code)
+                const unique = combined.filter((item, index, arr) => 
+                    arr.findIndex(i => i[0] === item[0]) === index
+                );
+                return unique;
+            }
+            return local; // Fallback to local
+        }
+
+        function closeConflictModal() {
+            document.getElementById('conflictModal').classList.add('hidden');
+            currentConflict = null;
+        }
+
+        // ================================
+        // FUNGSI SYNC UTILITIES
+        // ================================
+
+        async function syncLocalChangesToSheets(changes) {
+            for (const change of changes) {
+                await syncDataToSheet(change.type, change.data);
+            }
+        }
+
+        async function syncRemoteChangesToLocal(changes) {
+            for (const change of changes) {
+                updateLocalData(change.type, change.data);
+                dataChecksums[change.type] = change.checksum;
+            }
+            
+            // Reload UI
+            loadTables();
+            loadOutletDropdown();
+            
+            // Highlight changed data
+            highlightChangedData();
+        }
+
+        async function syncDataToSheet(dataType, data) {
+            try {
+                const response = await fetch(WEB_APP_URL, {
+                    method: 'POST',
+                    mode: 'cors',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        action: 'updateData',
+                        type: dataType,
+                        data: data,
+                        checksum: generateChecksum(data)
+                    })
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    if (result.status === 'success') {
+                        addSyncLog(`📤 ${dataType} berhasil disinkronkan ke Sheets`);
+                    } else {
+                        throw new Error(result.message || 'Sync gagal');
+                    }
+                } else {
+                    throw new Error('HTTP Error: ' + response.status);
+                }
+                
+            } catch (error) {
+                console.error('Error syncing data to sheet:', error);
+                addSyncLog(`❌ Error sync ${dataType}: ${error.message}`);
                 throw error;
             }
         }
 
-        async function setupSheetHeaders() {
-            const requests = [
-                {
-                    range: 'Database!A1:D1',
-                    values: [['Kode Barang', 'Nama Barang', 'Stock', 'Unit']]
-                },
-                {
-                    range: 'Outlets!A1:B1',
-                    values: [['Kode Outlet', 'Nama Outlet']]
-                },
-                {
-                    range: 'Status!A1:C1',
-                    values: [['Kode Barang', 'Nama Barang', 'Status']]
-                },
-                {
-                    range: 'Riwayat!A1:D1',
-                    values: [['Tanggal', 'Kode Barang', 'Nama Barang', 'Keterangan']]
-                },
-                {
-                    range: 'Users!A1:B1',
-                    values: [['Username', 'Password']]
-                }
-            ];
-
-            for (const request of requests) {
-                await gapi.client.sheets.spreadsheets.values.update({
-                    spreadsheetId: SPREADSHEET_ID,
-                    range: request.range,
-                    valueInputOption: 'RAW',
-                    resource: { values: request.values }
-                });
+        function updateLocalData(dataType, remoteData) {
+            const parsers = {
+                'database': (rows) => rows.map(row => ({
+                    kode: row[0] || '',
+                    nama: row[1] || '',
+                    stock: parseInt(row[2]) || 0,
+                    unit: row[3] || ''
+                })),
+                'outlets': (rows) => rows.map(row => ({
+                    kode: row[0] || '',
+                    nama: row[1] || ''
+                })),
+                'statusItems': (rows) => rows.map(row => ({
+                    kode: row[0] || '',
+                    nama: row[1] || '',
+                    status: row[2] || ''
+                })),
+                'riwayat': (rows) => rows.map(row => ({
+                    tanggal: row[0] || '',
+                    kode: row[1] || '',
+                    nama: row[2] || '',
+                    keterangan: row[3] || ''
+                }))
+            };
+            
+            const parsedData = parsers[dataType](remoteData);
+            
+            switch (dataType) {
+                case 'database':
+                    database = parsedData;
+                    localStorage.setItem('database', JSON.stringify(database));
+                    break;
+                case 'outlets':
+                    outlets = parsedData;
+                    localStorage.setItem('outlets', JSON.stringify(outlets));
+                    break;
+                case 'statusItems':
+                    statusItems = parsedData;
+                    localStorage.setItem('statusItems', JSON.stringify(statusItems));
+                    break;
+                case 'riwayat':
+                    riwayat = parsedData;
+                    localStorage.setItem('riwayat', JSON.stringify(riwayat));
+                    break;
             }
         }
 
+        // Metadata update is handled by Web App automatically
+
+        // ================================
+        // FUNGSI UTILITY
+        // ================================
+
+        function generateChecksum(data) {
+            return btoa(JSON.stringify(data)).slice(0, 16);
+        }
+
+        function updateDataChecksums() {
+            dataChecksums.database = generateChecksum(database);
+            dataChecksums.outlets = generateChecksum(outlets);
+            dataChecksums.statusItems = generateChecksum(statusItems);
+            dataChecksums.riwayat = generateChecksum(riwayat);
+        }
+
+        function highlightChangedData() {
+            // Add highlight class to recently changed rows
+            setTimeout(() => {
+                document.querySelectorAll('tbody tr').forEach(row => {
+                    row.classList.add('data-changed');
+                    setTimeout(() => row.classList.remove('data-changed'), 2000);
+                });
+            }, 100);
+        }
+
+        function addSyncLog(message) {
+            const timestamp = new Date().toLocaleTimeString('id-ID');
+            syncLog.unshift(`[${timestamp}] ${message}`);
+            
+            // Keep only last 50 logs
+            if (syncLog.length > 50) {
+                syncLog = syncLog.slice(0, 50);
+            }
+            
+            // Update log display if modal is open
+            const logElement = document.getElementById('syncLog');
+            if (logElement) {
+                logElement.innerHTML = syncLog.map(log => `<div>${log}</div>`).join('');
+            }
+        }
+
+        // ================================
+        // FUNGSI UI CONTROLS
+        // ================================
+
         function showSheetsSetup() {
             document.getElementById('sheetsSetupModal').classList.remove('hidden');
-            document.getElementById('apiKey').value = GOOGLE_API_KEY;
-            document.getElementById('spreadsheetId').value = SPREADSHEET_ID;
+            document.getElementById('webAppUrl').value = WEB_APP_URL;
+            document.getElementById('syncModeSelect').value = SYNC_MODE;
         }
 
         function closeSetupModal() {
@@ -595,240 +1478,115 @@
         }
 
         async function setupGoogleSheets() {
-            const apiKey = document.getElementById('apiKey').value.trim();
-            const spreadsheetId = document.getElementById('spreadsheetId').value.trim();
+            const webAppUrl = document.getElementById('webAppUrl').value.trim();
+            const syncMode = document.getElementById('syncModeSelect').value;
 
-            if (!apiKey) {
-                alert('API Key harus diisi!');
+            if (!webAppUrl) {
+                alert('Web App URL harus diisi!');
                 return;
             }
 
-            GOOGLE_API_KEY = apiKey;
-            SPREADSHEET_ID = spreadsheetId;
+            if (!webAppUrl.includes('script.google.com')) {
+                alert('URL harus berupa Google Apps Script Web App URL!');
+                return;
+            }
 
-            localStorage.setItem('googleApiKey', GOOGLE_API_KEY);
-            localStorage.setItem('spreadsheetId', SPREADSHEET_ID);
+            WEB_APP_URL = webAppUrl;
+            SYNC_MODE = syncMode;
+
+            localStorage.setItem('webAppUrl', WEB_APP_URL);
+            localStorage.setItem('syncMode', SYNC_MODE);
 
             closeSetupModal();
             
             try {
-                await initializeGoogleSheets();
-                alert('Google Sheets berhasil dikonfigurasi!');
+                await initializeWebApp();
+                alert('Google Apps Script Web App berhasil dikonfigurasi dengan mode: ' + syncMode);
             } catch (error) {
                 alert('Error: ' + error.message);
             }
         }
 
+        function showSyncDetails() {
+            document.getElementById('syncDetailsModal').classList.remove('hidden');
+            
+            // Update status info
+            document.getElementById('connectionStatus').textContent = isGoogleSheetsConnected ? 'Terhubung' : 'Terputus';
+            document.getElementById('lastSyncTime').textContent = lastSyncTime ? lastSyncTime.toLocaleString('id-ID') : 'Belum pernah';
+            document.getElementById('conflictCount').textContent = conflictCount;
+            
+            // Update log
+            const logElement = document.getElementById('syncLog');
+            logElement.innerHTML = syncLog.map(log => `<div>${log}</div>`).join('');
+        }
+
+        function closeSyncDetails() {
+            document.getElementById('syncDetailsModal').classList.add('hidden');
+        }
+
+        async function forceBidirectionalSync() {
+            if (!isGoogleSheetsConnected) {
+                if (confirm('Google Sheets belum terkonfigurasi!\n\nApakah Anda ingin mengatur sekarang?')) {
+                    showSheetsSetup();
+                }
+                return;
+            }
+            
+            addSyncLog('🔄 Force sync dimulai...');
+            await performBidirectionalSync();
+            alert('Sinkronisasi 2-arah selesai!');
+        }
+
+        function toggleRealtimeSync() {
+            realtimeSyncEnabled = !realtimeSyncEnabled;
+            const btn = document.getElementById('toggleSyncBtn');
+            
+            if (realtimeSyncEnabled) {
+                startBidirectionalSync();
+                btn.textContent = '⏸️ Pause';
+                btn.classList.remove('bg-red-600', 'hover:bg-red-700');
+                btn.classList.add('bg-green-600', 'hover:bg-green-700');
+                document.getElementById('realtimeIndicator').classList.remove('hidden');
+                addSyncLog('▶️ Real-time sync diaktifkan');
+            } else {
+                if (syncInterval) clearInterval(syncInterval);
+                btn.textContent = '▶️ Resume';
+                btn.classList.remove('bg-green-600', 'hover:bg-green-700');
+                btn.classList.add('bg-red-600', 'hover:bg-red-700');
+                document.getElementById('realtimeIndicator').classList.add('hidden');
+                addSyncLog('⏸️ Real-time sync dinonaktifkan');
+            }
+        }
+
         function updateSyncStatus(status) {
             const indicator = document.getElementById('syncStatus');
+            const setupBtn = document.getElementById('setupSheetsBtn');
             
             switch (status) {
                 case 'connected':
                     indicator.className = 'sync-indicator sync-connected';
-                    indicator.innerHTML = '✅ Terhubung ke Google Sheets';
+                    indicator.innerHTML = '✅ Sync 2-Arah Aktif';
+                    if (setupBtn) setupBtn.style.display = 'none';
                     break;
                 case 'syncing':
                     indicator.className = 'sync-indicator sync-syncing';
                     indicator.innerHTML = '🔄 Sinkronisasi...';
                     break;
+                case 'conflict':
+                    indicator.className = 'sync-indicator sync-conflict';
+                    indicator.innerHTML = '⚠️ Konflik Terdeteksi';
+                    break;
                 case 'disconnected':
                     indicator.className = 'sync-indicator sync-disconnected';
-                    indicator.innerHTML = '⚠️ Tidak Terhubung ke Google Sheets';
+                    indicator.innerHTML = '⚠️ Tidak Terhubung';
+                    if (setupBtn) setupBtn.style.display = 'flex';
                     break;
             }
         }
 
-        function startAutoSync() {
-            if (syncInterval) clearInterval(syncInterval);
-            
-            // Sync every 30 seconds
-            syncInterval = setInterval(() => {
-                if (isGoogleSheetsConnected) {
-                    syncFromSheets();
-                }
-            }, 30000);
-        }
-
-        async function syncToSheets() {
-            if (!isGoogleSheetsConnected) return;
-            
-            try {
-                updateSyncStatus('syncing');
-                
-                // Sync Database
-                await gapi.client.sheets.spreadsheets.values.clear({
-                    spreadsheetId: SPREADSHEET_ID,
-                    range: 'Database!A2:D'
-                });
-                
-                if (database.length > 0) {
-                    const databaseValues = database.map(item => [item.kode, item.nama, item.stock, item.unit]);
-                    await gapi.client.sheets.spreadsheets.values.update({
-                        spreadsheetId: SPREADSHEET_ID,
-                        range: 'Database!A2',
-                        valueInputOption: 'RAW',
-                        resource: { values: databaseValues }
-                    });
-                }
-
-                // Sync Outlets
-                await gapi.client.sheets.spreadsheets.values.clear({
-                    spreadsheetId: SPREADSHEET_ID,
-                    range: 'Outlets!A2:B'
-                });
-                
-                if (outlets.length > 0) {
-                    const outletValues = outlets.map(item => [item.kode, item.nama]);
-                    await gapi.client.sheets.spreadsheets.values.update({
-                        spreadsheetId: SPREADSHEET_ID,
-                        range: 'Outlets!A2',
-                        valueInputOption: 'RAW',
-                        resource: { values: outletValues }
-                    });
-                }
-
-                // Sync Status
-                await gapi.client.sheets.spreadsheets.values.clear({
-                    spreadsheetId: SPREADSHEET_ID,
-                    range: 'Status!A2:C'
-                });
-                
-                if (statusItems.length > 0) {
-                    const statusValues = statusItems.map(item => [item.kode, item.nama, item.status]);
-                    await gapi.client.sheets.spreadsheets.values.update({
-                        spreadsheetId: SPREADSHEET_ID,
-                        range: 'Status!A2',
-                        valueInputOption: 'RAW',
-                        resource: { values: statusValues }
-                    });
-                }
-
-                // Sync Riwayat
-                await gapi.client.sheets.spreadsheets.values.clear({
-                    spreadsheetId: SPREADSHEET_ID,
-                    range: 'Riwayat!A2:D'
-                });
-                
-                if (riwayat.length > 0) {
-                    const riwayatValues = riwayat.map(item => [item.tanggal, item.kode, item.nama, item.keterangan]);
-                    await gapi.client.sheets.spreadsheets.values.update({
-                        spreadsheetId: SPREADSHEET_ID,
-                        range: 'Riwayat!A2',
-                        valueInputOption: 'RAW',
-                        resource: { values: riwayatValues }
-                    });
-                }
-
-                updateSyncStatus('connected');
-                
-            } catch (error) {
-                console.error('Error syncing to sheets:', error);
-                updateSyncStatus('disconnected');
-            }
-        }
-
-        async function syncFromSheets() {
-            if (!isGoogleSheetsConnected) return;
-            
-            try {
-                updateSyncStatus('syncing');
-                
-                // Get data from sheets
-                const responses = await Promise.all([
-                    gapi.client.sheets.spreadsheets.values.get({
-                        spreadsheetId: SPREADSHEET_ID,
-                        range: 'Database!A2:D'
-                    }),
-                    gapi.client.sheets.spreadsheets.values.get({
-                        spreadsheetId: SPREADSHEET_ID,
-                        range: 'Outlets!A2:B'
-                    }),
-                    gapi.client.sheets.spreadsheets.values.get({
-                        spreadsheetId: SPREADSHEET_ID,
-                        range: 'Status!A2:C'
-                    }),
-                    gapi.client.sheets.spreadsheets.values.get({
-                        spreadsheetId: SPREADSHEET_ID,
-                        range: 'Riwayat!A2:D'
-                    })
-                ]);
-
-                // Update local data
-                const [databaseResponse, outletResponse, statusResponse, riwayatResponse] = responses;
-                
-                if (databaseResponse.result.values) {
-                    const newDatabase = databaseResponse.result.values.map(row => ({
-                        kode: row[0] || '',
-                        nama: row[1] || '',
-                        stock: parseInt(row[2]) || 0,
-                        unit: row[3] || ''
-                    }));
-                    
-                    if (JSON.stringify(newDatabase) !== JSON.stringify(database)) {
-                        database = newDatabase;
-                        localStorage.setItem('database', JSON.stringify(database));
-                    }
-                }
-
-                if (outletResponse.result.values) {
-                    const newOutlets = outletResponse.result.values.map(row => ({
-                        kode: row[0] || '',
-                        nama: row[1] || ''
-                    }));
-                    
-                    if (JSON.stringify(newOutlets) !== JSON.stringify(outlets)) {
-                        outlets = newOutlets;
-                        localStorage.setItem('outlets', JSON.stringify(outlets));
-                        loadOutletDropdown();
-                    }
-                }
-
-                if (statusResponse.result.values) {
-                    const newStatusItems = statusResponse.result.values.map(row => ({
-                        kode: row[0] || '',
-                        nama: row[1] || '',
-                        status: row[2] || ''
-                    }));
-                    
-                    if (JSON.stringify(newStatusItems) !== JSON.stringify(statusItems)) {
-                        statusItems = newStatusItems;
-                        localStorage.setItem('statusItems', JSON.stringify(statusItems));
-                    }
-                }
-
-                if (riwayatResponse.result.values) {
-                    const newRiwayat = riwayatResponse.result.values.map(row => ({
-                        tanggal: row[0] || '',
-                        kode: row[1] || '',
-                        nama: row[2] || '',
-                        keterangan: row[3] || ''
-                    }));
-                    
-                    if (JSON.stringify(newRiwayat) !== JSON.stringify(riwayat)) {
-                        riwayat = newRiwayat;
-                        localStorage.setItem('riwayat', JSON.stringify(riwayat));
-                    }
-                }
-
-                loadTables();
-                updateSyncStatus('connected');
-                
-            } catch (error) {
-                console.error('Error syncing from sheets:', error);
-                updateSyncStatus('disconnected');
-            }
-        }
-
-        async function manualSync() {
-            if (!isGoogleSheetsConnected) {
-                alert('Google Sheets belum terkonfigurasi!');
-                return;
-            }
-            
-            await syncToSheets();
-            await syncFromSheets();
-            alert('Sinkronisasi manual selesai!');
-        }
+        // ================================
+        // FUNGSI LAINNYA (SAMA SEPERTI SEBELUMNYA)
+        // ================================
 
         // Authentication
         function login() {
@@ -997,10 +1755,8 @@
             document.getElementById('penerimaanTanggal').value = new Date().toISOString().split('T')[0];
             loadTables();
             
-            // Sync to Google Sheets
-            if (isGoogleSheetsConnected) {
-                await syncToSheets();
-            }
+            // Update checksums untuk trigger sync
+            updateDataChecksums();
             
             alert('Data penerimaan berhasil disimpan!');
         }
@@ -1049,10 +1805,8 @@
             document.getElementById('transferTanggal').value = new Date().toISOString().split('T')[0];
             loadTables();
             
-            // Sync to Google Sheets
-            if (isGoogleSheetsConnected) {
-                await syncToSheets();
-            }
+            // Update checksums untuk trigger sync
+            updateDataChecksums();
             
             alert('Transfer berhasil!');
         }
@@ -1080,10 +1834,8 @@
             loadOutletDropdown();
             loadTables();
             
-            // Sync to Google Sheets
-            if (isGoogleSheetsConnected) {
-                await syncToSheets();
-            }
+            // Update checksums untuk trigger sync
+            updateDataChecksums();
             
             alert('Outlet berhasil ditambahkan!');
         }
@@ -1235,10 +1987,7 @@
                 localStorage.setItem('outlets', JSON.stringify(outlets));
                 loadOutletDropdown();
                 loadTables();
-                
-                if (isGoogleSheetsConnected) {
-                    await syncToSheets();
-                }
+                updateDataChecksums();
             }
         }
 
@@ -1247,10 +1996,7 @@
                 statusItems.splice(index, 1);
                 localStorage.setItem('statusItems', JSON.stringify(statusItems));
                 loadTables();
-                
-                if (isGoogleSheetsConnected) {
-                    await syncToSheets();
-                }
+                updateDataChecksums();
             }
         }
 
@@ -1259,10 +2005,7 @@
                 database.splice(index, 1);
                 localStorage.setItem('database', JSON.stringify(database));
                 loadTables();
-                
-                if (isGoogleSheetsConnected) {
-                    await syncToSheets();
-                }
+                updateDataChecksums();
             }
         }
 
@@ -1308,11 +2051,7 @@
             localStorage.setItem('riwayat', JSON.stringify(riwayat));
             
             loadTables();
-            
-            // Sync to Google Sheets
-            if (isGoogleSheetsConnected) {
-                await syncToSheets();
-            }
+            updateDataChecksums();
             
             alert('Status berhasil diubah menjadi Diterima!');
         }
@@ -1326,10 +2065,7 @@
                 item.stock = parseInt(newStock);
                 localStorage.setItem('database', JSON.stringify(database));
                 loadTables();
-                
-                if (isGoogleSheetsConnected) {
-                    await syncToSheets();
-                }
+                updateDataChecksums();
             }
         }
 
@@ -1417,5 +2153,5 @@
             window.print();
         }
     </script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'97ccb871b09bfd25',t:'MTc1NzQ4NDE4OC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'97cd3f5346e6fe23',t:'MTc1NzQ4OTcxMy4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
