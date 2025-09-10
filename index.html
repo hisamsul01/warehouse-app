@@ -2,45 +2,49 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8">
-  <title>📦 Sistem Gudang</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <script>
-    const API_URL = "https://script.google.com/macros/s/AKfycbyV1D7DuRpzf3VHxSatQnnS2Nx5qJKyLAEXsGWy6g6FBpKGWtLNmw4nPFhr2H7CTjwGuw/exec";
-
-    async function simpanData(event) {
-      event.preventDefault();
-      
-      const namaBarang = document.getElementById("namaBarang").value;
-      const jumlah = document.getElementById("jumlah").value;
-      const keterangan = document.getElementById("keterangan").value;
-
-      const data = { namaBarang, jumlah, keterangan };
-
-      const res = await fetch(API_URL, {
-        method: "POST",
-        body: JSON.stringify(data),
-        headers: { "Content-Type": "application/json" }
-      });
-
-      const result = await res.json();
-      alert(result.message);
-      document.getElementById("formGudang").reset();
-    }
-  </script>
+  <title>Sistem Gudang</title>
 </head>
 <body>
-  <h2>📦 Input Data Gudang</h2>
-  <form id="formGudang" onsubmit="simpanData(event)">
+  <h2>Input Data Gudang</h2>
+  <form id="formGudang">
     <label>Nama Barang:</label><br>
     <input type="text" id="namaBarang" required><br><br>
-    
+
     <label>Jumlah:</label><br>
     <input type="number" id="jumlah" required><br><br>
-    
+
     <label>Keterangan:</label><br>
     <input type="text" id="keterangan"><br><br>
-    
+
     <button type="submit">Simpan</button>
   </form>
+
+  <script>
+    const API_URL = "https://script.google.com/macros/s/AKfycbzxiLEQiqkupD-bQgOtFzhqBOjHgm-3qf2LRlYrs33nMhn8BSgR_gtOxbTanT6CiLzedA/exec";
+
+    document.getElementById("formGudang").addEventListener("submit", async function(event) {
+      event.preventDefault();
+
+      const payload = {
+        namaBarang: document.getElementById("namaBarang").value,
+        jumlah: document.getElementById("jumlah").value,
+        keterangan: document.getElementById("keterangan").value
+      };
+
+      try {
+        const res = await fetch(API_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+
+        const result = await res.json();
+        alert(result.message);
+        this.reset();
+      } catch (error) {
+        alert("Error: " + error.message);
+      }
+    });
+  </script>
 </body>
 </html>
