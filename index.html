@@ -3,1770 +3,1419 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistem Gudang Modern - Terintegrasi</title>
+    <title>Sistem Gudang</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://apis.google.com/js/api.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
         body { font-family: 'Inter', sans-serif; }
-        .sidebar-item:hover { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
-        .active-menu { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
-        .gradient-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
-        .card-shadow { box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
-        .status-pending { background: #fef3c7; color: #92400e; }
-        .status-approved { background: #d1fae5; color: #065f46; }
-        .status-rejected { background: #fee2e2; color: #991b1b; }
-        .loading { display: none; }
-        .loading.show { display: inline-block; }
-        .sync-status { padding: 8px 16px; border-radius: 6px; font-size: 12px; font-weight: 500; }
-        .sync-success { background: #d1fae5; color: #065f46; }
-        .sync-error { background: #fee2e2; color: #991b1b; }
-        .sync-loading { background: #fef3c7; color: #92400e; }
-        
-        /* Login Styles */
-        .login-container { 
-            min-height: 100vh; 
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            display: flex;
-            align-items: center;
-            justify-content: center;
+        .sidebar-collapsed { width: 4rem; }
+        .sidebar-expanded { width: 16rem; }
+        .menu-text { opacity: 1; transition: opacity 0.3s; }
+        .sidebar-collapsed .menu-text { opacity: 0; }
+        .print-area { display: none; }
+        @media print {
+            body * { visibility: hidden; }
+            .print-area, .print-area * { visibility: visible; }
+            .print-area { position: absolute; left: 0; top: 0; width: 100%; }
         }
-        .login-box {
-            background: white;
-            padding: 2rem;
-            border-radius: 1rem;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-            width: 100%;
-            max-width: 400px;
+        .sync-indicator {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
         }
-        .app-container { display: none; }
-        .app-container.show { display: block; }
-        
-        /* Sidebar Toggle Styles */
-        .sidebar { 
-            transition: transform 0.3s ease-in-out; 
-            z-index: 40;
-        }
-        .sidebar-hidden { 
-            transform: translateX(-100%); 
-        }
-        .main-content { 
-            transition: margin-left 0.3s ease-in-out; 
-        }
-        .main-expanded { 
-            margin-left: 0; 
-        }
-        .menu-toggle {
-            font-size: 18px;
-            transition: transform 0.3s ease;
-        }
-        .menu-toggle.rotated {
-            transform: rotate(90deg);
-        }
-        
-        /* Mobile Responsive */
-        @media (max-width: 768px) {
-            .sidebar {
-                position: fixed;
-                z-index: 50;
-            }
-            .main-content {
-                margin-left: 0 !important;
-            }
-            .sidebar-overlay {
-                position: fixed;
-                top: 0;
-                left: 0;
-                right: 0;
-                bottom: 0;
-                background: rgba(0,0,0,0.5);
-                z-index: 45;
-                display: none;
-            }
-            .sidebar-overlay.show {
-                display: block;
-            }
-        }
+        .sync-connected { background: #10b981; color: white; }
+        .sync-disconnected { background: #ef4444; color: white; }
+        .sync-syncing { background: #f59e0b; color: white; }
     </style>
 </head>
 <body class="bg-gray-50">
-    <!-- Login Container -->
-    <div id="loginContainer" class="login-container">
-        <div class="login-box">
-            <div class="text-center mb-8">
-                <div class="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <span class="text-3xl">📦</span>
-                </div>
-                <h1 class="text-2xl font-bold text-gray-800">Sistem Gudang Modern</h1>
-                <p class="text-gray-600 mt-2">Silakan login untuk melanjutkan</p>
+    <!-- Sync Status Indicator -->
+    <div id="syncStatus" class="sync-indicator sync-disconnected">
+        ⚠️ Tidak Terhubung ke Google Sheets
+    </div>
+
+    <!-- Google Sheets Setup Modal -->
+    <div id="sheetsSetupModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-lg p-8 w-96 shadow-2xl max-h-96 overflow-y-auto">
+            <h2 class="text-2xl font-bold text-center mb-6 text-gray-800">Setup Google Sheets</h2>
+            
+            <div class="mb-4">
+                <label class="block text-gray-700 text-sm font-medium mb-2">Google Sheets API Key</label>
+                <input type="text" id="apiKey" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Masukkan API Key">
             </div>
             
-            <form id="loginForm" class="space-y-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Username</label>
-                    <input type="text" id="loginUsername" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Password</label>
-                    <input type="password" id="loginPassword" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
-                </div>
-                <button type="submit" class="w-full gradient-bg text-white p-3 rounded-lg hover:opacity-90 transition-all font-medium">
-                    <span class="loading" id="loginLoading">🔄</span>
-                    <span id="loginText">Login</span>
-                </button>
-            </form>
+            <div class="mb-4">
+                <label class="block text-gray-700 text-sm font-medium mb-2">Spreadsheet ID</label>
+                <input type="text" id="spreadsheetId" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="ID Spreadsheet (opsional)">
+                <small class="text-gray-500">Kosongkan untuk membuat spreadsheet baru</small>
+            </div>
             
-            <div class="mt-6 text-center">
-                <p class="text-sm text-gray-600">Default: admin / admin123</p>
+            <div class="flex gap-2">
+                <button onclick="setupGoogleSheets()" class="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition duration-200">Setup</button>
+                <button onclick="closeSetupModal()" class="flex-1 bg-gray-600 text-white py-2 rounded-lg hover:bg-gray-700 transition duration-200">Batal</button>
+            </div>
+            
+            <div class="mt-4 p-4 bg-blue-50 rounded-lg">
+                <h4 class="font-semibold text-blue-800 mb-2">Cara Setup:</h4>
+                <ol class="text-sm text-blue-700 space-y-1">
+                    <li>1. Buka Google Cloud Console</li>
+                    <li>2. Aktifkan Google Sheets API</li>
+                    <li>3. Buat API Key</li>
+                    <li>4. Masukkan API Key di atas</li>
+                    <li>5. Klik Setup untuk mulai</li>
+                </ol>
             </div>
         </div>
     </div>
 
-    <!-- App Container -->
-    <div id="appContainer" class="app-container">
-        <!-- Sidebar Overlay for Mobile -->
-        <div id="sidebarOverlay" class="sidebar-overlay" onclick="closeSidebar()"></div>
+    <!-- Login Modal -->
+    <div id="loginModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-8 w-96 shadow-2xl">
+            <h2 class="text-2xl font-bold text-center mb-6 text-gray-800">Login Sistem Gudang</h2>
+            <form id="loginForm">
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-medium mb-2">Username</label>
+                    <input type="text" id="loginUsername" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                </div>
+                <div class="mb-6">
+                    <label class="block text-gray-700 text-sm font-medium mb-2">Password</label>
+                    <input type="password" id="loginPassword" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                </div>
+                <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition duration-200">Login</button>
+            </form>
+            <div id="loginError" class="mt-4 text-red-600 text-sm text-center hidden"></div>
+        </div>
+    </div>
 
-    <!-- Header -->
-    <header class="gradient-bg text-white p-4 shadow-lg fixed w-full top-0 z-50">
-        <div class="flex items-center justify-between">
-            <div class="flex items-center space-x-4">
-                <button onclick="toggleSidebar()" class="bg-white bg-opacity-20 hover:bg-opacity-30 p-2 rounded-lg transition-all">
-                    <span id="menuIcon" class="menu-toggle">☰</span>
-                </button>
-                <div class="w-10 h-10 bg-white rounded-lg flex items-center justify-center">
-                    <span class="text-2xl">📦</span>
-                </div>
-                <h1 class="text-xl md:text-2xl font-bold">Sistem Gudang Modern</h1>
-                <div id="syncStatus" class="sync-status sync-loading hidden md:block">
-                    <span class="loading show">🔄</span> Connecting to Google Sheets...
-                </div>
-            </div>
-            <div class="flex items-center space-x-2 md:space-x-4">
-                <button onclick="testConnection()" class="bg-white bg-opacity-20 hover:bg-opacity-30 px-2 md:px-3 py-2 rounded-lg transition-all text-sm">
-                    🔍 <span class="hidden md:inline">Test</span>
-                </button>
-                <button onclick="syncWithGoogleSheets()" class="bg-white bg-opacity-20 hover:bg-opacity-30 px-2 md:px-4 py-2 rounded-lg transition-all text-sm">
-                    <span class="loading" id="syncLoading">🔄</span>
-                    <span id="syncText">📊 <span class="hidden md:inline">Sync</span></span>
-                </button>
-                <span id="currentTime" class="text-xs md:text-sm hidden md:block"></span>
-                <div class="flex items-center space-x-2">
-                    <span id="currentUser" class="text-sm hidden md:block">admin</span>
-                    <div class="w-8 h-8 bg-white rounded-full flex items-center justify-center cursor-pointer" onclick="showUserMenu()">
-                        <span class="text-lg">👤</span>
-                    </div>
-                    <button onclick="logout()" class="bg-white bg-opacity-20 hover:bg-opacity-30 px-2 py-1 rounded text-sm">
-                        🚪 <span class="hidden md:inline">Logout</span>
+    <!-- Main Container -->
+    <div id="mainContainer" class="hidden">
+        <!-- Sidebar -->
+        <div id="sidebar" class="fixed left-0 top-0 h-full bg-white shadow-lg transition-all duration-300 sidebar-expanded z-40">
+            <div class="p-4 border-b border-gray-200">
+                <div class="flex items-center justify-between">
+                    <h1 class="menu-text text-xl font-bold text-gray-800">Sistem Gudang</h1>
+                    <button id="toggleSidebar" class="p-2 rounded-lg hover:bg-gray-100">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                        </svg>
                     </button>
                 </div>
             </div>
-        </div>
-    </header>
-
-    <div class="flex pt-20">
-        <!-- Sidebar -->
-        <aside id="sidebar" class="sidebar w-64 bg-white shadow-lg h-screen fixed left-0 top-20 overflow-y-auto">
-            <nav class="p-4">
-                <ul class="space-y-2">
-                    <li><button onclick="showMenu('penerimaan')" class="sidebar-item w-full text-left p-3 rounded-lg transition-all duration-300 flex items-center space-x-3 active-menu">
-                        <span>📥</span><span>Penerimaan Barang</span>
-                    </button></li>
-                    <li><button onclick="showMenu('transfer')" class="sidebar-item w-full text-left p-3 rounded-lg transition-all duration-300 flex items-center space-x-3">
-                        <span>🚚</span><span>Transfer Barang</span>
-                    </button></li>
-                    <li><button onclick="showMenu('outlet')" class="sidebar-item w-full text-left p-3 rounded-lg transition-all duration-300 flex items-center space-x-3">
-                        <span>🏪</span><span>Outlet</span>
-                    </button></li>
-                    <li><button onclick="showMenu('status')" class="sidebar-item w-full text-left p-3 rounded-lg transition-all duration-300 flex items-center space-x-3">
-                        <span>📊</span><span>Status</span>
-                    </button></li>
-                    <li><button onclick="showMenu('database')" class="sidebar-item w-full text-left p-3 rounded-lg transition-all duration-300 flex items-center space-x-3">
-                        <span>💾</span><span>Database</span>
-                    </button></li>
-                    <li><button onclick="showMenu('riwayat')" class="sidebar-item w-full text-left p-3 rounded-lg transition-all duration-300 flex items-center space-x-3">
-                        <span>📋</span><span>Riwayat</span>
-                    </button></li>
-                    <li><button onclick="showMenu('laporan')" class="sidebar-item w-full text-left p-3 rounded-lg transition-all duration-300 flex items-center space-x-3">
-                        <span>📄</span><span>Laporan</span>
-                    </button></li>
-                    <li><button onclick="showMenu('user')" class="sidebar-item w-full text-left p-3 rounded-lg transition-all duration-300 flex items-center space-x-3">
-                        <span>👥</span><span>User Management</span>
-                    </button></li>
-                    <li><button onclick="openGoogleSheets()" class="sidebar-item w-full text-left p-3 rounded-lg transition-all duration-300 flex items-center space-x-3 bg-green-100 text-green-800">
-                        <span>📊</span><span>Buka Google Sheets</span>
-                    </button></li>
-                </ul>
+            
+            <nav class="mt-4">
+                <a href="#" onclick="showMenu('penerimaan')" class="flex items-center px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition duration-200">
+                    <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                    </svg>
+                    <span class="menu-text">Penerimaan Barang</span>
+                </a>
+                <a href="#" onclick="showMenu('transfer')" class="flex items-center px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition duration-200">
+                    <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path>
+                    </svg>
+                    <span class="menu-text">Transfer Barang</span>
+                </a>
+                <a href="#" onclick="showMenu('outlet')" class="flex items-center px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition duration-200">
+                    <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                    </svg>
+                    <span class="menu-text">Outlet</span>
+                </a>
+                <a href="#" onclick="showMenu('status')" class="flex items-center px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition duration-200">
+                    <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    <span class="menu-text">Status</span>
+                </a>
+                <a href="#" onclick="showMenu('database')" class="flex items-center px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition duration-200">
+                    <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"></path>
+                    </svg>
+                    <span class="menu-text">Database</span>
+                </a>
+                <a href="#" onclick="showMenu('riwayat')" class="flex items-center px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition duration-200">
+                    <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    <span class="menu-text">Riwayat</span>
+                </a>
+                <a href="#" onclick="showMenu('laporan')" class="flex items-center px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition duration-200">
+                    <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                    <span class="menu-text">Laporan</span>
+                </a>
+                <a href="#" onclick="showMenu('user')" class="flex items-center px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition duration-200">
+                    <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z"></path>
+                    </svg>
+                    <span class="menu-text">User Management</span>
+                </a>
+                <a href="#" onclick="showSheetsSetup()" class="flex items-center px-4 py-3 text-gray-700 hover:bg-green-50 hover:text-green-600 transition duration-200">
+                    <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                    <span class="menu-text">Google Sheets</span>
+                </a>
             </nav>
-        </aside>
+            
+            <div class="absolute bottom-4 left-4 right-4">
+                <button onclick="logout()" class="w-full flex items-center justify-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition duration-200">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+                    </svg>
+                    <span class="menu-text">Logout</span>
+                </button>
+            </div>
+        </div>
 
         <!-- Main Content -->
-        <main id="mainContent" class="main-content flex-1 ml-64 p-6">
-            <!-- Penerimaan Barang -->
-            <div id="penerimaan" class="menu-content">
-                <div class="bg-white rounded-xl card-shadow p-6 mb-6">
-                    <h2 class="text-2xl font-bold mb-6 text-gray-800">Penerimaan Barang</h2>
-                    
-                    <form id="penerimaanForm" class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                        <input type="date" id="tglPenerimaan" class="p-3 border rounded-lg focus:ring-2 focus:ring-blue-500" required>
-                        <input type="text" id="kodeBarangPenerimaan" placeholder="Kode Barang" class="p-3 border rounded-lg focus:ring-2 focus:ring-blue-500" required oninput="autoFillPenerimaan()">
-                        <input type="text" id="namaBarangPenerimaan" placeholder="Nama Barang" class="p-3 border rounded-lg focus:ring-2 focus:ring-blue-500" required>
-                        <input type="number" id="quantityPenerimaan" placeholder="Quantity" class="p-3 border rounded-lg focus:ring-2 focus:ring-blue-500" required>
-                        <select id="unitPenerimaan" class="p-3 border rounded-lg focus:ring-2 focus:ring-blue-500" required>
-                            <option value="">Pilih Unit</option>
-                            <option value="pcs">Pcs</option>
-                            <option value="kg">Kg</option>
-                            <option value="liter">Liter</option>
-                            <option value="box">Box</option>
-                            <option value="meter">Meter</option>
-                            <option value="set">Set</option>
-                        </select>
-                        <select id="statusPenerimaan" class="p-3 border rounded-lg focus:ring-2 focus:ring-blue-500" required>
-                            <option value="">Pilih Status</option>
-                            <option value="pending">Pending</option>
-                            <option value="approved">Approved</option>
-                            <option value="rejected">Rejected</option>
-                        </select>
-                        <input type="text" id="keteranganPenerimaan" placeholder="Keterangan (opsional)" class="p-3 border rounded-lg focus:ring-2 focus:ring-blue-500">
-                        <button type="submit" class="md:col-span-3 gradient-bg text-white p-3 rounded-lg hover:opacity-90 transition-all">
-                            <span class="loading" id="penerimaanLoading">🔄</span>
-                            <span id="penerimaanText">Tambah Penerimaan</span>
-                        </button>
-                    </form>
-
-                    <div class="overflow-x-auto">
-                        <table class="w-full border-collapse">
-                            <thead>
-                                <tr class="bg-gray-100">
-                                    <th class="border p-3 text-left">Tanggal</th>
-                                    <th class="border p-3 text-left">Kode Barang</th>
-                                    <th class="border p-3 text-left">Nama Barang</th>
-                                    <th class="border p-3 text-left">Quantity</th>
-                                    <th class="border p-3 text-left">Unit</th>
-                                    <th class="border p-3 text-left">Status</th>
-                                    <th class="border p-3 text-left">Keterangan</th>
-                                    <th class="border p-3 text-left">Aksi</th>
-                                </tr>
-                            </thead>
-                            <tbody id="penerimaanTable">
-                                <!-- Data akan ditambahkan secara dinamis -->
-                            </tbody>
-                        </table>
-                    </div>
+        <div id="mainContent" class="ml-64 transition-all duration-300">
+            <!-- Header -->
+            <header class="bg-white shadow-sm border-b border-gray-200 p-4">
+                <div class="flex justify-between items-center">
+                    <h2 id="pageTitle" class="text-2xl font-semibold text-gray-800">Dashboard</h2>
+                    <button onclick="manualSync()" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition duration-200 flex items-center">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                        </svg>
+                        Sync Manual
+                    </button>
                 </div>
-            </div>
+            </header>
 
-            <!-- Transfer Barang -->
-            <div id="transfer" class="menu-content hidden">
-                <div class="bg-white rounded-xl card-shadow p-6 mb-6">
-                    <h2 class="text-2xl font-bold mb-6 text-gray-800">Transfer Barang</h2>
-                    
-                    <form id="transferForm" class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                        <input type="date" id="tglTransfer" class="p-3 border rounded-lg focus:ring-2 focus:ring-blue-500" required>
-                        <input type="text" id="kodeBarangTransfer" placeholder="Kode Barang" class="p-3 border rounded-lg focus:ring-2 focus:ring-blue-500" required oninput="autoFillTransfer()">
-                        <input type="text" id="namaBarangTransfer" placeholder="Nama Barang" class="p-3 border rounded-lg focus:ring-2 focus:ring-blue-500" readonly>
-                        <input type="number" id="quantityTransfer" placeholder="Quantity" class="p-3 border rounded-lg focus:ring-2 focus:ring-blue-500" required>
-                        <select id="unitTransfer" class="p-3 border rounded-lg focus:ring-2 focus:ring-blue-500" required disabled>
-                            <option value="">Pilih Unit</option>
-                            <option value="pcs">Pcs</option>
-                            <option value="kg">Kg</option>
-                            <option value="liter">Liter</option>
-                            <option value="box">Box</option>
-                            <option value="meter">Meter</option>
-                            <option value="set">Set</option>
-                        </select>
-                        <select id="outletTransfer" class="p-3 border rounded-lg focus:ring-2 focus:ring-blue-500" required>
-                            <option value="">Pilih Outlet</option>
-                        </select>
-                        <button type="submit" class="md:col-span-3 gradient-bg text-white p-3 rounded-lg hover:opacity-90 transition-all">
-                            <span class="loading" id="transferLoading">🔄</span>
-                            <span id="transferText">Transfer Barang</span>
-                        </button>
-                    </form>
-
-                    <div class="overflow-x-auto">
-                        <table class="w-full border-collapse">
-                            <thead>
-                                <tr class="bg-gray-100">
-                                    <th class="border p-3 text-left">Tanggal</th>
-                                    <th class="border p-3 text-left">Kode Barang</th>
-                                    <th class="border p-3 text-left">Nama Barang</th>
-                                    <th class="border p-3 text-left">Quantity</th>
-                                    <th class="border p-3 text-left">Unit</th>
-                                    <th class="border p-3 text-left">Outlet</th>
-                                    <th class="border p-3 text-left">Status</th>
-                                    <th class="border p-3 text-left">Aksi</th>
-                                </tr>
-                            </thead>
-                            <tbody id="transferTable">
-                                <!-- Data akan ditambahkan secara dinamis -->
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Outlet -->
-            <div id="outlet" class="menu-content hidden">
-                <div class="bg-white rounded-xl card-shadow p-6 mb-6">
-                    <h2 class="text-2xl font-bold mb-6 text-gray-800">Manajemen Outlet</h2>
-                    
-                    <form id="outletForm" class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                        <input type="text" id="kodeOutlet" placeholder="Kode Outlet" class="p-3 border rounded-lg focus:ring-2 focus:ring-blue-500" required>
-                        <input type="text" id="namaOutlet" placeholder="Nama Outlet" class="p-3 border rounded-lg focus:ring-2 focus:ring-blue-500" required>
-                        <button type="submit" class="md:col-span-2 gradient-bg text-white p-3 rounded-lg hover:opacity-90 transition-all">
-                            <span class="loading" id="outletLoading">🔄</span>
-                            <span id="outletText">Tambah Outlet</span>
-                        </button>
-                    </form>
-
-                    <div class="overflow-x-auto">
-                        <table class="w-full border-collapse">
-                            <thead>
-                                <tr class="bg-gray-100">
-                                    <th class="border p-3 text-left">Kode Outlet</th>
-                                    <th class="border p-3 text-left">Nama Outlet</th>
-                                    <th class="border p-3 text-left">Status</th>
-                                    <th class="border p-3 text-left">Aksi</th>
-                                </tr>
-                            </thead>
-                            <tbody id="outletTable">
-                                <!-- Data akan ditambahkan secara dinamis -->
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Status -->
-            <div id="status" class="menu-content hidden">
-                <div class="bg-white rounded-xl card-shadow p-6 mb-6">
-                    <h2 class="text-2xl font-bold mb-6 text-gray-800">Status Barang</h2>
-                    
-                    <div class="overflow-x-auto">
-                        <table class="w-full border-collapse">
-                            <thead>
-                                <tr class="bg-gray-100">
-                                    <th class="border p-3 text-left">Tanggal</th>
-                                    <th class="border p-3 text-left">Kode Barang</th>
-                                    <th class="border p-3 text-left">Nama Barang</th>
-                                    <th class="border p-3 text-left">Quantity</th>
-                                    <th class="border p-3 text-left">Unit</th>
-                                    <th class="border p-3 text-left">Status</th>
-                                    <th class="border p-3 text-left">Keterangan</th>
-                                    <th class="border p-3 text-left">Aksi</th>
-                                </tr>
-                            </thead>
-                            <tbody id="statusTable">
-                                <!-- Data akan ditampilkan secara dinamis -->
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Database -->
-            <div id="database" class="menu-content hidden">
-                <div class="bg-white rounded-xl card-shadow p-6 mb-6">
-                    <h2 class="text-2xl font-bold mb-6 text-gray-800">Database Barang</h2>
-                    
-                    <div class="overflow-x-auto">
-                        <table class="w-full border-collapse">
-                            <thead>
-                                <tr class="bg-gray-100">
-                                    <th class="border p-3 text-left">Kode Barang</th>
-                                    <th class="border p-3 text-left">Nama Barang</th>
-                                    <th class="border p-3 text-left">Stock</th>
-                                    <th class="border p-3 text-left">Unit</th>
-                                    <th class="border p-3 text-left">Harga</th>
-                                    <th class="border p-3 text-left">Update Terakhir</th>
-                                    <th class="border p-3 text-left">Aksi</th>
-                                </tr>
-                            </thead>
-                            <tbody id="databaseTable">
-                                <!-- Data akan ditampilkan secara dinamis -->
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Riwayat -->
-            <div id="riwayat" class="menu-content hidden">
-                <div class="bg-white rounded-xl card-shadow p-6 mb-6">
-                    <h2 class="text-2xl font-bold mb-6 text-gray-800">Riwayat Transaksi</h2>
-                    
-                    <div class="overflow-x-auto">
-                        <table class="w-full border-collapse">
-                            <thead>
-                                <tr class="bg-gray-100">
-                                    <th class="border p-3 text-left">Timestamp</th>
-                                    <th class="border p-3 text-left">Aktivitas</th>
-                                    <th class="border p-3 text-left">Kode Barang</th>
-                                    <th class="border p-3 text-left">Nama Barang</th>
-                                    <th class="border p-3 text-left">Detail</th>
-                                    <th class="border p-3 text-left">User</th>
-                                </tr>
-                            </thead>
-                            <tbody id="riwayatTable">
-                                <!-- Data akan ditampilkan secara dinamis -->
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Laporan -->
-            <div id="laporan" class="menu-content hidden">
-                <div class="bg-white rounded-xl card-shadow p-6 mb-6">
-                    <h2 class="text-2xl font-bold mb-6 text-gray-800">Laporan</h2>
-                    
-                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-                        <button onclick="downloadPDF()" class="bg-red-500 text-white p-4 rounded-lg hover:bg-red-600 transition-all flex items-center justify-center space-x-2">
-                            <span>📄</span><span>Download PDF</span>
-                        </button>
-                        <button onclick="downloadExcel()" class="bg-green-500 text-white p-4 rounded-lg hover:bg-green-600 transition-all flex items-center justify-center space-x-2">
-                            <span>📊</span><span>Download Excel</span>
-                        </button>
-                        <button onclick="printReport()" class="bg-blue-500 text-white p-4 rounded-lg hover:bg-blue-600 transition-all flex items-center justify-center space-x-2">
-                            <span>🖨️</span><span>Print</span>
-                        </button>
-                        <button onclick="generateGoogleSheetsReport()" class="bg-purple-500 text-white p-4 rounded-lg hover:bg-purple-600 transition-all flex items-center justify-center space-x-2">
-                            <span>📋</span><span>Laporan Sheets</span>
-                        </button>
-                    </div>
-
-                    <div class="bg-gray-50 p-4 rounded-lg">
-                        <h3 class="font-semibold mb-4">Ringkasan Data:</h3>
-                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                            <div class="bg-white p-4 rounded-lg text-center">
-                                <div class="text-2xl font-bold text-blue-600" id="totalPenerimaan">0</div>
-                                <div class="text-sm text-gray-600">Total Penerimaan</div>
+            <!-- Content Area -->
+            <main class="p-6">
+                <!-- Penerimaan Barang -->
+                <div id="penerimaanContent" class="hidden">
+                    <div class="bg-white rounded-lg shadow-sm p-6">
+                        <h3 class="text-lg font-semibold mb-4">Form Penerimaan Barang</h3>
+                        <form id="penerimaanForm" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Tanggal</label>
+                                <input type="date" id="penerimaanTanggal" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
                             </div>
-                            <div class="bg-white p-4 rounded-lg text-center">
-                                <div class="text-2xl font-bold text-green-600" id="totalTransfer">0</div>
-                                <div class="text-sm text-gray-600">Total Transfer</div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Kode Barang</label>
+                                <input type="text" id="penerimaanKode" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
                             </div>
-                            <div class="bg-white p-4 rounded-lg text-center">
-                                <div class="text-2xl font-bold text-purple-600" id="totalOutlet">0</div>
-                                <div class="text-sm text-gray-600">Total Outlet</div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Nama Barang</label>
+                                <input type="text" id="penerimaanNama" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
                             </div>
-                            <div class="bg-white p-4 rounded-lg text-center">
-                                <div class="text-2xl font-bold text-orange-600" id="totalBarang">0</div>
-                                <div class="text-sm text-gray-600">Total Barang</div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Quantity</label>
+                                <input type="number" id="penerimaanQty" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
                             </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Unit</label>
+                                <input type="text" id="penerimaanUnit" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Status</label>
+                                <select id="penerimaanStatus" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                                    <option value="">Pilih Status</option>
+                                    <option value="Diterima">Diterima</option>
+                                    <option value="Ditolak">Ditolak</option>
+                                    <option value="Pending">Pending</option>
+                                </select>
+                            </div>
+                            <div class="md:col-span-2">
+                                <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition duration-200">Simpan</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Transfer Barang -->
+                <div id="transferContent" class="hidden">
+                    <div class="bg-white rounded-lg shadow-sm p-6">
+                        <h3 class="text-lg font-semibold mb-4">Form Transfer Barang</h3>
+                        <form id="transferForm" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Tanggal</label>
+                                <input type="date" id="transferTanggal" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Kode Barang</label>
+                                <input type="text" id="transferKode" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Nama Barang</label>
+                                <input type="text" id="transferNama" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" readonly>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Quantity</label>
+                                <input type="number" id="transferQty" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Unit</label>
+                                <input type="text" id="transferUnit" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" readonly>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Outlet</label>
+                                <select id="transferOutlet" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                                    <option value="">Pilih Outlet</option>
+                                </select>
+                            </div>
+                            <div class="md:col-span-2">
+                                <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition duration-200">Transfer</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Outlet -->
+                <div id="outletContent" class="hidden">
+                    <div class="bg-white rounded-lg shadow-sm p-6">
+                        <h3 class="text-lg font-semibold mb-4">Data Outlet</h3>
+                        <form id="outletForm" class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Kode Outlet</label>
+                                <input type="text" id="outletKode" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Nama Outlet</label>
+                                <input type="text" id="outletNama" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                            </div>
+                            <div class="md:col-span-2">
+                                <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition duration-200">Tambah Outlet</button>
+                            </div>
+                        </form>
+                        
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full bg-white border border-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kode Outlet</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Outlet</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="outletTable" class="bg-white divide-y divide-gray-200">
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- User Management -->
-            <div id="user" class="menu-content hidden">
-                <div class="bg-white rounded-xl card-shadow p-6 mb-6">
-                    <h2 class="text-2xl font-bold mb-6 text-gray-800">User Management</h2>
-                    
-                    <form id="userForm" class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                        <input type="text" id="newUsername" placeholder="Username" class="p-3 border rounded-lg focus:ring-2 focus:ring-blue-500" required>
-                        <input type="password" id="newPassword" placeholder="Password" class="p-3 border rounded-lg focus:ring-2 focus:ring-blue-500" required>
-                        <select id="userRole" class="p-3 border rounded-lg focus:ring-2 focus:ring-blue-500" required>
-                            <option value="">Pilih Role</option>
-                            <option value="admin">Admin</option>
-                            <option value="operator">Operator</option>
-                            <option value="viewer">Viewer</option>
-                        </select>
-                        <button type="submit" class="md:col-span-3 gradient-bg text-white p-3 rounded-lg hover:opacity-90 transition-all">
-                            <span class="loading" id="userLoading">🔄</span>
-                            <span id="userText">Tambah User</span>
-                        </button>
-                    </form>
-
-                    <div class="overflow-x-auto">
-                        <table class="w-full border-collapse">
-                            <thead>
-                                <tr class="bg-gray-100">
-                                    <th class="border p-3 text-left">Username</th>
-                                    <th class="border p-3 text-left">Role</th>
-                                    <th class="border p-3 text-left">Status</th>
-                                    <th class="border p-3 text-left">Last Login</th>
-                                    <th class="border p-3 text-left">Aksi</th>
-                                </tr>
-                            </thead>
-                            <tbody id="userTable">
-                                <!-- Data akan ditambahkan secara dinamis -->
-                            </tbody>
-                        </table>
+                <!-- Status -->
+                <div id="statusContent" class="hidden">
+                    <div class="bg-white rounded-lg shadow-sm p-6">
+                        <h3 class="text-lg font-semibold mb-4">Status Barang Pending/Ditolak</h3>
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full bg-white border border-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kode Barang</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Barang</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="statusTable" class="bg-white divide-y divide-gray-200">
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Change Password Section -->
-                <div class="bg-white rounded-xl card-shadow p-6">
-                    <h3 class="text-xl font-bold mb-4 text-gray-800">Ubah Password</h3>
-                    
-                    <form id="changePasswordForm" class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <input type="password" id="currentPassword" placeholder="Password Lama" class="p-3 border rounded-lg focus:ring-2 focus:ring-blue-500" required>
-                        <input type="password" id="newPasswordChange" placeholder="Password Baru" class="p-3 border rounded-lg focus:ring-2 focus:ring-blue-500" required>
-                        <input type="password" id="confirmPassword" placeholder="Konfirmasi Password" class="p-3 border rounded-lg focus:ring-2 focus:ring-blue-500" required>
-                        <button type="submit" class="md:col-span-3 bg-blue-500 text-white p-3 rounded-lg hover:bg-blue-600 transition-all">
-                            <span class="loading" id="passwordLoading">🔄</span>
-                            <span id="passwordText">Ubah Password</span>
-                        </button>
-                    </form>
+                <!-- Database -->
+                <div id="databaseContent" class="hidden">
+                    <div class="bg-white rounded-lg shadow-sm p-6">
+                        <h3 class="text-lg font-semibold mb-4">Database Barang</h3>
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full bg-white border border-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kode Barang</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Barang</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stock</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unit</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="databaseTable" class="bg-white divide-y divide-gray-200">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
-            </div>
-        </main>
+
+                <!-- Riwayat -->
+                <div id="riwayatContent" class="hidden">
+                    <div class="bg-white rounded-lg shadow-sm p-6">
+                        <h3 class="text-lg font-semibold mb-4">Riwayat Transaksi</h3>
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full bg-white border border-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tanggal</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kode Barang</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Barang</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Keterangan</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="riwayatTable" class="bg-white divide-y divide-gray-200">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Laporan -->
+                <div id="laporanContent" class="hidden">
+                    <div class="bg-white rounded-lg shadow-sm p-6">
+                        <h3 class="text-lg font-semibold mb-4">Download Laporan</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <button onclick="downloadPDF()" class="bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 transition duration-200 flex items-center justify-center">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                </svg>
+                                Download PDF
+                            </button>
+                            <button onclick="downloadExcel()" class="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition duration-200 flex items-center justify-center">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                </svg>
+                                Download Excel
+                            </button>
+                            <button onclick="printReport()" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition duration-200 flex items-center justify-center">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path>
+                                </svg>
+                                Print
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- User Management -->
+                <div id="userContent" class="hidden">
+                    <div class="bg-white rounded-lg shadow-sm p-6">
+                        <h3 class="text-lg font-semibold mb-4">User Management</h3>
+                        <form id="userForm" class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Username</label>
+                                <input type="text" id="userUsername" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Password</label>
+                                <input type="password" id="userPassword" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                            </div>
+                            <div class="md:col-span-2">
+                                <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition duration-200">Tambah User</button>
+                            </div>
+                        </form>
+                        
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full bg-white border border-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Username</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="userTable" class="bg-white divide-y divide-gray-200">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
     </div>
-    </div> <!-- End App Container -->
+
+    <!-- Print Area -->
+    <div class="print-area">
+        <h1>Laporan Sistem Gudang</h1>
+        <div id="printContent"></div>
+    </div>
 
     <script>
-        // Konfigurasi Google Apps Script - URL BARU
-        const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwKHWwyeaj8PtZI79KH9fva4P0c8HaBCaAeB_ktOgnKkHd729lQXvycxXEYMI89Zxwe/exec';
-        
-        // Data storage lokal
-        let penerimaanData = [];
-        let transferData = [];
-        let outletData = [];
-        let riwayatData = [];
-        let databaseData = {};
-        let statusData = [];
-        let userData = [];
+        // Google Sheets Configuration
+        let GOOGLE_API_KEY = localStorage.getItem('googleApiKey') || '';
+        let SPREADSHEET_ID = localStorage.getItem('spreadsheetId') || '';
+        let isGoogleSheetsConnected = false;
+        let syncInterval = null;
+
+        // Data Storage
+        let database = JSON.parse(localStorage.getItem('database')) || [];
+        let outlets = JSON.parse(localStorage.getItem('outlets')) || [];
+        let statusItems = JSON.parse(localStorage.getItem('statusItems')) || [];
+        let riwayat = JSON.parse(localStorage.getItem('riwayat')) || [];
+        let users = JSON.parse(localStorage.getItem('users')) || [
+            { username: 'admin', password: 'admin123' }
+        ];
         let currentUser = null;
-        let isConnected = false;
-        let sidebarOpen = true;
 
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
-            initializeUsers();
-            checkLogin();
-            updateTime();
-            setInterval(updateTime, 1000);
+            // Set today's date as default
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('penerimaanTanggal').value = today;
+            document.getElementById('transferTanggal').value = today;
             
-            // Set default dates
-            document.getElementById('tglPenerimaan').value = new Date().toISOString().split('T')[0];
-            document.getElementById('tglTransfer').value = new Date().toISOString().split('T')[0];
+            // Setup event listeners
+            setupEventListeners();
             
-            // Check if mobile
-            if (window.innerWidth <= 768) {
-                closeSidebar();
+            // Load data
+            loadOutletDropdown();
+            loadTables();
+            
+            // Initialize Google Sheets if configured
+            if (GOOGLE_API_KEY) {
+                initializeGoogleSheets();
             }
         });
 
-        // Sidebar toggle functions
-        function toggleSidebar() {
-            const sidebar = document.getElementById('sidebar');
-            const mainContent = document.getElementById('mainContent');
-            const menuIcon = document.getElementById('menuIcon');
-            const overlay = document.getElementById('sidebarOverlay');
-            
-            if (sidebarOpen) {
-                closeSidebar();
-            } else {
-                openSidebar();
-            }
-        }
-
-        function openSidebar() {
-            const sidebar = document.getElementById('sidebar');
-            const mainContent = document.getElementById('mainContent');
-            const menuIcon = document.getElementById('menuIcon');
-            const overlay = document.getElementById('sidebarOverlay');
-            
-            sidebar.classList.remove('sidebar-hidden');
-            menuIcon.textContent = '✕';
-            menuIcon.classList.add('rotated');
-            sidebarOpen = true;
-            
-            // For mobile, show overlay
-            if (window.innerWidth <= 768) {
-                overlay.classList.add('show');
-            } else {
-                mainContent.classList.remove('main-expanded');
-            }
-        }
-
-        function closeSidebar() {
-            const sidebar = document.getElementById('sidebar');
-            const mainContent = document.getElementById('mainContent');
-            const menuIcon = document.getElementById('menuIcon');
-            const overlay = document.getElementById('sidebarOverlay');
-            
-            sidebar.classList.add('sidebar-hidden');
-            menuIcon.textContent = '☰';
-            menuIcon.classList.remove('rotated');
-            sidebarOpen = false;
-            
-            // For mobile, hide overlay
-            if (window.innerWidth <= 768) {
-                overlay.classList.remove('show');
-            } else {
-                mainContent.classList.add('main-expanded');
-            }
-        }
-
-        // Handle window resize
-        window.addEventListener('resize', function() {
-            if (window.innerWidth <= 768) {
-                // Mobile: always close sidebar and remove main content margin
-                document.getElementById('mainContent').classList.add('main-expanded');
-                if (sidebarOpen) {
-                    document.getElementById('sidebarOverlay').classList.add('show');
-                }
-            } else {
-                // Desktop: restore proper layout
-                document.getElementById('sidebarOverlay').classList.remove('show');
-                if (sidebarOpen) {
-                    document.getElementById('mainContent').classList.remove('main-expanded');
-                } else {
-                    document.getElementById('mainContent').classList.add('main-expanded');
-                }
-            }
-        });
-
-        // Initialize users
-        function initializeUsers() {
-            const savedUsers = localStorage.getItem('gudangUsers');
-            if (savedUsers) {
-                userData = JSON.parse(savedUsers);
-            } else {
-                // Default admin user
-                userData = [
-                    {
-                        username: 'admin',
-                        password: 'admin123',
-                        role: 'admin',
-                        status: 'active',
-                        lastLogin: null,
-                        createdAt: new Date()
+        // Google Sheets Functions
+        function initializeGoogleSheets() {
+            gapi.load('client', async () => {
+                try {
+                    await gapi.client.init({
+                        apiKey: GOOGLE_API_KEY,
+                        discoveryDocs: ['https://sheets.googleapis.com/$discovery/rest?version=v4']
+                    });
+                    
+                    if (SPREADSHEET_ID) {
+                        // Test connection
+                        await testConnection();
+                    } else {
+                        // Create new spreadsheet
+                        await createSpreadsheet();
                     }
-                ];
-                saveUsers();
+                    
+                    isGoogleSheetsConnected = true;
+                    updateSyncStatus('connected');
+                    startAutoSync();
+                    
+                } catch (error) {
+                    console.error('Error initializing Google Sheets:', error);
+                    updateSyncStatus('disconnected');
+                }
+            });
+        }
+
+        async function testConnection() {
+            try {
+                const response = await gapi.client.sheets.spreadsheets.get({
+                    spreadsheetId: SPREADSHEET_ID
+                });
+                console.log('Connected to spreadsheet:', response.result.properties.title);
+                return true;
+            } catch (error) {
+                console.error('Connection test failed:', error);
+                return false;
             }
         }
 
-        // Save users to localStorage
-        function saveUsers() {
-            localStorage.setItem('gudangUsers', JSON.stringify(userData));
-        }
+        async function createSpreadsheet() {
+            try {
+                // Create new spreadsheet
+                const createResponse = await gapi.client.sheets.spreadsheets.create({
+                    resource: {
+                        properties: {
+                            title: 'Sistem Gudang - ' + new Date().toLocaleDateString('id-ID')
+                        },
+                        sheets: [
+                            { properties: { title: 'Database' } },
+                            { properties: { title: 'Outlets' } },
+                            { properties: { title: 'Status' } },
+                            { properties: { title: 'Riwayat' } },
+                            { properties: { title: 'Users' } }
+                        ]
+                    }
+                });
 
-        // Check login status
-        function checkLogin() {
-            const savedUser = localStorage.getItem('currentUser');
-            if (savedUser) {
-                currentUser = JSON.parse(savedUser);
-                showApp();
-            } else {
-                showLogin();
+                SPREADSHEET_ID = createResponse.result.spreadsheetId;
+                localStorage.setItem('spreadsheetId', SPREADSHEET_ID);
+
+                // Setup headers for each sheet
+                await setupSheetHeaders();
+                
+                alert(`Spreadsheet baru berhasil dibuat!\nID: ${SPREADSHEET_ID}\nURL: https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}`);
+                
+            } catch (error) {
+                console.error('Error creating spreadsheet:', error);
+                throw error;
             }
         }
 
-        // Show login page
-        function showLogin() {
-            document.getElementById('loginContainer').style.display = 'flex';
-            document.getElementById('appContainer').classList.remove('show');
+        async function setupSheetHeaders() {
+            const requests = [
+                {
+                    range: 'Database!A1:D1',
+                    values: [['Kode Barang', 'Nama Barang', 'Stock', 'Unit']]
+                },
+                {
+                    range: 'Outlets!A1:B1',
+                    values: [['Kode Outlet', 'Nama Outlet']]
+                },
+                {
+                    range: 'Status!A1:C1',
+                    values: [['Kode Barang', 'Nama Barang', 'Status']]
+                },
+                {
+                    range: 'Riwayat!A1:D1',
+                    values: [['Tanggal', 'Kode Barang', 'Nama Barang', 'Keterangan']]
+                },
+                {
+                    range: 'Users!A1:B1',
+                    values: [['Username', 'Password']]
+                }
+            ];
+
+            for (const request of requests) {
+                await gapi.client.sheets.spreadsheets.values.update({
+                    spreadsheetId: SPREADSHEET_ID,
+                    range: request.range,
+                    valueInputOption: 'RAW',
+                    resource: { values: request.values }
+                });
+            }
         }
 
-        // Show app
-        function showApp() {
-            document.getElementById('loginContainer').style.display = 'none';
-            document.getElementById('appContainer').classList.add('show');
-            document.getElementById('currentUser').textContent = currentUser.username;
-            initializeApp();
+        function showSheetsSetup() {
+            document.getElementById('sheetsSetupModal').classList.remove('hidden');
+            document.getElementById('apiKey').value = GOOGLE_API_KEY;
+            document.getElementById('spreadsheetId').value = SPREADSHEET_ID;
         }
 
-        // Login form handler
-        document.getElementById('loginForm').addEventListener('submit', function(e) {
-            e.preventDefault();
+        function closeSetupModal() {
+            document.getElementById('sheetsSetupModal').classList.add('hidden');
+        }
+
+        async function setupGoogleSheets() {
+            const apiKey = document.getElementById('apiKey').value.trim();
+            const spreadsheetId = document.getElementById('spreadsheetId').value.trim();
+
+            if (!apiKey) {
+                alert('API Key harus diisi!');
+                return;
+            }
+
+            GOOGLE_API_KEY = apiKey;
+            SPREADSHEET_ID = spreadsheetId;
+
+            localStorage.setItem('googleApiKey', GOOGLE_API_KEY);
+            localStorage.setItem('spreadsheetId', SPREADSHEET_ID);
+
+            closeSetupModal();
             
+            try {
+                await initializeGoogleSheets();
+                alert('Google Sheets berhasil dikonfigurasi!');
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
+
+        function updateSyncStatus(status) {
+            const indicator = document.getElementById('syncStatus');
+            
+            switch (status) {
+                case 'connected':
+                    indicator.className = 'sync-indicator sync-connected';
+                    indicator.innerHTML = '✅ Terhubung ke Google Sheets';
+                    break;
+                case 'syncing':
+                    indicator.className = 'sync-indicator sync-syncing';
+                    indicator.innerHTML = '🔄 Sinkronisasi...';
+                    break;
+                case 'disconnected':
+                    indicator.className = 'sync-indicator sync-disconnected';
+                    indicator.innerHTML = '⚠️ Tidak Terhubung ke Google Sheets';
+                    break;
+            }
+        }
+
+        function startAutoSync() {
+            if (syncInterval) clearInterval(syncInterval);
+            
+            // Sync every 30 seconds
+            syncInterval = setInterval(() => {
+                if (isGoogleSheetsConnected) {
+                    syncFromSheets();
+                }
+            }, 30000);
+        }
+
+        async function syncToSheets() {
+            if (!isGoogleSheetsConnected) return;
+            
+            try {
+                updateSyncStatus('syncing');
+                
+                // Sync Database
+                await gapi.client.sheets.spreadsheets.values.clear({
+                    spreadsheetId: SPREADSHEET_ID,
+                    range: 'Database!A2:D'
+                });
+                
+                if (database.length > 0) {
+                    const databaseValues = database.map(item => [item.kode, item.nama, item.stock, item.unit]);
+                    await gapi.client.sheets.spreadsheets.values.update({
+                        spreadsheetId: SPREADSHEET_ID,
+                        range: 'Database!A2',
+                        valueInputOption: 'RAW',
+                        resource: { values: databaseValues }
+                    });
+                }
+
+                // Sync Outlets
+                await gapi.client.sheets.spreadsheets.values.clear({
+                    spreadsheetId: SPREADSHEET_ID,
+                    range: 'Outlets!A2:B'
+                });
+                
+                if (outlets.length > 0) {
+                    const outletValues = outlets.map(item => [item.kode, item.nama]);
+                    await gapi.client.sheets.spreadsheets.values.update({
+                        spreadsheetId: SPREADSHEET_ID,
+                        range: 'Outlets!A2',
+                        valueInputOption: 'RAW',
+                        resource: { values: outletValues }
+                    });
+                }
+
+                // Sync Status
+                await gapi.client.sheets.spreadsheets.values.clear({
+                    spreadsheetId: SPREADSHEET_ID,
+                    range: 'Status!A2:C'
+                });
+                
+                if (statusItems.length > 0) {
+                    const statusValues = statusItems.map(item => [item.kode, item.nama, item.status]);
+                    await gapi.client.sheets.spreadsheets.values.update({
+                        spreadsheetId: SPREADSHEET_ID,
+                        range: 'Status!A2',
+                        valueInputOption: 'RAW',
+                        resource: { values: statusValues }
+                    });
+                }
+
+                // Sync Riwayat
+                await gapi.client.sheets.spreadsheets.values.clear({
+                    spreadsheetId: SPREADSHEET_ID,
+                    range: 'Riwayat!A2:D'
+                });
+                
+                if (riwayat.length > 0) {
+                    const riwayatValues = riwayat.map(item => [item.tanggal, item.kode, item.nama, item.keterangan]);
+                    await gapi.client.sheets.spreadsheets.values.update({
+                        spreadsheetId: SPREADSHEET_ID,
+                        range: 'Riwayat!A2',
+                        valueInputOption: 'RAW',
+                        resource: { values: riwayatValues }
+                    });
+                }
+
+                updateSyncStatus('connected');
+                
+            } catch (error) {
+                console.error('Error syncing to sheets:', error);
+                updateSyncStatus('disconnected');
+            }
+        }
+
+        async function syncFromSheets() {
+            if (!isGoogleSheetsConnected) return;
+            
+            try {
+                updateSyncStatus('syncing');
+                
+                // Get data from sheets
+                const responses = await Promise.all([
+                    gapi.client.sheets.spreadsheets.values.get({
+                        spreadsheetId: SPREADSHEET_ID,
+                        range: 'Database!A2:D'
+                    }),
+                    gapi.client.sheets.spreadsheets.values.get({
+                        spreadsheetId: SPREADSHEET_ID,
+                        range: 'Outlets!A2:B'
+                    }),
+                    gapi.client.sheets.spreadsheets.values.get({
+                        spreadsheetId: SPREADSHEET_ID,
+                        range: 'Status!A2:C'
+                    }),
+                    gapi.client.sheets.spreadsheets.values.get({
+                        spreadsheetId: SPREADSHEET_ID,
+                        range: 'Riwayat!A2:D'
+                    })
+                ]);
+
+                // Update local data
+                const [databaseResponse, outletResponse, statusResponse, riwayatResponse] = responses;
+                
+                if (databaseResponse.result.values) {
+                    const newDatabase = databaseResponse.result.values.map(row => ({
+                        kode: row[0] || '',
+                        nama: row[1] || '',
+                        stock: parseInt(row[2]) || 0,
+                        unit: row[3] || ''
+                    }));
+                    
+                    if (JSON.stringify(newDatabase) !== JSON.stringify(database)) {
+                        database = newDatabase;
+                        localStorage.setItem('database', JSON.stringify(database));
+                    }
+                }
+
+                if (outletResponse.result.values) {
+                    const newOutlets = outletResponse.result.values.map(row => ({
+                        kode: row[0] || '',
+                        nama: row[1] || ''
+                    }));
+                    
+                    if (JSON.stringify(newOutlets) !== JSON.stringify(outlets)) {
+                        outlets = newOutlets;
+                        localStorage.setItem('outlets', JSON.stringify(outlets));
+                        loadOutletDropdown();
+                    }
+                }
+
+                if (statusResponse.result.values) {
+                    const newStatusItems = statusResponse.result.values.map(row => ({
+                        kode: row[0] || '',
+                        nama: row[1] || '',
+                        status: row[2] || ''
+                    }));
+                    
+                    if (JSON.stringify(newStatusItems) !== JSON.stringify(statusItems)) {
+                        statusItems = newStatusItems;
+                        localStorage.setItem('statusItems', JSON.stringify(statusItems));
+                    }
+                }
+
+                if (riwayatResponse.result.values) {
+                    const newRiwayat = riwayatResponse.result.values.map(row => ({
+                        tanggal: row[0] || '',
+                        kode: row[1] || '',
+                        nama: row[2] || '',
+                        keterangan: row[3] || ''
+                    }));
+                    
+                    if (JSON.stringify(newRiwayat) !== JSON.stringify(riwayat)) {
+                        riwayat = newRiwayat;
+                        localStorage.setItem('riwayat', JSON.stringify(riwayat));
+                    }
+                }
+
+                loadTables();
+                updateSyncStatus('connected');
+                
+            } catch (error) {
+                console.error('Error syncing from sheets:', error);
+                updateSyncStatus('disconnected');
+            }
+        }
+
+        async function manualSync() {
+            if (!isGoogleSheetsConnected) {
+                alert('Google Sheets belum terkonfigurasi!');
+                return;
+            }
+            
+            await syncToSheets();
+            await syncFromSheets();
+            alert('Sinkronisasi manual selesai!');
+        }
+
+        // Authentication
+        function login() {
             const username = document.getElementById('loginUsername').value;
             const password = document.getElementById('loginPassword').value;
-            const loadingEl = document.getElementById('loginLoading');
-            const textEl = document.getElementById('loginText');
             
-            loadingEl.classList.add('show');
-            textEl.textContent = 'Logging in...';
+            const user = users.find(u => u.username === username && u.password === password);
             
-            // Simulate loading delay
-            setTimeout(() => {
-                const user = userData.find(u => u.username === username && u.password === password && u.status === 'active');
-                
-                if (user) {
-                    user.lastLogin = new Date();
-                    saveUsers();
-                    
-                    currentUser = user;
-                    localStorage.setItem('currentUser', JSON.stringify(user));
-                    
-                    textEl.textContent = '✅ Success!';
-                    setTimeout(() => {
-                        showApp();
-                        this.reset();
-                        textEl.textContent = 'Login';
-                    }, 1000);
-                } else {
-                    textEl.textContent = '❌ Invalid!';
-                    alert('❌ Username atau password salah!');
-                    setTimeout(() => {
-                        textEl.textContent = 'Login';
-                    }, 2000);
-                }
-                
-                loadingEl.classList.remove('show');
-            }, 1000);
-        });
+            if (user) {
+                currentUser = user;
+                document.getElementById('loginModal').classList.add('hidden');
+                document.getElementById('mainContainer').classList.remove('hidden');
+                showMenu('penerimaan');
+            } else {
+                document.getElementById('loginError').textContent = 'Username atau password salah';
+                document.getElementById('loginError').classList.remove('hidden');
+            }
+        }
 
-        // Logout function
         function logout() {
-            if (confirm('Yakin ingin logout?')) {
-                localStorage.removeItem('currentUser');
-                currentUser = null;
-                showLogin();
-            }
+            currentUser = null;
+            document.getElementById('loginModal').classList.remove('hidden');
+            document.getElementById('mainContainer').classList.add('hidden');
+            document.getElementById('loginUsername').value = '';
+            document.getElementById('loginPassword').value = '';
+            document.getElementById('loginError').classList.add('hidden');
         }
 
-        // User form handler
-        document.getElementById('userForm').addEventListener('submit', function(e) {
+        // Setup Event Listeners
+        function setupEventListeners() {
+            // Login form
+            document.getElementById('loginForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                login();
+            });
+
+            // Sidebar toggle
+            document.getElementById('toggleSidebar').addEventListener('click', function() {
+                const sidebar = document.getElementById('sidebar');
+                const mainContent = document.getElementById('mainContent');
+                
+                if (sidebar.classList.contains('sidebar-expanded')) {
+                    sidebar.classList.remove('sidebar-expanded');
+                    sidebar.classList.add('sidebar-collapsed');
+                    mainContent.classList.remove('ml-64');
+                    mainContent.classList.add('ml-16');
+                } else {
+                    sidebar.classList.remove('sidebar-collapsed');
+                    sidebar.classList.add('sidebar-expanded');
+                    mainContent.classList.remove('ml-16');
+                    mainContent.classList.add('ml-64');
+                }
+            });
+
+            // Auto-fill functionality for penerimaan
+            document.getElementById('penerimaanKode').addEventListener('input', function() {
+                const kode = this.value;
+                const item = database.find(d => d.kode === kode);
+                
+                if (item) {
+                    document.getElementById('penerimaanNama').value = item.nama;
+                    document.getElementById('penerimaanUnit').value = item.unit;
+                } else {
+                    document.getElementById('penerimaanNama').value = '';
+                    document.getElementById('penerimaanUnit').value = '';
+                }
+            });
+
+            // Auto-fill functionality for transfer
+            document.getElementById('transferKode').addEventListener('input', function() {
+                const kode = this.value;
+                const item = database.find(d => d.kode === kode);
+                
+                if (item) {
+                    document.getElementById('transferNama').value = item.nama;
+                    document.getElementById('transferUnit').value = item.unit;
+                } else {
+                    document.getElementById('transferNama').value = '';
+                    document.getElementById('transferUnit').value = '';
+                }
+            });
+
+            // Form submissions
+            document.getElementById('penerimaanForm').addEventListener('submit', handlePenerimaan);
+            document.getElementById('transferForm').addEventListener('submit', handleTransfer);
+            document.getElementById('outletForm').addEventListener('submit', handleOutlet);
+            document.getElementById('userForm').addEventListener('submit', handleUser);
+        }
+
+        // Menu Navigation
+        function showMenu(menu) {
+            // Hide all content
+            const contents = ['penerimaan', 'transfer', 'outlet', 'status', 'database', 'riwayat', 'laporan', 'user'];
+            contents.forEach(content => {
+                document.getElementById(content + 'Content').classList.add('hidden');
+            });
+
+            // Show selected content
+            document.getElementById(menu + 'Content').classList.remove('hidden');
+            
+            // Update page title
+            const titles = {
+                'penerimaan': 'Penerimaan Barang',
+                'transfer': 'Transfer Barang',
+                'outlet': 'Data Outlet',
+                'status': 'Status Barang',
+                'database': 'Database Barang',
+                'riwayat': 'Riwayat Transaksi',
+                'laporan': 'Laporan',
+                'user': 'User Management'
+            };
+            document.getElementById('pageTitle').textContent = titles[menu];
+        }
+
+        // Handle Penerimaan
+        async function handlePenerimaan(e) {
             e.preventDefault();
             
-            const username = document.getElementById('newUsername').value;
-            const password = document.getElementById('newPassword').value;
-            const role = document.getElementById('userRole').value;
-            const loadingEl = document.getElementById('userLoading');
-            const textEl = document.getElementById('userText');
-            
-            // Check if username already exists
-            if (userData.some(u => u.username === username)) {
-                alert('❌ Username sudah ada!');
-                return;
-            }
-            
-            loadingEl.classList.add('show');
-            textEl.textContent = 'Processing...';
-            
-            const newUser = {
-                username: username,
-                password: password,
-                role: role,
-                status: 'active',
-                lastLogin: null,
-                createdAt: new Date()
-            };
-            
-            userData.push(newUser);
-            saveUsers();
-            updateUserTable();
-            this.reset();
-            
-            textEl.textContent = '✅ Berhasil!';
-            setTimeout(() => {
-                textEl.textContent = 'Tambah User';
-                loadingEl.classList.remove('show');
-            }, 2000);
-        });
-
-        // Change password form handler
-        document.getElementById('changePasswordForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            const currentPassword = document.getElementById('currentPassword').value;
-            const newPassword = document.getElementById('newPasswordChange').value;
-            const confirmPassword = document.getElementById('confirmPassword').value;
-            const loadingEl = document.getElementById('passwordLoading');
-            const textEl = document.getElementById('passwordText');
-            
-            if (currentUser.password !== currentPassword) {
-                alert('❌ Password lama salah!');
-                return;
-            }
-            
-            if (newPassword !== confirmPassword) {
-                alert('❌ Konfirmasi password tidak cocok!');
-                return;
-            }
-            
-            if (newPassword.length < 6) {
-                alert('❌ Password minimal 6 karakter!');
-                return;
-            }
-            
-            loadingEl.classList.add('show');
-            textEl.textContent = 'Processing...';
-            
-            // Update password
-            const userIndex = userData.findIndex(u => u.username === currentUser.username);
-            if (userIndex !== -1) {
-                userData[userIndex].password = newPassword;
-                currentUser.password = newPassword;
-                saveUsers();
-                localStorage.setItem('currentUser', JSON.stringify(currentUser));
-            }
-            
-            this.reset();
-            textEl.textContent = '✅ Berhasil!';
-            setTimeout(() => {
-                textEl.textContent = 'Ubah Password';
-                loadingEl.classList.remove('show');
-            }, 2000);
-        });
-
-        // Update user table
-        function updateUserTable() {
-            const tbody = document.getElementById('userTable');
-            tbody.innerHTML = userData.map((user, index) => `
-                <tr class="hover:bg-gray-50">
-                    <td class="border p-3">${user.username}</td>
-                    <td class="border p-3">
-                        <span class="px-2 py-1 rounded-full text-xs ${getRoleColor(user.role)}">
-                            ${user.role.toUpperCase()}
-                        </span>
-                    </td>
-                    <td class="border p-3">
-                        <span class="px-2 py-1 rounded-full text-xs ${user.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
-                            ${user.status.toUpperCase()}
-                        </span>
-                    </td>
-                    <td class="border p-3">${user.lastLogin ? new Date(user.lastLogin).toLocaleString('id-ID') : 'Belum pernah'}</td>
-                    <td class="border p-3">
-                        ${user.username !== 'admin' ? `
-                            <button onclick="toggleUserStatus(${index})" class="bg-yellow-500 text-white px-3 py-1 rounded hover:bg-yellow-600 mr-2">
-                                ${user.status === 'active' ? 'Nonaktifkan' : 'Aktifkan'}
-                            </button>
-                            <button onclick="deleteUser(${index})" class="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600">
-                                Hapus
-                            </button>
-                        ` : '<span class="text-gray-500">Protected</span>'}
-                    </td>
-                </tr>
-            `).join('');
-        }
-
-        // Get role color
-        function getRoleColor(role) {
-            switch(role) {
-                case 'admin': return 'bg-red-100 text-red-800';
-                case 'operator': return 'bg-blue-100 text-blue-800';
-                case 'viewer': return 'bg-gray-100 text-gray-800';
-                default: return 'bg-gray-100 text-gray-800';
-            }
-        }
-
-        // Toggle user status
-        function toggleUserStatus(index) {
-            const user = userData[index];
-            if (user.username === 'admin') {
-                alert('❌ Admin user tidak dapat dinonaktifkan!');
-                return;
-            }
-            
-            user.status = user.status === 'active' ? 'inactive' : 'active';
-            saveUsers();
-            updateUserTable();
-        }
-
-        // Delete user
-        function deleteUser(index) {
-            const user = userData[index];
-            if (user.username === 'admin') {
-                alert('❌ Admin user tidak dapat dihapus!');
-                return;
-            }
-            
-            if (confirm(`Yakin ingin menghapus user ${user.username}?`)) {
-                userData.splice(index, 1);
-                saveUsers();
-                updateUserTable();
-            }
-        }
-
-        // Show user menu
-        function showUserMenu() {
-            alert(`👤 User: ${currentUser.username}\n🔑 Role: ${currentUser.role}\n📅 Last Login: ${currentUser.lastLogin ? new Date(currentUser.lastLogin).toLocaleString('id-ID') : 'First time'}`);
-        }
-
-        // Initialize app
-        async function initializeApp() {
-            console.log('🔄 Initializing app...');
-            console.log('📡 Google Script URL:', GOOGLE_SCRIPT_URL);
-            
-            try {
-                await loadDataFromGoogleSheets();
-                isConnected = true;
-                console.log('✅ App initialized successfully with Google Sheets');
-            } catch (error) {
-                console.error('❌ Failed to connect to Google Sheets:', error);
-                updateSyncStatus('error', `❌ ${error.message} - Working offline`);
-                loadSampleData();
-                isConnected = false;
-                
-                // Tampilkan pesan error yang lebih detail
-                setTimeout(() => {
-                    console.log('⚠️ Working in offline mode with sample data');
-                }, 1000);
-            }
-        }
-
-        // Update sync status
-        function updateSyncStatus(type, message) {
-            const statusEl = document.getElementById('syncStatus');
-            statusEl.className = `sync-status sync-${type} hidden md:block`;
-            statusEl.innerHTML = message;
-        }
-
-        // Load data from Google Sheets
-        async function loadDataFromGoogleSheets() {
-            updateSyncStatus('loading', '🔄 Loading data...');
-            
-            try {
-                // Test koneksi dengan timeout
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 detik timeout
-                
-                const response = await fetch(`${GOOGLE_SCRIPT_URL}?action=getAllData&timestamp=${Date.now()}`, {
-                    method: 'GET',
-                    signal: controller.signal,
-                    headers: {
-                        'Accept': 'application/json',
-                        'Content-Type': 'application/json'
-                    }
-                });
-                
-                clearTimeout(timeoutId);
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                }
-                
-                const data = await response.json();
-                console.log('Response from Google Sheets:', data);
-                
-                if (data.success) {
-                    penerimaanData = data.penerimaan || [];
-                    transferData = data.transfer || [];
-                    outletData = data.outlet || [];
-                    riwayatData = data.riwayat || [];
-                    databaseData = data.database || {};
-                    statusData = data.status || [];
-                    
-                    updateAllTables();
-                    updateOutletDropdown();
-                    updateSyncStatus('success', '✅ Connected to Google Sheets');
-                    console.log('✅ Data berhasil dimuat dari Google Sheets');
-                } else {
-                    throw new Error(data.error || 'Google Apps Script returned success: false');
-                }
-            } catch (error) {
-                console.error('❌ Error connecting to Google Sheets:', error);
-                if (error.name === 'AbortError') {
-                    throw new Error('Connection timeout - Google Sheets tidak merespons');
-                } else if (error.message.includes('CORS')) {
-                    throw new Error('CORS error - Pastikan Google Apps Script sudah di-deploy dengan benar');
-                } else {
-                    throw new Error(`Connection failed: ${error.message}`);
-                }
-            }
-        }
-
-        // Sync with Google Sheets
-        async function syncWithGoogleSheets() {
-            if (!isConnected) {
-                alert('❌ Tidak terhubung ke Google Sheets. Coba refresh halaman.');
-                return;
-            }
-            
-            const syncBtn = document.getElementById('syncText');
-            const syncLoading = document.getElementById('syncLoading');
-            
-            syncBtn.innerHTML = '🔄 <span class="hidden md:inline">Syncing...</span>';
-            syncLoading.classList.add('show');
-            
-            try {
-                await loadDataFromGoogleSheets();
-                syncBtn.innerHTML = '✅ <span class="hidden md:inline">Synced!</span>';
-                setTimeout(() => {
-                    syncBtn.innerHTML = '📊 <span class="hidden md:inline">Sync</span>';
-                }, 2000);
-            } catch (error) {
-                syncBtn.innerHTML = '❌ <span class="hidden md:inline">Failed</span>';
-                setTimeout(() => {
-                    syncBtn.innerHTML = '📊 <span class="hidden md:inline">Sync</span>';
-                }, 2000);
-            } finally {
-                syncLoading.classList.remove('show');
-            }
-        }
-
-        // Send data to Google Sheets
-        async function sendToGoogleSheets(action, data) {
-            if (!isConnected) {
-                console.log('Offline mode - data saved locally');
-                return { success: true };
-            }
-            
-            try {
-                const response = await fetch(GOOGLE_SCRIPT_URL, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        action: action,
-                        data: data
-                    })
-                });
-                
-                const result = await response.json();
-                return result;
-            } catch (error) {
-                console.error('Error sending to Google Sheets:', error);
-                return { success: false, error: error.message };
-            }
-        }
-
-        // Load sample data (offline mode)
-        function loadSampleData() {
-            outletData = [
-                { kode: 'OUT001', nama: 'Jakarta Pusat', status: 'Aktif' },
-                { kode: 'OUT002', nama: 'Bandung', status: 'Aktif' },
-                { kode: 'OUT003', nama: 'Surabaya', status: 'Aktif' }
-            ];
-
-            databaseData = {
-                'BRG001': { nama: 'Laptop Dell', stock: 15, unit: 'pcs', harga: 8500000, updateTerakhir: new Date() },
-                'BRG002': { nama: 'Mouse Wireless', stock: 25, unit: 'pcs', harga: 250000, updateTerakhir: new Date() },
-                'BRG003': { nama: 'Keyboard Mechanical', stock: 8, unit: 'pcs', harga: 750000, updateTerakhir: new Date() }
+            const data = {
+                tanggal: document.getElementById('penerimaanTanggal').value,
+                kode: document.getElementById('penerimaanKode').value,
+                nama: document.getElementById('penerimaanNama').value,
+                qty: parseInt(document.getElementById('penerimaanQty').value),
+                unit: document.getElementById('penerimaanUnit').value,
+                status: document.getElementById('penerimaanStatus').value
             };
 
-            statusData = [
-                { kode: 'BRG004', nama: 'Monitor LED', status: 'pending', quantity: 5, unit: 'pcs', tanggal: new Date().toISOString().split('T')[0], keterangan: 'Menunggu approval' },
-                { kode: 'BRG005', nama: 'Printer Laser', status: 'pending', quantity: 2, unit: 'pcs', tanggal: new Date().toISOString().split('T')[0], keterangan: 'Menunggu budget' }
-            ];
-
-            updateAllTables();
-            updateOutletDropdown();
-        }
-
-        // Update current time
-        function updateTime() {
-            const now = new Date();
-            document.getElementById('currentTime').textContent = now.toLocaleString('id-ID');
-        }
-
-        // Show menu
-        function showMenu(menuName) {
-            document.querySelectorAll('.menu-content').forEach(menu => {
-                menu.classList.add('hidden');
-            });
-            
-            document.querySelectorAll('.sidebar-item').forEach(item => {
-                item.classList.remove('active-menu');
-            });
-            
-            document.getElementById(menuName).classList.remove('hidden');
-            event.target.classList.add('active-menu');
-            
-            // Update user table when user menu is shown
-            if (menuName === 'user') {
-                updateUserTable();
-            }
-            
-            // Auto close sidebar on mobile after menu selection
-            if (window.innerWidth <= 768) {
-                closeSidebar();
-            }
-        }
-
-        // Auto-fill functions
-        function autoFillPenerimaan() {
-            const kode = document.getElementById('kodeBarangPenerimaan').value;
-            const namaField = document.getElementById('namaBarangPenerimaan');
-            const unitField = document.getElementById('unitPenerimaan');
-            
-            if (databaseData[kode]) {
-                namaField.value = databaseData[kode].nama;
-                namaField.readOnly = true;
-                unitField.value = databaseData[kode].unit;
-                unitField.disabled = true;
+            if (data.status === 'Diterima') {
+                // Add to database
+                const existingItem = database.find(d => d.kode === data.kode);
+                if (existingItem) {
+                    existingItem.stock += data.qty;
+                } else {
+                    database.push({
+                        kode: data.kode,
+                        nama: data.nama,
+                        stock: data.qty,
+                        unit: data.unit
+                    });
+                }
+                localStorage.setItem('database', JSON.stringify(database));
             } else {
-                namaField.value = '';
-                namaField.readOnly = false;
-                unitField.value = '';
-                unitField.disabled = false;
+                // Add to status
+                statusItems.push({
+                    kode: data.kode,
+                    nama: data.nama,
+                    status: data.status,
+                    qty: data.qty,
+                    unit: data.unit,
+                    tanggal: data.tanggal
+                });
+                localStorage.setItem('statusItems', JSON.stringify(statusItems));
             }
+
+            // Add to riwayat
+            riwayat.push({
+                tanggal: data.tanggal,
+                kode: data.kode,
+                nama: data.nama,
+                keterangan: `Penerimaan - ${data.status} (${data.qty} ${data.unit})`
+            });
+            localStorage.setItem('riwayat', JSON.stringify(riwayat));
+
+            // Reset form and reload tables
+            document.getElementById('penerimaanForm').reset();
+            document.getElementById('penerimaanTanggal').value = new Date().toISOString().split('T')[0];
+            loadTables();
+            
+            // Sync to Google Sheets
+            if (isGoogleSheetsConnected) {
+                await syncToSheets();
+            }
+            
+            alert('Data penerimaan berhasil disimpan!');
         }
 
-        function autoFillTransfer() {
-            const kode = document.getElementById('kodeBarangTransfer').value;
-            const namaField = document.getElementById('namaBarangTransfer');
-            const unitField = document.getElementById('unitTransfer');
+        // Handle Transfer
+        async function handleTransfer(e) {
+            e.preventDefault();
             
-            if (databaseData[kode]) {
-                namaField.value = databaseData[kode].nama;
-                unitField.value = databaseData[kode].unit;
-                unitField.disabled = false;
-                
-                // Show stock info
-                const stockInfo = `Stock tersedia: ${databaseData[kode].stock} ${databaseData[kode].unit}`;
-                document.getElementById('quantityTransfer').placeholder = stockInfo;
-            } else {
-                namaField.value = '';
-                unitField.value = '';
-                unitField.disabled = true;
-                document.getElementById('quantityTransfer').placeholder = 'Quantity';
-                if (kode) {
-                    alert('Kode barang tidak ditemukan di database!');
-                }
+            const data = {
+                tanggal: document.getElementById('transferTanggal').value,
+                kode: document.getElementById('transferKode').value,
+                nama: document.getElementById('transferNama').value,
+                qty: parseInt(document.getElementById('transferQty').value),
+                unit: document.getElementById('transferUnit').value,
+                outlet: document.getElementById('transferOutlet').value
+            };
+
+            // Check if item exists in database
+            const item = database.find(d => d.kode === data.kode);
+            if (!item) {
+                alert('Barang tidak ditemukan di database!');
+                return;
             }
+
+            if (item.stock < data.qty) {
+                alert('Stock tidak mencukupi!');
+                return;
+            }
+
+            // Update stock
+            item.stock -= data.qty;
+            localStorage.setItem('database', JSON.stringify(database));
+
+            // Add to riwayat
+            const outletName = outlets.find(o => o.kode === data.outlet)?.nama || data.outlet;
+            riwayat.push({
+                tanggal: data.tanggal,
+                kode: data.kode,
+                nama: data.nama,
+                keterangan: `Transfer ke ${outletName} (${data.qty} ${data.unit})`
+            });
+            localStorage.setItem('riwayat', JSON.stringify(riwayat));
+
+            // Reset form and reload tables
+            document.getElementById('transferForm').reset();
+            document.getElementById('transferTanggal').value = new Date().toISOString().split('T')[0];
+            loadTables();
+            
+            // Sync to Google Sheets
+            if (isGoogleSheetsConnected) {
+                await syncToSheets();
+            }
+            
+            alert('Transfer berhasil!');
         }
 
-        // Form handlers
-        document.getElementById('penerimaanForm').addEventListener('submit', async function(e) {
+        // Handle Outlet
+        async function handleOutlet(e) {
             e.preventDefault();
             
-            const loadingEl = document.getElementById('penerimaanLoading');
-            const textEl = document.getElementById('penerimaanText');
-            
-            loadingEl.classList.add('show');
-            textEl.textContent = 'Processing...';
-            
-            const formData = {
-                tanggal: document.getElementById('tglPenerimaan').value,
-                kode: document.getElementById('kodeBarangPenerimaan').value,
-                nama: document.getElementById('namaBarangPenerimaan').value,
-                quantity: parseInt(document.getElementById('quantityPenerimaan').value),
-                unit: document.getElementById('unitPenerimaan').value,
-                status: document.getElementById('statusPenerimaan').value,
-                keterangan: document.getElementById('keteranganPenerimaan').value || ''
+            const data = {
+                kode: document.getElementById('outletKode').value,
+                nama: document.getElementById('outletNama').value
             };
-            
-            try {
-                // Send to Google Sheets
-                const result = await sendToGoogleSheets('addPenerimaan', formData);
-                
-                if (result.success) {
-                    penerimaanData.push(formData);
-                    
-                    // Process based on status
-                    if (formData.status === 'approved') {
-                        updateDatabaseStock(formData.kode, formData.nama, formData.quantity, formData.unit);
-                        addToRiwayat(formData.tanggal, formData.kode, formData.nama, `Penerimaan diterima: ${formData.quantity} ${formData.unit}`);
-                    } else {
-                        statusData.push(formData);
-                        addToRiwayat(formData.tanggal, formData.kode, formData.nama, `Penerimaan ${formData.status}: ${formData.quantity} ${formData.unit}`);
-                    }
-                    
-                    updateAllTables();
-                    this.reset();
-                    document.getElementById('tglPenerimaan').value = new Date().toISOString().split('T')[0];
-                    
-                    textEl.textContent = '✅ Berhasil!';
-                } else {
-                    throw new Error(result.error || 'Failed to save');
-                }
-            } catch (error) {
-                console.error('Error:', error);
-                textEl.textContent = '❌ Error!';
-                alert('Error: ' + error.message);
-            } finally {
-                loadingEl.classList.remove('show');
-                setTimeout(() => {
-                    textEl.textContent = 'Tambah Penerimaan';
-                }, 2000);
-            }
-        });
 
-        document.getElementById('transferForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            
-            const kode = document.getElementById('kodeBarangTransfer').value;
-            
-            if (!databaseData[kode]) {
-                alert('Barang tidak ditemukan di database! Transfer tidak dapat dilakukan.');
+            // Check if outlet already exists
+            if (outlets.find(o => o.kode === data.kode)) {
+                alert('Kode outlet sudah ada!');
                 return;
             }
-            
-            const quantity = parseInt(document.getElementById('quantityTransfer').value);
-            
-            if (databaseData[kode].stock < quantity) {
-                alert(`Stock tidak mencukupi! Stock tersedia: ${databaseData[kode].stock}`);
-                return;
-            }
-            
-            const loadingEl = document.getElementById('transferLoading');
-            const textEl = document.getElementById('transferText');
-            
-            loadingEl.classList.add('show');
-            textEl.textContent = 'Processing...';
-            
-            const formData = {
-                tanggal: document.getElementById('tglTransfer').value,
-                kode: kode,
-                nama: document.getElementById('namaBarangTransfer').value,
-                quantity: quantity,
-                unit: document.getElementById('unitTransfer').value,
-                outlet: document.getElementById('outletTransfer').value,
-                status: 'Completed'
-            };
-            
-            try {
-                const result = await sendToGoogleSheets('addTransfer', formData);
-                
-                if (result.success) {
-                    transferData.push(formData);
-                    updateDatabaseStock(formData.kode, formData.nama, -formData.quantity, formData.unit);
-                    addToRiwayat(formData.tanggal, formData.kode, formData.nama, `Transfer ke ${formData.outlet}: ${formData.quantity} ${formData.unit}`);
-                    updateAllTables();
-                    this.reset();
-                    document.getElementById('tglTransfer').value = new Date().toISOString().split('T')[0];
-                    
-                    textEl.textContent = '✅ Berhasil!';
-                } else {
-                    throw new Error(result.error || 'Failed to save');
-                }
-            } catch (error) {
-                console.error('Error:', error);
-                textEl.textContent = '❌ Error!';
-                alert('Error: ' + error.message);
-            } finally {
-                loadingEl.classList.remove('show');
-                setTimeout(() => {
-                    textEl.textContent = 'Transfer Barang';
-                }, 2000);
-            }
-        });
 
-        document.getElementById('outletForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            
-            const kodeOutlet = document.getElementById('kodeOutlet').value;
-            const namaOutlet = document.getElementById('namaOutlet').value;
-            
-            // Check for duplicate kode outlet
-            if (outletData.some(outlet => outlet.kode === kodeOutlet)) {
-                alert('❌ Kode outlet sudah ada! Gunakan kode yang berbeda.');
-                return;
-            }
-            
-            const loadingEl = document.getElementById('outletLoading');
-            const textEl = document.getElementById('outletText');
-            
-            loadingEl.classList.add('show');
-            textEl.textContent = 'Processing...';
-            
-            const formData = {
-                kode: kodeOutlet,
-                nama: namaOutlet,
-                status: 'Aktif'
-            };
-            
-            try {
-                const result = await sendToGoogleSheets('addOutlet', formData);
-                
-                if (result.success) {
-                    outletData.push(formData);
-                    updateOutletTable();
-                    updateOutletDropdown();
-                    this.reset();
-                    
-                    textEl.textContent = '✅ Berhasil!';
-                } else {
-                    throw new Error(result.error || 'Failed to save');
-                }
-            } catch (error) {
-                console.error('Error:', error);
-                textEl.textContent = '❌ Error!';
-                alert('Error: ' + error.message);
-            } finally {
-                loadingEl.classList.remove('show');
-                setTimeout(() => {
-                    textEl.textContent = 'Tambah Outlet';
-                }, 2000);
-            }
-        });
+            outlets.push(data);
+            localStorage.setItem('outlets', JSON.stringify(outlets));
 
-        // Update functions
-        function updateDatabaseStock(kode, nama, quantity, unit) {
-            if (!databaseData[kode]) {
-                databaseData[kode] = { nama: nama, stock: 0, unit: unit, harga: 0, updateTerakhir: new Date() };
+            // Reset form and reload
+            document.getElementById('outletForm').reset();
+            loadOutletDropdown();
+            loadTables();
+            
+            // Sync to Google Sheets
+            if (isGoogleSheetsConnected) {
+                await syncToSheets();
             }
-            databaseData[kode].stock += quantity;
-            databaseData[kode].updateTerakhir = new Date();
+            
+            alert('Outlet berhasil ditambahkan!');
         }
 
-        function addToRiwayat(tanggal, kode, nama, keterangan) {
-            riwayatData.push({ 
-                timestamp: new Date(), 
-                aktivitas: 'System Update',
-                kode, 
-                nama, 
-                detail: keterangan,
-                user: 'System'
+        // Handle User
+        function handleUser(e) {
+            e.preventDefault();
+            
+            const data = {
+                username: document.getElementById('userUsername').value,
+                password: document.getElementById('userPassword').value
+            };
+
+            // Check if user already exists
+            if (users.find(u => u.username === data.username)) {
+                alert('Username sudah ada!');
+                return;
+            }
+
+            users.push(data);
+            localStorage.setItem('users', JSON.stringify(users));
+
+            // Reset form and reload
+            document.getElementById('userForm').reset();
+            loadTables();
+            
+            alert('User berhasil ditambahkan!');
+        }
+
+        // Load Outlet Dropdown
+        function loadOutletDropdown() {
+            const select = document.getElementById('transferOutlet');
+            select.innerHTML = '<option value="">Pilih Outlet</option>';
+            
+            outlets.forEach(outlet => {
+                const option = document.createElement('option');
+                option.value = outlet.kode;
+                option.textContent = `${outlet.kode} - ${outlet.nama}`;
+                select.appendChild(option);
             });
         }
 
-        function updateAllTables() {
-            updatePenerimaanTable();
-            updateTransferTable();
-            updateOutletTable();
-            updateStatusTable();
-            updateDatabaseTable();
-            updateRiwayatTable();
-            updateSummary();
+        // Load Tables
+        function loadTables() {
+            loadOutletTable();
+            loadStatusTable();
+            loadDatabaseTable();
+            loadRiwayatTable();
+            loadUserTable();
         }
 
-        function updatePenerimaanTable() {
-            const tbody = document.getElementById('penerimaanTable');
-            tbody.innerHTML = penerimaanData.map((item, index) => `
-                <tr class="hover:bg-gray-50">
-                    <td class="border p-3">${item.tanggal}</td>
-                    <td class="border p-3">${item.kode}</td>
-                    <td class="border p-3">${item.nama}</td>
-                    <td class="border p-3">${item.quantity}</td>
-                    <td class="border p-3">${item.unit}</td>
-                    <td class="border p-3">
-                        <span class="px-2 py-1 rounded-full text-xs status-${item.status}">
-                            ${item.status.toUpperCase()}
-                        </span>
-                    </td>
-                    <td class="border p-3">${item.keterangan || '-'}</td>
-                    <td class="border p-3">
-                        <button onclick="deletePenerimaan(${index})" class="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600">
-                            Hapus
-                        </button>
-                    </td>
-                </tr>
-            `).join('');
-        }
-
-        function updateTransferTable() {
-            const tbody = document.getElementById('transferTable');
-            tbody.innerHTML = transferData.map((item, index) => `
-                <tr class="hover:bg-gray-50">
-                    <td class="border p-3">${item.tanggal}</td>
-                    <td class="border p-3">${item.kode}</td>
-                    <td class="border p-3">${item.nama}</td>
-                    <td class="border p-3">${item.quantity}</td>
-                    <td class="border p-3">${item.unit}</td>
-                    <td class="border p-3">${item.outlet}</td>
-                    <td class="border p-3">
-                        <span class="px-2 py-1 rounded-full text-xs bg-green-100 text-green-800">
-                            ${item.status || 'Completed'}
-                        </span>
-                    </td>
-                    <td class="border p-3">
-                        <button onclick="deleteTransfer(${index})" class="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600">
-                            Hapus
-                        </button>
-                    </td>
-                </tr>
-            `).join('');
-        }
-
-        function updateOutletTable() {
+        function loadOutletTable() {
             const tbody = document.getElementById('outletTable');
-            tbody.innerHTML = outletData.map((item, index) => `
-                <tr class="hover:bg-gray-50">
-                    <td class="border p-3">${item.kode}</td>
-                    <td class="border p-3">${item.nama}</td>
-                    <td class="border p-3">
-                        <span class="px-2 py-1 rounded-full text-xs bg-green-100 text-green-800">
-                            ${item.status || 'Aktif'}
-                        </span>
+            tbody.innerHTML = '';
+            
+            outlets.forEach((outlet, index) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${outlet.kode}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${outlet.nama}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <button onclick="deleteOutlet(${index})" class="text-red-600 hover:text-red-900">Hapus</button>
                     </td>
-                    <td class="border p-3">
-                        <button onclick="deleteOutlet(${index})" class="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600">
-                            Hapus
-                        </button>
-                    </td>
-                </tr>
-            `).join('');
+                `;
+                tbody.appendChild(row);
+            });
         }
 
-        function updateStatusTable() {
+        function loadStatusTable() {
             const tbody = document.getElementById('statusTable');
-            tbody.innerHTML = statusData.map((item, index) => `
-                <tr class="hover:bg-gray-50">
-                    <td class="border p-3">${item.tanggal}</td>
-                    <td class="border p-3">${item.kode}</td>
-                    <td class="border p-3">${item.nama}</td>
-                    <td class="border p-3">${item.quantity}</td>
-                    <td class="border p-3">${item.unit}</td>
-                    <td class="border p-3">
-                        <span class="px-2 py-1 rounded-full text-xs status-${item.status}">
-                            ${item.status.toUpperCase()}
+            tbody.innerHTML = '';
+            
+            statusItems.forEach((item, index) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${item.kode}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${item.nama}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${item.status === 'Pending' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'}">
+                            ${item.status}
                         </span>
                     </td>
-                    <td class="border p-3">${item.keterangan || '-'}</td>
-                    <td class="border p-3">
-                        <button onclick="approveStatus(${index})" class="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600 mr-2">
-                            Terima
-                        </button>
-                        <button onclick="rejectStatus(${index})" class="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600">
-                            Tolak
-                        </button>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <button onclick="approveStatus(${index})" class="text-green-600 hover:text-green-900 mr-2">Terima</button>
+                        <button onclick="deleteStatus(${index})" class="text-red-600 hover:text-red-900">Hapus</button>
                     </td>
-                </tr>
-            `).join('');
+                `;
+                tbody.appendChild(row);
+            });
         }
 
-        function updateDatabaseTable() {
+        function loadDatabaseTable() {
             const tbody = document.getElementById('databaseTable');
-            tbody.innerHTML = Object.entries(databaseData).map(([kode, data]) => `
-                <tr class="hover:bg-gray-50">
-                    <td class="border p-3">${kode}</td>
-                    <td class="border p-3">${data.nama}</td>
-                    <td class="border p-3">${data.stock}</td>
-                    <td class="border p-3">${data.unit}</td>
-                    <td class="border p-3">Rp ${(data.harga || 0).toLocaleString('id-ID')}</td>
-                    <td class="border p-3">${new Date(data.updateTerakhir).toLocaleString('id-ID')}</td>
-                    <td class="border p-3">
-                        <button onclick="editDatabase('${kode}')" class="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600 mr-2">
-                            Edit
-                        </button>
-                        <button onclick="deleteDatabase('${kode}')" class="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600">
-                            Hapus
-                        </button>
+            tbody.innerHTML = '';
+            
+            database.forEach((item, index) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${item.kode}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${item.nama}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${item.stock}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${item.unit}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <button onclick="editDatabase(${index})" class="text-blue-600 hover:text-blue-900 mr-2">Edit</button>
+                        <button onclick="deleteDatabase(${index})" class="text-red-600 hover:text-red-900">Hapus</button>
                     </td>
-                </tr>
-            `).join('');
+                `;
+                tbody.appendChild(row);
+            });
         }
 
-        function updateRiwayatTable() {
+        function loadRiwayatTable() {
             const tbody = document.getElementById('riwayatTable');
-            tbody.innerHTML = riwayatData.slice(-20).reverse().map(item => `
-                <tr class="hover:bg-gray-50">
-                    <td class="border p-3">${new Date(item.timestamp).toLocaleString('id-ID')}</td>
-                    <td class="border p-3">${item.aktivitas}</td>
-                    <td class="border p-3">${item.kode}</td>
-                    <td class="border p-3">${item.nama}</td>
-                    <td class="border p-3">${item.detail}</td>
-                    <td class="border p-3">${item.user}</td>
-                </tr>
-            `).join('');
-        }
-
-        function updateOutletDropdown() {
-            const select = document.getElementById('outletTransfer');
-            select.innerHTML = '<option value="">Pilih Outlet</option>' + 
-                outletData.map(outlet => `<option value="${outlet.nama}">${outlet.nama}</option>`).join('');
-        }
-
-        function updateSummary() {
-            document.getElementById('totalPenerimaan').textContent = penerimaanData.length;
-            document.getElementById('totalTransfer').textContent = transferData.length;
-            document.getElementById('totalOutlet').textContent = outletData.length;
-            document.getElementById('totalBarang').textContent = Object.keys(databaseData).length;
-        }
-
-        // Status functions
-        async function approveStatus(index) {
-            const item = statusData[index];
+            tbody.innerHTML = '';
             
-            try {
-                const result = await sendToGoogleSheets('approveStatus', { index, item });
-                
-                if (result.success) {
-                    updateDatabaseStock(item.kode, item.nama, item.quantity, item.unit);
-                    addToRiwayat(item.tanggal, item.kode, item.nama, `Status diubah menjadi diterima: ${item.quantity} ${item.unit}`);
-                    statusData.splice(index, 1);
-                    updateAllTables();
-                    alert('✅ Status berhasil diapprove!');
-                }
-            } catch (error) {
-                console.error('Error:', error);
-                alert('Error: ' + error.message);
-            }
+            riwayat.forEach(item => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${item.tanggal}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${item.kode}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${item.nama}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${item.keterangan}</td>
+                `;
+                tbody.appendChild(row);
+            });
         }
 
-        async function rejectStatus(index) {
-            const item = statusData[index];
+        function loadUserTable() {
+            const tbody = document.getElementById('userTable');
+            tbody.innerHTML = '';
             
-            try {
-                const result = await sendToGoogleSheets('rejectStatus', { index, item });
-                
-                if (result.success) {
-                    statusData[index].status = 'rejected';
-                    addToRiwayat(item.tanggal, item.kode, item.nama, `Status diubah menjadi ditolak: ${item.quantity} ${item.unit}`);
-                    updateAllTables();
-                    alert('❌ Status ditolak!');
-                }
-            } catch (error) {
-                console.error('Error:', error);
-                alert('Error: ' + error.message);
-            }
+            users.forEach((user, index) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${user.username}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <button onclick="editUser(${index})" class="text-blue-600 hover:text-blue-900 mr-2">Edit</button>
+                        ${user.username !== 'admin' ? `<button onclick="deleteUser(${index})" class="text-red-600 hover:text-red-900">Hapus</button>` : ''}
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
         }
 
-        // Database functions
-        function editDatabase(kode) {
-            const data = databaseData[kode];
-            const newNama = prompt('Nama Barang:', data.nama);
-            const newStock = prompt('Stock:', data.stock);
-            const newHarga = prompt('Harga:', data.harga);
-            
-            if (newNama && newStock !== null && newHarga !== null) {
-                databaseData[kode].nama = newNama;
-                databaseData[kode].stock = parseInt(newStock);
-                databaseData[kode].harga = parseInt(newHarga);
-                databaseData[kode].updateTerakhir = new Date();
-                
-                addToRiwayat(new Date().toISOString().split('T')[0], kode, newNama, `Database diupdate`);
-                updateAllTables();
-                
-                // Send to Google Sheets
-                sendToGoogleSheets('updateDatabase', { kode, data: databaseData[kode] });
-            }
-        }
-
-        function deleteDatabase(kode) {
-            if (confirm(`Yakin ingin menghapus ${databaseData[kode].nama} dari database?`)) {
-                const nama = databaseData[kode].nama;
-                delete databaseData[kode];
-                addToRiwayat(new Date().toISOString().split('T')[0], kode, nama, 'Barang dihapus dari database');
-                updateAllTables();
-                
-                // Send to Google Sheets
-                sendToGoogleSheets('deleteDatabase', { kode });
-            }
-        }
-
-        // Delete functions
-        function deletePenerimaan(index) {
-            if (confirm('Yakin ingin menghapus data penerimaan ini?')) {
-                penerimaanData.splice(index, 1);
-                updateAllTables();
-                sendToGoogleSheets('deletePenerimaan', { index });
-            }
-        }
-
-        function deleteTransfer(index) {
-            if (confirm('Yakin ingin menghapus data transfer ini?')) {
-                transferData.splice(index, 1);
-                updateAllTables();
-                sendToGoogleSheets('deleteTransfer', { index });
-            }
-        }
-
-        function deleteOutlet(index) {
+        // Delete Functions
+        async function deleteOutlet(index) {
             if (confirm('Yakin ingin menghapus outlet ini?')) {
-                outletData.splice(index, 1);
-                updateOutletTable();
-                updateOutletDropdown();
-                sendToGoogleSheets('deleteOutlet', { index });
+                outlets.splice(index, 1);
+                localStorage.setItem('outlets', JSON.stringify(outlets));
+                loadOutletDropdown();
+                loadTables();
+                
+                if (isGoogleSheetsConnected) {
+                    await syncToSheets();
+                }
             }
         }
 
-        // Report functions
+        async function deleteStatus(index) {
+            if (confirm('Yakin ingin menghapus status ini?')) {
+                statusItems.splice(index, 1);
+                localStorage.setItem('statusItems', JSON.stringify(statusItems));
+                loadTables();
+                
+                if (isGoogleSheetsConnected) {
+                    await syncToSheets();
+                }
+            }
+        }
+
+        async function deleteDatabase(index) {
+            if (confirm('Yakin ingin menghapus barang ini?')) {
+                database.splice(index, 1);
+                localStorage.setItem('database', JSON.stringify(database));
+                loadTables();
+                
+                if (isGoogleSheetsConnected) {
+                    await syncToSheets();
+                }
+            }
+        }
+
+        function deleteUser(index) {
+            if (confirm('Yakin ingin menghapus user ini?')) {
+                users.splice(index, 1);
+                localStorage.setItem('users', JSON.stringify(users));
+                loadTables();
+            }
+        }
+
+        // Approve Status
+        async function approveStatus(index) {
+            const item = statusItems[index];
+            
+            // Add to database
+            const existingItem = database.find(d => d.kode === item.kode);
+            if (existingItem) {
+                existingItem.stock += item.qty;
+            } else {
+                database.push({
+                    kode: item.kode,
+                    nama: item.nama,
+                    stock: item.qty,
+                    unit: item.unit
+                });
+            }
+            
+            // Add to riwayat
+            riwayat.push({
+                tanggal: new Date().toISOString().split('T')[0],
+                kode: item.kode,
+                nama: item.nama,
+                keterangan: `Status diubah menjadi Diterima (${item.qty} ${item.unit})`
+            });
+            
+            // Remove from status
+            statusItems.splice(index, 1);
+            
+            // Save to localStorage
+            localStorage.setItem('database', JSON.stringify(database));
+            localStorage.setItem('statusItems', JSON.stringify(statusItems));
+            localStorage.setItem('riwayat', JSON.stringify(riwayat));
+            
+            loadTables();
+            
+            // Sync to Google Sheets
+            if (isGoogleSheetsConnected) {
+                await syncToSheets();
+            }
+            
+            alert('Status berhasil diubah menjadi Diterima!');
+        }
+
+        // Edit Functions
+        async function editDatabase(index) {
+            const item = database[index];
+            const newStock = prompt('Masukkan stock baru:', item.stock);
+            
+            if (newStock !== null && !isNaN(newStock)) {
+                item.stock = parseInt(newStock);
+                localStorage.setItem('database', JSON.stringify(database));
+                loadTables();
+                
+                if (isGoogleSheetsConnected) {
+                    await syncToSheets();
+                }
+            }
+        }
+
+        function editUser(index) {
+            const user = users[index];
+            const newPassword = prompt('Masukkan password baru:');
+            
+            if (newPassword !== null && newPassword.trim() !== '') {
+                user.password = newPassword.trim();
+                localStorage.setItem('users', JSON.stringify(users));
+                alert('Password berhasil diubah!');
+            }
+        }
+
+        // Report Functions
         function downloadPDF() {
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
             
             doc.setFontSize(16);
-            doc.text('Laporan Sistem Gudang Modern', 20, 20);
-            doc.setFontSize(10);
-            doc.text('Generated: ' + new Date().toLocaleString('id-ID'), 20, 30);
+            doc.text('Laporan Sistem Gudang', 20, 20);
             
-            let yPos = 50;
+            let y = 40;
+            
+            // Database Report
             doc.setFontSize(12);
-            doc.text('Data Penerimaan:', 20, yPos);
-            yPos += 10;
+            doc.text('Database Barang:', 20, y);
+            y += 10;
             
-            penerimaanData.forEach(item => {
-                if (yPos > 270) {
-                    doc.addPage();
-                    yPos = 20;
-                }
-                doc.setFontSize(8);
-                doc.text(`${item.tanggal} - ${item.kode} - ${item.nama} - ${item.quantity} ${item.unit} - ${item.status}`, 20, yPos);
-                yPos += 6;
+            database.forEach(item => {
+                doc.text(`${item.kode} - ${item.nama}: ${item.stock} ${item.unit}`, 20, y);
+                y += 8;
             });
             
-            doc.save('laporan-gudang-' + new Date().toISOString().split('T')[0] + '.pdf');
+            y += 10;
+            doc.text('Riwayat Transaksi:', 20, y);
+            y += 10;
+            
+            riwayat.slice(-10).forEach(item => {
+                doc.text(`${item.tanggal} - ${item.kode}: ${item.keterangan}`, 20, y);
+                y += 8;
+                if (y > 280) {
+                    doc.addPage();
+                    y = 20;
+                }
+            });
+            
+            doc.save('laporan-gudang.pdf');
         }
 
         function downloadExcel() {
             const wb = XLSX.utils.book_new();
             
-            // Penerimaan sheet
-            const penerimaanWS = XLSX.utils.json_to_sheet(penerimaanData);
-            XLSX.utils.book_append_sheet(wb, penerimaanWS, 'Penerimaan');
-            
-            // Transfer sheet
-            const transferWS = XLSX.utils.json_to_sheet(transferData);
-            XLSX.utils.book_append_sheet(wb, transferWS, 'Transfer');
-            
             // Database sheet
-            const databaseArray = Object.entries(databaseData).map(([kode, data]) => ({
-                kode: kode,
-                nama: data.nama,
-                stock: data.stock,
-                unit: data.unit,
-                harga: data.harga,
-                updateTerakhir: data.updateTerakhir
-            }));
-            const databaseWS = XLSX.utils.json_to_sheet(databaseArray);
-            XLSX.utils.book_append_sheet(wb, databaseWS, 'Database');
+            const dbWs = XLSX.utils.json_to_sheet(database);
+            XLSX.utils.book_append_sheet(wb, dbWs, 'Database');
+            
+            // Riwayat sheet
+            const riwayatWs = XLSX.utils.json_to_sheet(riwayat);
+            XLSX.utils.book_append_sheet(wb, riwayatWs, 'Riwayat');
             
             // Outlet sheet
-            const outletWS = XLSX.utils.json_to_sheet(outletData);
-            XLSX.utils.book_append_sheet(wb, outletWS, 'Outlet');
+            const outletWs = XLSX.utils.json_to_sheet(outlets);
+            XLSX.utils.book_append_sheet(wb, outletWs, 'Outlet');
             
-            XLSX.writeFile(wb, 'laporan-gudang-' + new Date().toISOString().split('T')[0] + '.xlsx');
+            XLSX.writeFile(wb, 'laporan-gudang.xlsx');
         }
 
         function printReport() {
-            const printWindow = window.open('', '_blank');
-            printWindow.document.write(`
-                <html>
-                <head>
-                    <title>Laporan Sistem Gudang</title>
-                    <style>
-                        body { font-family: Arial, sans-serif; margin: 20px; }
-                        table { width: 100%; border-collapse: collapse; margin: 20px 0; }
-                        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 12px; }
-                        th { background-color: #f2f2f2; }
-                        h1, h2 { color: #333; }
-                        .summary { background: #f9f9f9; padding: 15px; margin: 10px 0; }
-                    </style>
-                </head>
-                <body>
-                    <h1>📊 Laporan Sistem Gudang Modern</h1>
-                    <p><strong>Tanggal:</strong> ${new Date().toLocaleDateString('id-ID')}</p>
-                    <p><strong>Waktu:</strong> ${new Date().toLocaleTimeString('id-ID')}</p>
-                    
-                    <div class="summary">
-                        <h3>📈 Ringkasan</h3>
-                        <p>Total Penerimaan: ${penerimaanData.length}</p>
-                        <p>Total Transfer: ${transferData.length}</p>
-                        <p>Total Outlet: ${outletData.length}</p>
-                        <p>Total Barang: ${Object.keys(databaseData).length}</p>
-                    </div>
-                    
-                    <h2>📥 Data Penerimaan</h2>
-                    <table>
-                        <tr><th>Tanggal</th><th>Kode</th><th>Nama</th><th>Qty</th><th>Unit</th><th>Status</th><th>Keterangan</th></tr>
-                        ${penerimaanData.map(item => `
-                            <tr><td>${item.tanggal}</td><td>${item.kode}</td><td>${item.nama}</td><td>${item.quantity}</td><td>${item.unit}</td><td>${item.status}</td><td>${item.keterangan || '-'}</td></tr>
-                        `).join('')}
-                    </table>
-                    
-                    <h2>🚚 Data Transfer</h2>
-                    <table>
-                        <tr><th>Tanggal</th><th>Kode</th><th>Nama</th><th>Qty</th><th>Unit</th><th>Outlet</th><th>Status</th></tr>
-                        ${transferData.map(item => `
-                            <tr><td>${item.tanggal}</td><td>${item.kode}</td><td>${item.nama}</td><td>${item.quantity}</td><td>${item.unit}</td><td>${item.outlet}</td><td>${item.status || 'Completed'}</td></tr>
-                        `).join('')}
-                    </table>
-                    
-                    <h2>💾 Database Barang</h2>
-                    <table>
-                        <tr><th>Kode</th><th>Nama</th><th>Stock</th><th>Unit</th><th>Harga</th></tr>
-                        ${Object.entries(databaseData).map(([kode, data]) => `
-                            <tr><td>${kode}</td><td>${data.nama}</td><td>${data.stock}</td><td>${data.unit}</td><td>Rp ${(data.harga || 0).toLocaleString('id-ID')}</td></tr>
-                        `).join('')}
-                    </table>
-                </body>
-                </html>
-            `);
-            printWindow.document.close();
-            printWindow.print();
-        }
-
-        async function generateGoogleSheetsReport() {
-            if (!isConnected) {
-                alert('❌ Tidak terhubung ke Google Sheets');
-                return;
-            }
+            const printContent = document.getElementById('printContent');
             
-            try {
-                const result = await sendToGoogleSheets('generateReport', {});
-                if (result.success) {
-                    alert('✅ Laporan berhasil dibuat di Google Sheets!');
-                } else {
-                    alert('❌ Gagal membuat laporan: ' + result.error);
-                }
-            } catch (error) {
-                alert('❌ Error: ' + error.message);
-            }
-        }
-
-        // Auto refresh data every 30 seconds if connected
-        setInterval(async () => {
-            if (isConnected && currentUser) {
-                try {
-                    await loadDataFromGoogleSheets();
-                    console.log('🔄 Auto-refresh completed');
-                } catch (error) {
-                    console.log('⚠️ Auto-refresh failed:', error.message);
-                }
-            }
-        }, 30000);
-
-        // Test connection to Google Sheets
-        async function testConnection() {
-            console.log('🔍 Testing connection to Google Sheets...');
-            updateSyncStatus('loading', '🔍 Testing connection...');
+            let html = '<h2>Database Barang</h2><table border="1" style="width:100%; border-collapse: collapse;"><tr><th>Kode</th><th>Nama</th><th>Stock</th><th>Unit</th></tr>';
+            database.forEach(item => {
+                html += `<tr><td>${item.kode}</td><td>${item.nama}</td><td>${item.stock}</td><td>${item.unit}</td></tr>`;
+            });
+            html += '</table><br>';
             
-            try {
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 5000);
-                
-                const response = await fetch(`${GOOGLE_SCRIPT_URL}?action=test&timestamp=${Date.now()}`, {
-                    method: 'GET',
-                    signal: controller.signal
-                });
-                
-                clearTimeout(timeoutId);
-                
-                console.log('📡 Response status:', response.status);
-                console.log('📡 Response headers:', [...response.headers.entries()]);
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                }
-                
-                const text = await response.text();
-                console.log('📡 Raw response:', text);
-                
-                let data;
-                try {
-                    data = JSON.parse(text);
-                } catch (e) {
-                    throw new Error(`Invalid JSON response: ${text.substring(0, 100)}...`);
-                }
-                
-                console.log('📡 Parsed response:', data);
-                
-                if (data.success) {
-                    updateSyncStatus('success', '✅ Connection successful - Auto-sync enabled');
-                    isConnected = true;
-                    alert('✅ Koneksi berhasil!\n\n📊 Google Apps Script merespons dengan baik\n🔄 Auto-sync setiap 30 detik diaktifkan\n📝 Data akan otomatis sinkron dengan spreadsheet');
-                } else {
-                    throw new Error(data.error || 'Test failed');
-                }
-                
-            } catch (error) {
-                console.error('❌ Connection test failed:', error);
-                let errorMsg = error.message;
-                
-                if (error.name === 'AbortError') {
-                    errorMsg = 'Timeout - Google Apps Script tidak merespons dalam 5 detik';
-                } else if (error.message.includes('Failed to fetch')) {
-                    errorMsg = 'Network error - Periksa koneksi internet atau URL deployment';
-                } else if (error.message.includes('CORS')) {
-                    errorMsg = 'CORS error - Google Apps Script belum di-deploy dengan benar';
-                }
-                
-                updateSyncStatus('error', `❌ ${errorMsg}`);
-                isConnected = false;
-                
-                alert(`❌ Test koneksi gagal!\n\nError: ${errorMsg}\n\nSolusi:\n1. Pastikan Google Apps Script sudah di-deploy\n2. Set permissions ke "Anyone"\n3. Periksa URL deployment\n4. Coba refresh halaman\n\n💡 Sistem akan bekerja offline dengan data lokal`);
-            }
-        }
-
-        // Open Google Sheets
-        function openGoogleSheets() {
-            // Extract spreadsheet ID from Google Apps Script URL if possible
-            // Or use a default message
-            alert('📊 Google Sheets akan terbuka otomatis setelah data pertama disimpan.\n\nAtau buka Google Drive dan cari file "Sistem Gudang Data"');
+            html += '<h2>Riwayat Transaksi</h2><table border="1" style="width:100%; border-collapse: collapse;"><tr><th>Tanggal</th><th>Kode</th><th>Nama</th><th>Keterangan</th></tr>';
+            riwayat.forEach(item => {
+                html += `<tr><td>${item.tanggal}</td><td>${item.kode}</td><td>${item.nama}</td><td>${item.keterangan}</td></tr>`;
+            });
+            html += '</table>';
+            
+            printContent.innerHTML = html;
+            window.print();
         }
     </script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'97c8fa4931b48de9',t:'MTc1NzQ0NDk0Mi4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'97ccb871b09bfd25',t:'MTc1NzQ4NDE4OC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
