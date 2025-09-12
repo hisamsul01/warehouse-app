@@ -1,88 +1,495 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-  <meta charset="UTF-8">
-  <title>Sistem Gudang</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="bg-gray-100 p-6">
+import React, { useState } from "react";
+import { Button } from "/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "/components/ui/card";
+import { Input } from "/components/ui/input";
+import { Label } from "/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-  <h1 class="text-2xl font-bold mb-4">📦 Sistem Manajemen Gudang</h1>
+type Store = {
+  kode: string;
+  nama: string;
+};
 
-  <!-- Pilih Store -->
-  <div>
-    <label>Store:</label>
-    <select id="storeSelect" class="border p-2"></select>
-  </div>
+type Barang = {
+  kodeBarang: string;
+  namaBarang: string;
+  kuantitas: number;
+  unit: string;
+};
 
-  <!-- Input Barang -->
-  <div class="mt-4">
-    <label>Kode Barang:</label>
-    <input id="kodeBarang" class="border p-2" type="text">
-    <label>Nama Barang:</label>
-    <input id="namaBarang" class="border p-2" type="text">
-    <label>Kuantitas:</label>
-    <input id="qty" class="border p-2" type="number">
-    <label>Unit:</label>
-    <input id="unit" class="border p-2" type="text">
-  </div>
+type Transaksi = Barang & {
+  tanggal: string;
+  storeKode: string;
+  tipe: "penerimaan" | "pengeluaran";
+};
 
-  <!-- Tombol -->
-  <div class="mt-4 space-x-2">
-    <button onclick="tambahPenerimaan()" class="bg-green-500 text-white px-4 py-2">+ Penerimaan</button>
-    <button onclick="tambahPengeluaran()" class="bg-red-500 text-white px-4 py-2">- Pengeluaran</button>
-  </div>
+export default function App() {
+  // Hardcoded store data from Excel sheet "Store"
+  const stores: Store[] = [
+    { kode: "01", nama: "GENERAL STORE (ANYER)" },
+    { kode: "02", nama: "General store (JKT)" },
+    { kode: "03", nama: "MAIN KITCHEN STORAGE" },
+    { kode: "04", nama: "F&B ADMIN" },
+    { kode: "05", nama: "HOUSEKEEPING" },
+    { kode: "10", nama: "ENGINEERING STORE" },
+    { kode: "11", nama: "PROJECT STORE" },
+    { kode: "12", nama: "ADMIN & GENERAL" },
+    { kode: "13", nama: "SALES & MARKETING" },
+    { kode: "14", nama: "SECURITY" },
+    { kode: "15", nama: "FRONT OFFICE" },
+    { kode: "16", nama: "SPA" },
+    { kode: "17", nama: "HRD" },
+    { kode: "21", nama: "D'BISTRO" },
+    { kode: "22", nama: "KOREAN STORE (KANTIN)" },
+    { kode: "23", nama: "DBAR STORE" },
+    { kode: "24", nama: "LIQUOR STORE" },
+    { kode: "25", nama: "SOUVENIR SHOP" },
+    { kode: "26", nama: "SPORT & RECREATION" },
+    { kode: "27", nama: "JAPANESE STORE" },
+    { kode: "28", nama: "DRAGON BEACH CLUB STORE" },
+    { kode: "29", nama: "SUNSET GRILL STORE" },
+    { kode: "31", nama: "BANQUET STORE" },
+    { kode: "40", nama: "LAUNDRY STORE" },
+  ];
 
-  <!-- Data Barang -->
-  <h2 class="text-xl font-semibold mt-6">📋 Database Barang</h2>
-  <table class="table-auto border mt-2 w-full" id="barangTable"></table>
+  // State for navigation menu
+  const [page, setPage] = useState<"store" | "database" | "penerimaan" | "pengeluaran" | "riwayat">("store");
 
-  <script>
-    const API_URL = "https://script.google.com/macros/s/AKfycbwXeL_SU-1WT3-6awEXbVkE9N3b_E-ygq2SVbc3uHFDpvW-KfWL3HAjoYaTMlM4kRW3kQ/exec";
+  // Database barang
+  const [barangList, setBarangList] = useState<Barang[]>([]);
 
-    async function loadStores() {
-      const res = await fetch(`${API_URL}?action=getStores`);
-      const data = await res.json();
-      const select = document.getElementById("storeSelect");
-      select.innerHTML = data.map(s => `<option value="${s.kode}">${s.nama}</option>`).join("");
+  // Transaksi penerimaan dan pengeluaran
+  const [transaksiList, setTransaksiList] = useState<Transaksi[]>([]);
+
+  // Form state for penerimaan & pengeluaran
+  const [form, setForm] = useState({
+    tanggal: "",
+    kodeBarang: "",
+    namaBarang: "",
+    kuantitas: "",
+    unit: "",
+    storeKode: "",
+  });
+
+  // Handle form change for common input
+  function onFormChange(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) {
+    setForm((f) => ({ ...f, [e.target.name]: e.target.value }));
+  }
+
+  // Validate kuantitas is number and positive
+  function isFormValid() {
+    return (
+      form.tanggal.trim() !== "" &&
+      form.kodeBarang.trim() !== "" &&
+      form.namaBarang.trim() !== "" &&
+      form.kuantitas.trim() !== "" &&
+      !isNaN(Number(form.kuantitas)) &&
+      Number(form.kuantitas) > 0 &&
+      form.unit.trim() !== "" &&
+      form.storeKode.trim() !== ""
+    );
+  }
+
+  // On submit penerimaan / pengeluaran
+  function submitTransaksi(tipe: "penerimaan" | "pengeluaran") {
+    if (!isFormValid()) {
+      alert("Mohon isi semua form dengan benar.");
+      return;
     }
 
-    async function loadBarang() {
-      const res = await fetch(`${API_URL}?action=getBarang`);
-      const data = await res.json();
-      const table = document.getElementById("barangTable");
-      table.innerHTML = "<tr><th>Kode</th><th>Nama</th><th>Qty</th><th>Unit</th></tr>" +
-        data.map(b => `<tr><td>${b.kode}</td><td>${b.nama}</td><td>${b.qty}</td><td>${b.unit}</td></tr>`).join("");
+    // Add transaksi
+    const newTransaksi: Transaksi = {
+      tanggal: form.tanggal,
+      kodeBarang: form.kodeBarang,
+      namaBarang: form.namaBarang,
+      kuantitas: Number(form.kuantitas),
+      unit: form.unit,
+      storeKode: form.storeKode,
+      tipe,
+    };
+    setTransaksiList((prev) => [...prev, newTransaksi]);
+
+    // If barang belum ada di database, tambahkan
+    const foundBarang = barangList.find((b) => b.kodeBarang === form.kodeBarang);
+    if (!foundBarang) {
+      setBarangList((prev) => [
+        ...prev,
+        {
+          kodeBarang: form.kodeBarang,
+          namaBarang: form.namaBarang,
+          kuantitas: 0,
+          unit: form.unit,
+        },
+      ]);
     }
 
-    async function tambahPenerimaan() {
-      const body = {
-        action: "tambahPenerimaan",
-        kode: document.getElementById("kodeBarang").value,
-        nama: document.getElementById("namaBarang").value,
-        qty: document.getElementById("qty").value,
-        unit: document.getElementById("unit").value
-      };
-      await fetch(API_URL, { method: "POST", body: JSON.stringify(body) });
-      alert("Penerimaan berhasil ditambahkan!");
-      loadBarang();
-    }
+    // Reset form
+    setForm({
+      tanggal: "",
+      kodeBarang: "",
+      namaBarang: "",
+      kuantitas: "",
+      unit: "",
+      storeKode: "",
+    });
 
-    async function tambahPengeluaran() {
-      const body = {
-        action: "tambahPengeluaran",
-        kode: document.getElementById("kodeBarang").value,
-        nama: document.getElementById("namaBarang").value,
-        qty: document.getElementById("qty").value,
-        unit: document.getElementById("unit").value
-      };
-      await fetch(API_URL, { method: "POST", body: JSON.stringify(body) });
-      alert("Pengeluaran berhasil ditambahkan!");
-      loadBarang();
-    }
+    alert(`Data ${tipe === "penerimaan" ? "penerimaan" : "pengeluaran"} berhasil disimpan.`);
+  }
 
-    loadStores();
-    loadBarang();
-  </script>
-</body>
-</html>
+  // Filter riwayat berdasarkan store kode (default all)
+  const [riwayatStoreFilter, setRiwayatStoreFilter] = useState<string>("");
+
+  // Filtered riwayat
+  const filteredRiwayat = riwayatStoreFilter
+    ? transaksiList.filter((t) => t.storeKode === riwayatStoreFilter)
+    : transaksiList;
+
+  // Layout: Navigation menu as buttons
+  return (
+    <div className="min-h-screen bg-white p-4 max-w-5xl mx-auto">
+      <h1 className="text-2xl font-bold text-center mb-6">Inventory Management System</h1>
+      <nav className="flex justify-center space-x-3 mb-4 flex-wrap">
+        <Button variant={page === "store" ? "default" : "outline"} onClick={() => setPage("store")}>
+          Store
+        </Button>
+        <Button variant={page === "database" ? "default" : "outline"} onClick={() => setPage("database")}>
+          Database
+        </Button>
+        <Button variant={page === "penerimaan" ? "default" : "outline"} onClick={() => setPage("penerimaan")}>
+          Penerimaan
+        </Button>
+        <Button variant={page === "pengeluaran" ? "default" : "outline"} onClick={() => setPage("pengeluaran")}>
+          Pengeluaran
+        </Button>
+        <Button variant={page === "riwayat" ? "default" : "outline"} onClick={() => setPage("riwayat")}>
+          Riwayat
+        </Button>
+      </nav>
+
+      {/* Store Page */}
+      {page === "store" && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Daftar Store</CardTitle>
+            <CardDescription>List Store sesuai form Excel</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <table className="w-full border border-collapse border-gray-300">
+              <thead className="bg-gray-100">
+                <tr>
+                  <th className="border border-gray-300 px-3 py-1 text-left">Kode Store</th>
+                  <th className="border border-gray-300 px-3 py-1 text-left">Nama Store</th>
+                </tr>
+              </thead>
+              <tbody>
+                {stores.map((store) => (
+                  <tr key={store.kode} className="odd:bg-white even:bg-gray-50">
+                    <td className="border border-gray-300 px-3 py-1 font-mono">{store.kode}</td>
+                    <td className="border border-gray-300 px-3 py-1">{store.nama}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Database Page */}
+      {page === "database" && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Database Barang</CardTitle>
+            <CardDescription>Daftar barang yang sudah tercatat</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {barangList.length === 0 ? (
+              <p className="text-center py-4 text-gray-500">Belum ada data barang.</p>
+            ) : (
+              <table className="w-full border border-collapse border-gray-300">
+                <thead className="bg-gray-100">
+                  <tr>
+                    <th className="border border-gray-300 px-3 py-1">Kode Barang</th>
+                    <th className="border border-gray-300 px-3 py-1">Nama Barang</th>
+                    <th className="border border-gray-300 px-3 py-1">Unit</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {barangList.map((b) => (
+                    <tr key={b.kodeBarang} className="odd:bg-white even:bg-gray-50">
+                      <td className="border border-gray-300 px-3 py-1 font-mono">{b.kodeBarang}</td>
+                      <td className="border border-gray-300 px-3 py-1">{b.namaBarang}</td>
+                      <td className="border border-gray-300 px-3 py-1">{b.unit}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Penerimaan Page */}
+      {page === "penerimaan" && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Input Penerimaan Barang</CardTitle>
+            <CardDescription>Form tambah data barang masuk</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4 max-w-md">
+            <div className="flex flex-col">
+              <Label htmlFor="tanggal">Tanggal</Label>
+              <Input
+                type="date"
+                id="tanggal"
+                name="tanggal"
+                value={form.tanggal}
+                onChange={onFormChange}
+              />
+            </div>
+            <div className="flex flex-col">
+              <Label htmlFor="kodeBarang">Kode Barang</Label>
+              <Input
+                type="text"
+                id="kodeBarang"
+                name="kodeBarang"
+                placeholder="Kode Barang"
+                value={form.kodeBarang}
+                onChange={onFormChange}
+              />
+            </div>
+            <div className="flex flex-col">
+              <Label htmlFor="namaBarang">Nama Barang</Label>
+              <Input
+                type="text"
+                id="namaBarang"
+                name="namaBarang"
+                placeholder="Nama Barang"
+                value={form.namaBarang}
+                onChange={onFormChange}
+              />
+            </div>
+            <div className="flex flex-col">
+              <Label htmlFor="kuantitas">Kuantitas</Label>
+              <Input
+                type="number"
+                min="1"
+                id="kuantitas"
+                name="kuantitas"
+                placeholder="Kuantitas"
+                value={form.kuantitas}
+                onChange={onFormChange}
+              />
+            </div>
+            <div className="flex flex-col">
+              <Label htmlFor="unit">Unit</Label>
+              <Input
+                type="text"
+                id="unit"
+                name="unit"
+                placeholder="Unit, misal pcs, kg"
+                value={form.unit}
+                onChange={onFormChange}
+              />
+            </div>
+            <div className="flex flex-col">
+              <Label htmlFor="storeKode">Store</Label>
+              <Select
+                onValueChange={(val) => setForm((f) => ({ ...f, storeKode: val }))}
+                value={form.storeKode}
+              >
+                <SelectTrigger aria-label="Store" id="storeKode" name="storeKode" className="w-full">
+                  <SelectValue placeholder="Pilih Store" />
+                </SelectTrigger>
+                <SelectContent>
+                  {stores.map((store) => (
+                    <SelectItem key={store.kode} value={store.kode}>
+                      {store.nama}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </CardContent>
+          <CardFooter>
+            <Button onClick={() => submitTransaksi("penerimaan")} disabled={!isFormValid()}>
+              Simpan Penerimaan
+            </Button>
+          </CardFooter>
+        </Card>
+      )}
+
+      {/* Pengeluaran Page */}
+      {page === "pengeluaran" && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Input Pengeluaran Barang</CardTitle>
+            <CardDescription>Form tambah data barang keluar</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4 max-w-md">
+            <div className="flex flex-col">
+              <Label htmlFor="tanggal">Tanggal</Label>
+              <Input
+                type="date"
+                id="tanggal"
+                name="tanggal"
+                value={form.tanggal}
+                onChange={onFormChange}
+              />
+            </div>
+            <div className="flex flex-col">
+              <Label htmlFor="kodeBarang">Kode Barang</Label>
+              <Input
+                type="text"
+                id="kodeBarang"
+                name="kodeBarang"
+                placeholder="Kode Barang"
+                value={form.kodeBarang}
+                onChange={onFormChange}
+              />
+            </div>
+            <div className="flex flex-col">
+              <Label htmlFor="namaBarang">Nama Barang</Label>
+              <Input
+                type="text"
+                id="namaBarang"
+                name="namaBarang"
+                placeholder="Nama Barang"
+                value={form.namaBarang}
+                onChange={onFormChange}
+              />
+            </div>
+            <div className="flex flex-col">
+              <Label htmlFor="kuantitas">Kuantitas</Label>
+              <Input
+                type="number"
+                min="1"
+                id="kuantitas"
+                name="kuantitas"
+                placeholder="Kuantitas"
+                value={form.kuantitas}
+                onChange={onFormChange}
+              />
+            </div>
+            <div className="flex flex-col">
+              <Label htmlFor="unit">Unit</Label>
+              <Input
+                type="text"
+                id="unit"
+                name="unit"
+                placeholder="Unit, misal pcs, kg"
+                value={form.unit}
+                onChange={onFormChange}
+              />
+            </div>
+            <div className="flex flex-col">
+              <Label htmlFor="storeKode">Store</Label>
+              <Select
+                onValueChange={(val) => setForm((f) => ({ ...f, storeKode: val }))}
+                value={form.storeKode}
+              >
+                <SelectTrigger aria-label="Store" id="storeKode" name="storeKode" className="w-full">
+                  <SelectValue placeholder="Pilih Store" />
+                </SelectTrigger>
+                <SelectContent>
+                  {stores.map((store) => (
+                    <SelectItem key={store.kode} value={store.kode}>
+                      {store.nama}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </CardContent>
+          <CardFooter>
+            <Button onClick={() => submitTransaksi("pengeluaran")} disabled={!isFormValid()}>
+              Simpan Pengeluaran
+            </Button>
+          </CardFooter>
+        </Card>
+      )}
+
+      {/* Riwayat Page */}
+      {page === "riwayat" && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Riwayat Transaksi</CardTitle>
+            <CardDescription>Daftar penerimaan dan pengeluaran barang</CardDescription>
+            <div className="mt-2 w-64">
+              <Label htmlFor="filterStore">Filter Store</Label>
+              <Select
+                id="filterStore"
+                value={riwayatStoreFilter}
+                onValueChange={setRiwayatStoreFilter}
+                defaultValue=""
+              >
+                <SelectTrigger aria-label="Filter Store" className="w-full">
+                  <SelectValue placeholder="Semua Store" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Semua Store</SelectItem>
+                  {stores.map((store) => (
+                    <SelectItem key={store.kode} value={store.kode}>
+                      {store.nama}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {filteredRiwayat.length === 0 ? (
+              <p className="text-center py-4 text-gray-500">Belum ada riwayat transaksi.</p>
+            ) : (
+              <table className="w-full border border-collapse border-gray-300 text-sm">
+                <thead className="bg-gray-100">
+                  <tr>
+                    <th className="border border-gray-300 px-2 py-1">Tanggal</th>
+                    <th className="border border-gray-300 px-2 py-1">Kode Barang</th>
+                    <th className="border border-gray-300 px-2 py-1">Nama Barang</th>
+                    <th className="border border-gray-300 px-2 py-1">Kuantitas</th>
+                    <th className="border border-gray-300 px-2 py-1">Unit</th>
+                    <th className="border border-gray-300 px-2 py-1">Store</th>
+                    <th className="border border-gray-300 px-2 py-1">Tipe</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredRiwayat
+                    .sort((a, b) => (a.tanggal < b.tanggal ? 1 : -1))
+                    .map((t, idx) => (
+                      <tr
+                        key={`${t.tanggal}-${t.kodeBarang}-${idx}`}
+                        className="odd:bg-white even:bg-gray-50"
+                      >
+                        <td className="border border-gray-300 px-2 py-1 font-mono">{t.tanggal}</td>
+                        <td className="border border-gray-300 px-2 py-1 font-mono">{t.kodeBarang}</td>
+                        <td className="border border-gray-300 px-2 py-1">{t.namaBarang}</td>
+                        <td className="border border-gray-300 px-2 py-1 text-right">{t.kuantitas}</td>
+                        <td className="border border-gray-300 px-2 py-1">{t.unit}</td>
+                        <td className="border border-gray-300 px-2 py-1">
+                          {stores.find((s) => s.kode === t.storeKode)?.nama || "-"}
+                        </td>
+                        <td
+                          className={`border border-gray-300 px-2 py-1 font-semibold ${
+                            t.tipe === "penerimaan" ? "text-green-600" : "text-red-600"
+                          }`}
+                        >
+                          {t.tipe === "penerimaan" ? "Penerimaan" : "Pengeluaran"}
+                        </td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            )}
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
