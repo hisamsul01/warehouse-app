@@ -1,495 +1,1264 @@
-import React, { useState } from "react";
-import { Button } from "/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "/components/ui/card";
-import { Input } from "/components/ui/input";
-import { Label } from "/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Manajemen Gudang</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .loading {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3498db;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen">
+    <!-- Header -->
+    <header class="bg-white shadow-lg border-b-4 border-blue-500">
+        <div class="container mx-auto px-6 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <div class="bg-blue-500 p-2 rounded-lg">
+                        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+                        </svg>
+                    </div>
+                    <div>
+                        <h1 class="text-2xl font-bold text-gray-800">Sistem Manajemen Gudang</h1>
+                        <p class="text-sm text-gray-600">Kelola inventori dengan mudah</p>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <div id="connectionStatus" class="flex items-center space-x-2">
+                        <div class="w-3 h-3 bg-red-500 rounded-full"></div>
+                        <span class="text-sm text-gray-600">Tidak Terhubung</span>
+                    </div>
+                    <button id="connectBtn" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors">
+                        Hubungkan ke Google Apps Script
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
 
-type Store = {
-  kode: string;
-  nama: string;
-};
+    <!-- Main Content -->
+    <main class="container mx-auto px-6 py-8">
+        <!-- Connection Setup -->
+        <div id="setupSection" class="bg-white rounded-xl shadow-lg p-6 mb-8">
+            <h2 class="text-xl font-semibold text-gray-800 mb-4">🔗 Pengaturan Google Apps Script</h2>
+            <div class="grid md:grid-cols-1 gap-6">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Google Apps Script Web App URL</label>
+                    <input type="text" id="scriptUrl" placeholder="https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec" 
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    <p class="text-xs text-gray-500 mt-1">URL Web App dari Google Apps Script yang sudah di-deploy</p>
+                </div>
+            </div>
+            <div class="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <p class="text-sm text-blue-800">
+                    <strong>Google Apps Script Setup:</strong> 
+                    <br>1. Buat Google Apps Script baru di script.google.com
+                    <br>2. Copy kode script yang disediakan
+                    <br>3. Deploy sebagai Web App dengan akses "Anyone"
+                    <br>4. Masukkan URL Web App di atas
+                </p>
+            </div>
+            <div class="mt-4">
+                <button id="showScriptCode" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition-colors mr-3">
+                    📋 Lihat Kode Google Apps Script
+                </button>
+                <button id="testConnection" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors">
+                    🔗 Test Koneksi
+                </button>
+            </div>
+        </div>
 
-type Barang = {
-  kodeBarang: string;
-  namaBarang: string;
-  kuantitas: number;
-  unit: string;
-};
+        <!-- Google Apps Script Code Modal -->
+        <div id="scriptModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50">
+            <div class="flex items-center justify-center min-h-screen p-4">
+                <div class="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[80vh] overflow-hidden">
+                    <div class="p-6 border-b border-gray-200">
+                        <div class="flex justify-between items-center">
+                            <h3 class="text-xl font-semibold text-gray-800">📋 Kode Google Apps Script</h3>
+                            <button id="closeModal" class="text-gray-500 hover:text-gray-700">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="p-6 overflow-y-auto max-h-[60vh]">
+                        <p class="text-sm text-gray-600 mb-4">Copy kode berikut ke Google Apps Script Editor:</p>
+                        <div class="bg-gray-900 text-green-400 p-4 rounded-lg overflow-x-auto">
+                            <pre id="scriptCode" class="text-sm whitespace-pre-wrap"></pre>
+                        </div>
+                        <div class="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                            <p class="text-sm text-yellow-800">
+                                <strong>Langkah Setup:</strong><br>
+                                1. Buka script.google.com<br>
+                                2. Buat project baru<br>
+                                3. Paste kode di atas<br>
+                                4. Klik Deploy → New deployment<br>
+                                5. Pilih type: Web app<br>
+                                6. Execute as: Me<br>
+                                7. Who has access: Anyone<br>
+                                8. Copy URL Web App yang dihasilkan
+                            </p>
+                        </div>
+                        <button id="copyScript" class="mt-4 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors">
+                            📋 Copy Kode
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-type Transaksi = Barang & {
-  tanggal: string;
-  storeKode: string;
-  tipe: "penerimaan" | "pengeluaran";
-};
+        <!-- Navigation Tabs -->
+        <div class="bg-white rounded-xl shadow-lg mb-8">
+            <div class="border-b border-gray-200">
+                <nav class="flex space-x-8 px-6">
+                    <button class="tab-btn active py-4 px-2 border-b-2 border-blue-500 text-blue-600 font-medium" data-tab="dashboard">
+                        📊 Dashboard
+                    </button>
+                    <button class="tab-btn py-4 px-2 border-b-2 border-transparent text-gray-500 hover:text-gray-700" data-tab="inventory">
+                        📦 Inventori
+                    </button>
+                    <button class="tab-btn py-4 px-2 border-b-2 border-transparent text-gray-500 hover:text-gray-700" data-tab="incoming">
+                        📥 Barang Masuk
+                    </button>
+                    <button class="tab-btn py-4 px-2 border-b-2 border-transparent text-gray-500 hover:text-gray-700" data-tab="outgoing">
+                        📤 Barang Keluar
+                    </button>
+                    <button class="tab-btn py-4 px-2 border-b-2 border-transparent text-gray-500 hover:text-gray-700" data-tab="status">
+                        📋 Status
+                    </button>
+                    <button class="tab-btn py-4 px-2 border-b-2 border-transparent text-gray-500 hover:text-gray-700" data-tab="stores">
+                        🏪 Store
+                    </button>
+                </nav>
+            </div>
 
-export default function App() {
-  // Hardcoded store data from Excel sheet "Store"
-  const stores: Store[] = [
-    { kode: "01", nama: "GENERAL STORE (ANYER)" },
-    { kode: "02", nama: "General store (JKT)" },
-    { kode: "03", nama: "MAIN KITCHEN STORAGE" },
-    { kode: "04", nama: "F&B ADMIN" },
-    { kode: "05", nama: "HOUSEKEEPING" },
-    { kode: "10", nama: "ENGINEERING STORE" },
-    { kode: "11", nama: "PROJECT STORE" },
-    { kode: "12", nama: "ADMIN & GENERAL" },
-    { kode: "13", nama: "SALES & MARKETING" },
-    { kode: "14", nama: "SECURITY" },
-    { kode: "15", nama: "FRONT OFFICE" },
-    { kode: "16", nama: "SPA" },
-    { kode: "17", nama: "HRD" },
-    { kode: "21", nama: "D'BISTRO" },
-    { kode: "22", nama: "KOREAN STORE (KANTIN)" },
-    { kode: "23", nama: "DBAR STORE" },
-    { kode: "24", nama: "LIQUOR STORE" },
-    { kode: "25", nama: "SOUVENIR SHOP" },
-    { kode: "26", nama: "SPORT & RECREATION" },
-    { kode: "27", nama: "JAPANESE STORE" },
-    { kode: "28", nama: "DRAGON BEACH CLUB STORE" },
-    { kode: "29", nama: "SUNSET GRILL STORE" },
-    { kode: "31", nama: "BANQUET STORE" },
-    { kode: "40", nama: "LAUNDRY STORE" },
-  ];
+            <!-- Tab Contents -->
+            <div class="p-6">
+                <!-- Dashboard Tab -->
+                <div id="dashboard" class="tab-content">
+                    <div class="grid md:grid-cols-4 gap-6 mb-8">
+                        <div class="bg-gradient-to-r from-blue-500 to-blue-600 text-white p-6 rounded-xl">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-blue-100">Total Barang</p>
+                                    <p class="text-3xl font-bold">1,234</p>
+                                </div>
+                                <div class="text-4xl opacity-80">📦</div>
+                            </div>
+                        </div>
+                        <div class="bg-gradient-to-r from-green-500 to-green-600 text-white p-6 rounded-xl">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-green-100">Barang Masuk Hari Ini</p>
+                                    <p class="text-3xl font-bold">45</p>
+                                </div>
+                                <div class="text-4xl opacity-80">📥</div>
+                            </div>
+                        </div>
+                        <div class="bg-gradient-to-r from-orange-500 to-orange-600 text-white p-6 rounded-xl">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-orange-100">Barang Keluar Hari Ini</p>
+                                    <p class="text-3xl font-bold">32</p>
+                                </div>
+                                <div class="text-4xl opacity-80">📤</div>
+                            </div>
+                        </div>
+                        <div class="bg-gradient-to-r from-purple-500 to-purple-600 text-white p-6 rounded-xl">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-purple-100">Total Store</p>
+                                    <p class="text-3xl font-bold">25</p>
+                                </div>
+                                <div class="text-4xl opacity-80">🏪</div>
+                            </div>
+                        </div>
+                    </div>
 
-  // State for navigation menu
-  const [page, setPage] = useState<"store" | "database" | "penerimaan" | "pengeluaran" | "riwayat">("store");
+                    <div class="grid md:grid-cols-2 gap-6">
+                        <div class="bg-white border border-gray-200 rounded-xl p-6">
+                            <h3 class="text-lg font-semibold text-gray-800 mb-4">📈 Aktivitas Terbaru</h3>
+                            <div class="space-y-4">
+                                <div class="flex items-center space-x-3 p-3 bg-green-50 rounded-lg">
+                                    <div class="w-2 h-2 bg-green-500 rounded-full"></div>
+                                    <div class="flex-1">
+                                        <p class="text-sm font-medium">Barang masuk: Kertas A4</p>
+                                        <p class="text-xs text-gray-500">5 menit yang lalu</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center space-x-3 p-3 bg-orange-50 rounded-lg">
+                                    <div class="w-2 h-2 bg-orange-500 rounded-full"></div>
+                                    <div class="flex-1">
+                                        <p class="text-sm font-medium">Barang keluar: Tinta Printer</p>
+                                        <p class="text-xs text-gray-500">15 menit yang lalu</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center space-x-3 p-3 bg-blue-50 rounded-lg">
+                                    <div class="w-2 h-2 bg-blue-500 rounded-full"></div>
+                                    <div class="flex-1">
+                                        <p class="text-sm font-medium">Update stok: Alat Tulis</p>
+                                        <p class="text-xs text-gray-500">1 jam yang lalu</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
 
-  // Database barang
-  const [barangList, setBarangList] = useState<Barang[]>([]);
+                        <div class="bg-white border border-gray-200 rounded-xl p-6">
+                            <h3 class="text-lg font-semibold text-gray-800 mb-4">⚠️ Stok Menipis</h3>
+                            <div class="space-y-3">
+                                <div class="flex items-center justify-between p-3 bg-red-50 rounded-lg">
+                                    <div>
+                                        <p class="text-sm font-medium">Kertas A4</p>
+                                        <p class="text-xs text-gray-500">Kode: KRT001</p>
+                                    </div>
+                                    <span class="text-red-600 font-bold">5 rim</span>
+                                </div>
+                                <div class="flex items-center justify-between p-3 bg-yellow-50 rounded-lg">
+                                    <div>
+                                        <p class="text-sm font-medium">Tinta Printer</p>
+                                        <p class="text-xs text-gray-500">Kode: TNT002</p>
+                                    </div>
+                                    <span class="text-yellow-600 font-bold">8 pcs</span>
+                                </div>
+                                <div class="flex items-center justify-between p-3 bg-orange-50 rounded-lg">
+                                    <div>
+                                        <p class="text-sm font-medium">Pembersih Lantai</p>
+                                        <p class="text-xs text-gray-500">Kode: PBR003</p>
+                                    </div>
+                                    <span class="text-orange-600 font-bold">12 btl</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
-  // Transaksi penerimaan dan pengeluaran
-  const [transaksiList, setTransaksiList] = useState<Transaksi[]>([]);
+                <!-- Inventory Tab -->
+                <div id="inventory" class="tab-content hidden">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-2xl font-bold text-gray-800">📦 Database Inventori</h2>
+                        <button class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors">
+                            + Tambah Barang
+                        </button>
+                    </div>
 
-  // Form state for penerimaan & pengeluaran
-  const [form, setForm] = useState({
-    tanggal: "",
-    kodeBarang: "",
-    namaBarang: "",
-    kuantitas: "",
-    unit: "",
-    storeKode: "",
-  });
+                    <div class="bg-white border border-gray-200 rounded-xl overflow-hidden">
+                        <div class="p-4 border-b border-gray-200">
+                            <div class="flex space-x-4">
+                                <input type="text" placeholder="Cari barang..." 
+                                       class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                                <select class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                                    <option>Semua Kategori</option>
+                                    <option>Alat Tulis</option>
+                                    <option>Elektronik</option>
+                                    <option>Pembersih</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="overflow-x-auto">
+                            <table class="w-full">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kode Barang</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Barang</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kuantitas</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unit</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Min. Stock</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-200">
+                                    <tr>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">KRT001</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Kertas A4</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">25</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">rim</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">10</td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Tersedia</span>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                            <button class="text-blue-600 hover:text-blue-900 mr-3">Edit</button>
+                                            <button class="text-red-600 hover:text-red-900">Hapus</button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">TNT002</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Tinta Printer Canon</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">8</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">pcs</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">15</td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">Stok Rendah</span>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                            <button class="text-blue-600 hover:text-blue-900 mr-3">Edit</button>
+                                            <button class="text-red-600 hover:text-red-900">Hapus</button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">PBR003</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Pembersih Lantai</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">50</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">btl</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">20</td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Tersedia</span>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                            <button class="text-blue-600 hover:text-blue-900 mr-3">Edit</button>
+                                            <button class="text-red-600 hover:text-red-900">Hapus</button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
 
-  // Handle form change for common input
-  function onFormChange(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) {
-    setForm((f) => ({ ...f, [e.target.name]: e.target.value }));
-  }
+                <!-- Incoming Tab -->
+                <div id="incoming" class="tab-content hidden">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-2xl font-bold text-gray-800">📥 Barang Masuk</h2>
+                        <button class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition-colors">
+                            + Input Barang Masuk
+                        </button>
+                    </div>
 
-  // Validate kuantitas is number and positive
-  function isFormValid() {
-    return (
-      form.tanggal.trim() !== "" &&
-      form.kodeBarang.trim() !== "" &&
-      form.namaBarang.trim() !== "" &&
-      form.kuantitas.trim() !== "" &&
-      !isNaN(Number(form.kuantitas)) &&
-      Number(form.kuantitas) > 0 &&
-      form.unit.trim() !== "" &&
-      form.storeKode.trim() !== ""
-    );
-  }
+                    <div class="grid md:grid-cols-4 gap-6 mb-6">
+                        <div class="bg-white p-6 rounded-xl border border-gray-200">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Tanggal</label>
+                            <input type="date" id="incomingDate" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500">
+                        </div>
+                        <div class="bg-white p-6 rounded-xl border border-gray-200">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Kode Barang</label>
+                            <select id="incomingKode" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500">
+                                <option value="">Pilih Kode Barang</option>
+                                <option value="KRT001">KRT001</option>
+                                <option value="TNT002">TNT002</option>
+                                <option value="PBR003">PBR003</option>
+                                <option value="ELK004">ELK004</option>
+                                <option value="MJA005">MJA005</option>
+                            </select>
+                        </div>
+                        <div class="bg-white p-6 rounded-xl border border-gray-200">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Nama Barang</label>
+                            <input type="text" id="incomingNama" placeholder="Otomatis terisi" readonly class="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 focus:ring-2 focus:ring-green-500">
+                        </div>
+                        <div class="bg-white p-6 rounded-xl border border-gray-200">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Status</label>
+                            <select id="incomingStatus" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500">
+                                <option value="">Pilih Status</option>
+                                <option value="selesai">Selesai</option>
+                                <option value="pending">Pending</option>
+                            </select>
+                        </div>
+                    </div>
 
-  // On submit penerimaan / pengeluaran
-  function submitTransaksi(tipe: "penerimaan" | "pengeluaran") {
-    if (!isFormValid()) {
-      alert("Mohon isi semua form dengan benar.");
-      return;
+                    <div class="grid md:grid-cols-3 gap-6 mb-6">
+                        <div class="bg-white p-6 rounded-xl border border-gray-200">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Kuantitas</label>
+                            <input type="number" id="incomingKuantitas" placeholder="Jumlah barang" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500">
+                        </div>
+                        <div class="bg-white p-6 rounded-xl border border-gray-200">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Unit</label>
+                            <input type="text" id="incomingUnit" placeholder="Otomatis terisi" readonly class="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 focus:ring-2 focus:ring-green-500">
+                        </div>
+                        <div class="bg-white p-6 rounded-xl border border-gray-200">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Keterangan</label>
+                            <input type="text" id="incomingKeterangan" placeholder="Keterangan barang masuk" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500">
+                        </div>
+                    </div>
+
+                    <div class="flex justify-end space-x-4 mb-6">
+                        <button id="clearIncomingForm" class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded-lg transition-colors">
+                            🗑️ Clear Form
+                        </button>
+                        <button id="submitIncoming" class="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-lg transition-colors">
+                            ✅ Submit Barang Masuk
+                        </button>
+                    </div>
+
+                    <div class="bg-white border border-gray-200 rounded-xl overflow-hidden">
+                        <div class="p-4 border-b border-gray-200 bg-green-50">
+                            <h3 class="font-semibold text-gray-800">Riwayat Barang Masuk</h3>
+                        </div>
+                        
+                        <div class="overflow-x-auto">
+                            <table class="w-full">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tanggal</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kode Barang</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Barang</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kuantitas</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unit</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Keterangan</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-200">
+                                    <tr>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">2024-01-15</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">KRT001</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Kertas A4</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">10</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">rim</td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Selesai</span>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Pembelian rutin</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">2024-01-14</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">TNT002</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Tinta Printer Canon</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">20</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">pcs</td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">Pending</span>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Restok bulanan</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Outgoing Tab -->
+                <div id="outgoing" class="tab-content hidden">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-2xl font-bold text-gray-800">📤 Barang Keluar</h2>
+                        <button class="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg transition-colors">
+                            + Input Barang Keluar
+                        </button>
+                    </div>
+
+                    <div class="grid md:grid-cols-3 gap-6 mb-6">
+                        <div class="bg-white p-6 rounded-xl border border-gray-200">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Tanggal</label>
+                            <input type="date" id="outgoingDate" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500">
+                        </div>
+                        <div class="bg-white p-6 rounded-xl border border-gray-200">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Kode Barang</label>
+                            <select id="outgoingKode" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500">
+                                <option value="">Pilih Kode Barang</option>
+                                <option value="KRT001">KRT001</option>
+                                <option value="TNT002">TNT002</option>
+                                <option value="PBR003">PBR003</option>
+                                <option value="ELK004">ELK004</option>
+                                <option value="MJA005">MJA005</option>
+                            </select>
+                        </div>
+                        <div class="bg-white p-6 rounded-xl border border-gray-200">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Nama Barang</label>
+                            <input type="text" id="outgoingNama" placeholder="Otomatis terisi" readonly class="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 focus:ring-2 focus:ring-orange-500">
+                        </div>
+                    </div>
+
+                    <div class="grid md:grid-cols-3 gap-6 mb-6">
+                        <div class="bg-white p-6 rounded-xl border border-gray-200">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Kuantitas</label>
+                            <input type="number" id="outgoingKuantitas" placeholder="Jumlah keluar" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500">
+                        </div>
+                        <div class="bg-white p-6 rounded-xl border border-gray-200">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Unit</label>
+                            <input type="text" id="outgoingUnit" placeholder="Otomatis terisi" readonly class="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 focus:ring-2 focus:ring-orange-500">
+                        </div>
+                        <div class="bg-white p-6 rounded-xl border border-gray-200">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Store Tujuan</label>
+                            <select id="outgoingStore" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500">
+                                <option>Pilih Store</option>
+                                <option>01 - GENERAL STORE (ANYER)</option>
+                                <option>02 - General store (JKT)</option>
+                                <option>03 - MAIN KITCHEN STORAGE</option>
+                                <option>04 - F&B ADMIN</option>
+                                <option>05 - HOUSEKEEPING</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-end space-x-4 mb-6">
+                        <button id="clearOutgoingForm" class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded-lg transition-colors">
+                            🗑️ Clear Form
+                        </button>
+                        <button id="submitOutgoing" class="bg-orange-500 hover:bg-orange-600 text-white px-6 py-2 rounded-lg transition-colors">
+                            ✅ Submit Barang Keluar
+                        </button>
+                    </div>
+
+                    <div class="bg-white border border-gray-200 rounded-xl overflow-hidden">
+                        <div class="p-4 border-b border-gray-200 bg-orange-50">
+                            <h3 class="font-semibold text-gray-800">Riwayat Barang Keluar</h3>
+                        </div>
+                        
+                        <div class="overflow-x-auto">
+                            <table class="w-full">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tanggal</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kode Barang</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Barang</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kuantitas</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unit</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Store</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-200">
+                                    <tr>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">2024-01-15</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">KRT001</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Kertas A4</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">5</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">rim</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">02 - General store (JKT)</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">2024-01-14</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">PBR003</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Pembersih Lantai</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">10</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">btl</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">05 - HOUSEKEEPING</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Status Tab -->
+                <div id="status" class="tab-content hidden">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-2xl font-bold text-gray-800">📋 Status Barang</h2>
+                        <button class="bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 rounded-lg transition-colors">
+                            + Update Status
+                        </button>
+                    </div>
+
+                    <div class="grid md:grid-cols-4 gap-6 mb-6">
+                        <div class="bg-white p-6 rounded-xl border border-gray-200">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Tanggal</label>
+                            <input type="date" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
+                        </div>
+                        <div class="bg-white p-6 rounded-xl border border-gray-200">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Kode Barang</label>
+                            <select id="statusKode" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
+                                <option value="">Pilih Kode Barang</option>
+                                <option value="KRT001">KRT001</option>
+                                <option value="TNT002">TNT002</option>
+                                <option value="PBR003">PBR003</option>
+                                <option value="ELK004">ELK004</option>
+                                <option value="MJA005">MJA005</option>
+                            </select>
+                        </div>
+                        <div class="bg-white p-6 rounded-xl border border-gray-200">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Nama Barang</label>
+                            <input type="text" id="statusNama" placeholder="Otomatis terisi" readonly class="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 focus:ring-2 focus:ring-indigo-500">
+                        </div>
+                        <div class="bg-white p-6 rounded-xl border border-gray-200">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Status</label>
+                            <select class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
+                                <option>Pilih Status</option>
+                                <option>Tersedia</option>
+                                <option>Stok Rendah</option>
+                                <option>Habis</option>
+                                <option>Rusak</option>
+                                <option>Dalam Perbaikan</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="grid md:grid-cols-2 gap-6 mb-6">
+                        <div class="bg-white p-6 rounded-xl border border-gray-200">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Kuantitas</label>
+                            <input type="number" placeholder="Jumlah barang" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
+                        </div>
+                        <div class="bg-white p-6 rounded-xl border border-gray-200">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Unit</label>
+                            <input type="text" id="statusUnit" placeholder="Otomatis terisi" readonly class="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 focus:ring-2 focus:ring-indigo-500">
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-6 rounded-xl border border-gray-200 mb-6">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Keterangan</label>
+                        <textarea placeholder="Masukkan keterangan status barang..." rows="3" 
+                                  class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"></textarea>
+                    </div>
+
+                    <div class="bg-white border border-gray-200 rounded-xl overflow-hidden">
+                        <div class="p-4 border-b border-gray-200 bg-indigo-50">
+                            <div class="flex justify-between items-center">
+                                <h3 class="font-semibold text-gray-800">Riwayat Status Barang</h3>
+                                <div class="flex space-x-2">
+                                    <select class="px-3 py-1 border border-gray-300 rounded text-sm">
+                                        <option>Semua Status</option>
+                                        <option>Tersedia</option>
+                                        <option>Stok Rendah</option>
+                                        <option>Habis</option>
+                                        <option>Rusak</option>
+                                    </select>
+                                    <input type="text" placeholder="Cari barang..." 
+                                           class="px-3 py-1 border border-gray-300 rounded text-sm w-48">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="overflow-x-auto">
+                            <table class="w-full">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tanggal</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kode Barang</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Barang</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kuantitas</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unit</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Keterangan</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-200">
+                                    <tr>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">2024-01-15</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">KRT001</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Kertas A4</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">25</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">rim</td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Tersedia</span>
+                                        </td>
+                                        <td class="px-6 py-4 text-sm text-gray-900 max-w-xs truncate">Stok normal, kondisi baik</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                            <button class="text-indigo-600 hover:text-indigo-900 mr-3">Edit</button>
+                                            <button class="text-red-600 hover:text-red-900">Hapus</button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">2024-01-14</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">TNT002</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Tinta Printer Canon</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">8</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">pcs</td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">Stok Rendah</span>
+                                        </td>
+                                        <td class="px-6 py-4 text-sm text-gray-900 max-w-xs truncate">Perlu restok segera</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                            <button class="text-indigo-600 hover:text-indigo-900 mr-3">Edit</button>
+                                            <button class="text-red-600 hover:text-red-900">Hapus</button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">2024-01-13</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">PBR003</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Pembersih Lantai</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">50</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">btl</td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Tersedia</span>
+                                        </td>
+                                        <td class="px-6 py-4 text-sm text-gray-900 max-w-xs truncate">Stok mencukupi untuk 2 bulan</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                            <button class="text-indigo-600 hover:text-indigo-900 mr-3">Edit</button>
+                                            <button class="text-red-600 hover:text-red-900">Hapus</button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">2024-01-12</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">ELK004</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Lampu LED 12W</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">3</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">pcs</td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">Rusak</span>
+                                        </td>
+                                        <td class="px-6 py-4 text-sm text-gray-900 max-w-xs truncate">Rusak karena tegangan listrik tidak stabil</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                            <button class="text-indigo-600 hover:text-indigo-900 mr-3">Edit</button>
+                                            <button class="text-red-600 hover:text-red-900">Hapus</button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">2024-01-11</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">MJA005</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Meja Kantor</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">1</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">unit</td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">Dalam Perbaikan</span>
+                                        </td>
+                                        <td class="px-6 py-4 text-sm text-gray-900 max-w-xs truncate">Sedang diperbaiki bagian laci yang rusak</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                            <button class="text-indigo-600 hover:text-indigo-900 mr-3">Edit</button>
+                                            <button class="text-red-600 hover:text-red-900">Hapus</button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Stores Tab -->
+                <div id="stores" class="tab-content hidden">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-2xl font-bold text-gray-800">🏪 Daftar Store</h2>
+                        <button class="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-lg transition-colors">
+                            + Tambah Store
+                        </button>
+                    </div>
+
+                    <div class="grid md:grid-cols-3 gap-6">
+                        <div class="bg-white border border-gray-200 rounded-xl p-6 hover:shadow-lg transition-shadow">
+                            <div class="flex items-center justify-between mb-4">
+                                <div class="bg-blue-100 p-3 rounded-lg">
+                                    <span class="text-2xl">🏪</span>
+                                </div>
+                                <span class="text-sm font-medium text-gray-500">Kode: 01</span>
+                            </div>
+                            <h3 class="font-semibold text-gray-800 mb-2">GENERAL STORE (ANYER)</h3>
+                            <p class="text-sm text-gray-600 mb-4">Store utama di lokasi Anyer</p>
+                            <button class="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-lg transition-colors">
+                                Lihat Detail
+                            </button>
+                        </div>
+
+                        <div class="bg-white border border-gray-200 rounded-xl p-6 hover:shadow-lg transition-shadow">
+                            <div class="flex items-center justify-between mb-4">
+                                <div class="bg-green-100 p-3 rounded-lg">
+                                    <span class="text-2xl">🏢</span>
+                                </div>
+                                <span class="text-sm font-medium text-gray-500">Kode: 02</span>
+                            </div>
+                            <h3 class="font-semibold text-gray-800 mb-2">General store (JKT)</h3>
+                            <p class="text-sm text-gray-600 mb-4">Store cabang Jakarta</p>
+                            <button class="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-lg transition-colors">
+                                Lihat Detail
+                            </button>
+                        </div>
+
+                        <div class="bg-white border border-gray-200 rounded-xl p-6 hover:shadow-lg transition-shadow">
+                            <div class="flex items-center justify-between mb-4">
+                                <div class="bg-orange-100 p-3 rounded-lg">
+                                    <span class="text-2xl">🍽️</span>
+                                </div>
+                                <span class="text-sm font-medium text-gray-500">Kode: 03</span>
+                            </div>
+                            <h3 class="font-semibold text-gray-800 mb-2">MAIN KITCHEN STORAGE</h3>
+                            <p class="text-sm text-gray-600 mb-4">Gudang utama dapur</p>
+                            <button class="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-lg transition-colors">
+                                Lihat Detail
+                            </button>
+                        </div>
+
+                        <div class="bg-white border border-gray-200 rounded-xl p-6 hover:shadow-lg transition-shadow">
+                            <div class="flex items-center justify-between mb-4">
+                                <div class="bg-purple-100 p-3 rounded-lg">
+                                    <span class="text-2xl">🧹</span>
+                                </div>
+                                <span class="text-sm font-medium text-gray-500">Kode: 05</span>
+                            </div>
+                            <h3 class="font-semibold text-gray-800 mb-2">HOUSEKEEPING</h3>
+                            <p class="text-sm text-gray-600 mb-4">Departemen kebersihan</p>
+                            <button class="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-lg transition-colors">
+                                Lihat Detail
+                            </button>
+                        </div>
+
+                        <div class="bg-white border border-gray-200 rounded-xl p-6 hover:shadow-lg transition-shadow">
+                            <div class="flex items-center justify-between mb-4">
+                                <div class="bg-red-100 p-3 rounded-lg">
+                                    <span class="text-2xl">🔧</span>
+                                </div>
+                                <span class="text-sm font-medium text-gray-500">Kode: 10</span>
+                            </div>
+                            <h3 class="font-semibold text-gray-800 mb-2">ENGINEERING STORE</h3>
+                            <p class="text-sm text-gray-600 mb-4">Gudang teknik dan maintenance</p>
+                            <button class="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-lg transition-colors">
+                                Lihat Detail
+                            </button>
+                        </div>
+
+                        <div class="bg-white border border-gray-200 rounded-xl p-6 hover:shadow-lg transition-shadow">
+                            <div class="flex items-center justify-between mb-4">
+                                <div class="bg-yellow-100 p-3 rounded-lg">
+                                    <span class="text-2xl">🍸</span>
+                                </div>
+                                <span class="text-sm font-medium text-gray-500">Kode: 21</span>
+                            </div>
+                            <h3 class="font-semibold text-gray-800 mb-2">D'BISTRO</h3>
+                            <p class="text-sm text-gray-600 mb-4">Restaurant dan bar</p>
+                            <button class="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-lg transition-colors">
+                                Lihat Detail
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Global variables
+        let scriptUrl = '';
+        let isConnected = false;
+
+        // Database barang untuk auto-fill
+        const barangDatabase = {
+            'KRT001': { nama: 'Kertas A4', unit: 'rim' },
+            'TNT002': { nama: 'Tinta Printer Canon', unit: 'pcs' },
+            'PBR003': { nama: 'Pembersih Lantai', unit: 'btl' },
+            'ELK004': { nama: 'Lampu LED 12W', unit: 'pcs' },
+            'MJA005': { nama: 'Meja Kantor', unit: 'unit' }
+        };
+
+        // Google Apps Script Code
+        const googleAppsScriptCode = `// Google Apps Script untuk Sistem Manajemen Gudang
+function doPost(e) {
+  try {
+    const data = JSON.parse(e.postData.contents);
+    const action = data.action;
+    
+    // Buka spreadsheet (ganti dengan ID spreadsheet Anda)
+    const ss = SpreadsheetApp.openById('YOUR_SPREADSHEET_ID');
+    
+    switch(action) {
+      case 'addIncoming':
+        return addIncomingItem(ss, data);
+      case 'addOutgoing':
+        return addOutgoingItem(ss, data);
+      case 'updateStatus':
+        return updateItemStatus(ss, data);
+      case 'getInventory':
+        return getInventoryData(ss);
+      default:
+        return ContentService.createTextOutput(JSON.stringify({
+          success: false,
+          message: 'Action tidak dikenali'
+        })).setMimeType(ContentService.MimeType.JSON);
     }
-
-    // Add transaksi
-    const newTransaksi: Transaksi = {
-      tanggal: form.tanggal,
-      kodeBarang: form.kodeBarang,
-      namaBarang: form.namaBarang,
-      kuantitas: Number(form.kuantitas),
-      unit: form.unit,
-      storeKode: form.storeKode,
-      tipe,
-    };
-    setTransaksiList((prev) => [...prev, newTransaksi]);
-
-    // If barang belum ada di database, tambahkan
-    const foundBarang = barangList.find((b) => b.kodeBarang === form.kodeBarang);
-    if (!foundBarang) {
-      setBarangList((prev) => [
-        ...prev,
-        {
-          kodeBarang: form.kodeBarang,
-          namaBarang: form.namaBarang,
-          kuantitas: 0,
-          unit: form.unit,
-        },
-      ]);
-    }
-
-    // Reset form
-    setForm({
-      tanggal: "",
-      kodeBarang: "",
-      namaBarang: "",
-      kuantitas: "",
-      unit: "",
-      storeKode: "",
-    });
-
-    alert(`Data ${tipe === "penerimaan" ? "penerimaan" : "pengeluaran"} berhasil disimpan.`);
+  } catch (error) {
+    return ContentService.createTextOutput(JSON.stringify({
+      success: false,
+      message: 'Error: ' + error.toString()
+    })).setMimeType(ContentService.MimeType.JSON);
   }
-
-  // Filter riwayat berdasarkan store kode (default all)
-  const [riwayatStoreFilter, setRiwayatStoreFilter] = useState<string>("");
-
-  // Filtered riwayat
-  const filteredRiwayat = riwayatStoreFilter
-    ? transaksiList.filter((t) => t.storeKode === riwayatStoreFilter)
-    : transaksiList;
-
-  // Layout: Navigation menu as buttons
-  return (
-    <div className="min-h-screen bg-white p-4 max-w-5xl mx-auto">
-      <h1 className="text-2xl font-bold text-center mb-6">Inventory Management System</h1>
-      <nav className="flex justify-center space-x-3 mb-4 flex-wrap">
-        <Button variant={page === "store" ? "default" : "outline"} onClick={() => setPage("store")}>
-          Store
-        </Button>
-        <Button variant={page === "database" ? "default" : "outline"} onClick={() => setPage("database")}>
-          Database
-        </Button>
-        <Button variant={page === "penerimaan" ? "default" : "outline"} onClick={() => setPage("penerimaan")}>
-          Penerimaan
-        </Button>
-        <Button variant={page === "pengeluaran" ? "default" : "outline"} onClick={() => setPage("pengeluaran")}>
-          Pengeluaran
-        </Button>
-        <Button variant={page === "riwayat" ? "default" : "outline"} onClick={() => setPage("riwayat")}>
-          Riwayat
-        </Button>
-      </nav>
-
-      {/* Store Page */}
-      {page === "store" && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Daftar Store</CardTitle>
-            <CardDescription>List Store sesuai form Excel</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <table className="w-full border border-collapse border-gray-300">
-              <thead className="bg-gray-100">
-                <tr>
-                  <th className="border border-gray-300 px-3 py-1 text-left">Kode Store</th>
-                  <th className="border border-gray-300 px-3 py-1 text-left">Nama Store</th>
-                </tr>
-              </thead>
-              <tbody>
-                {stores.map((store) => (
-                  <tr key={store.kode} className="odd:bg-white even:bg-gray-50">
-                    <td className="border border-gray-300 px-3 py-1 font-mono">{store.kode}</td>
-                    <td className="border border-gray-300 px-3 py-1">{store.nama}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Database Page */}
-      {page === "database" && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Database Barang</CardTitle>
-            <CardDescription>Daftar barang yang sudah tercatat</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {barangList.length === 0 ? (
-              <p className="text-center py-4 text-gray-500">Belum ada data barang.</p>
-            ) : (
-              <table className="w-full border border-collapse border-gray-300">
-                <thead className="bg-gray-100">
-                  <tr>
-                    <th className="border border-gray-300 px-3 py-1">Kode Barang</th>
-                    <th className="border border-gray-300 px-3 py-1">Nama Barang</th>
-                    <th className="border border-gray-300 px-3 py-1">Unit</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {barangList.map((b) => (
-                    <tr key={b.kodeBarang} className="odd:bg-white even:bg-gray-50">
-                      <td className="border border-gray-300 px-3 py-1 font-mono">{b.kodeBarang}</td>
-                      <td className="border border-gray-300 px-3 py-1">{b.namaBarang}</td>
-                      <td className="border border-gray-300 px-3 py-1">{b.unit}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Penerimaan Page */}
-      {page === "penerimaan" && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Input Penerimaan Barang</CardTitle>
-            <CardDescription>Form tambah data barang masuk</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4 max-w-md">
-            <div className="flex flex-col">
-              <Label htmlFor="tanggal">Tanggal</Label>
-              <Input
-                type="date"
-                id="tanggal"
-                name="tanggal"
-                value={form.tanggal}
-                onChange={onFormChange}
-              />
-            </div>
-            <div className="flex flex-col">
-              <Label htmlFor="kodeBarang">Kode Barang</Label>
-              <Input
-                type="text"
-                id="kodeBarang"
-                name="kodeBarang"
-                placeholder="Kode Barang"
-                value={form.kodeBarang}
-                onChange={onFormChange}
-              />
-            </div>
-            <div className="flex flex-col">
-              <Label htmlFor="namaBarang">Nama Barang</Label>
-              <Input
-                type="text"
-                id="namaBarang"
-                name="namaBarang"
-                placeholder="Nama Barang"
-                value={form.namaBarang}
-                onChange={onFormChange}
-              />
-            </div>
-            <div className="flex flex-col">
-              <Label htmlFor="kuantitas">Kuantitas</Label>
-              <Input
-                type="number"
-                min="1"
-                id="kuantitas"
-                name="kuantitas"
-                placeholder="Kuantitas"
-                value={form.kuantitas}
-                onChange={onFormChange}
-              />
-            </div>
-            <div className="flex flex-col">
-              <Label htmlFor="unit">Unit</Label>
-              <Input
-                type="text"
-                id="unit"
-                name="unit"
-                placeholder="Unit, misal pcs, kg"
-                value={form.unit}
-                onChange={onFormChange}
-              />
-            </div>
-            <div className="flex flex-col">
-              <Label htmlFor="storeKode">Store</Label>
-              <Select
-                onValueChange={(val) => setForm((f) => ({ ...f, storeKode: val }))}
-                value={form.storeKode}
-              >
-                <SelectTrigger aria-label="Store" id="storeKode" name="storeKode" className="w-full">
-                  <SelectValue placeholder="Pilih Store" />
-                </SelectTrigger>
-                <SelectContent>
-                  {stores.map((store) => (
-                    <SelectItem key={store.kode} value={store.kode}>
-                      {store.nama}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </CardContent>
-          <CardFooter>
-            <Button onClick={() => submitTransaksi("penerimaan")} disabled={!isFormValid()}>
-              Simpan Penerimaan
-            </Button>
-          </CardFooter>
-        </Card>
-      )}
-
-      {/* Pengeluaran Page */}
-      {page === "pengeluaran" && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Input Pengeluaran Barang</CardTitle>
-            <CardDescription>Form tambah data barang keluar</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4 max-w-md">
-            <div className="flex flex-col">
-              <Label htmlFor="tanggal">Tanggal</Label>
-              <Input
-                type="date"
-                id="tanggal"
-                name="tanggal"
-                value={form.tanggal}
-                onChange={onFormChange}
-              />
-            </div>
-            <div className="flex flex-col">
-              <Label htmlFor="kodeBarang">Kode Barang</Label>
-              <Input
-                type="text"
-                id="kodeBarang"
-                name="kodeBarang"
-                placeholder="Kode Barang"
-                value={form.kodeBarang}
-                onChange={onFormChange}
-              />
-            </div>
-            <div className="flex flex-col">
-              <Label htmlFor="namaBarang">Nama Barang</Label>
-              <Input
-                type="text"
-                id="namaBarang"
-                name="namaBarang"
-                placeholder="Nama Barang"
-                value={form.namaBarang}
-                onChange={onFormChange}
-              />
-            </div>
-            <div className="flex flex-col">
-              <Label htmlFor="kuantitas">Kuantitas</Label>
-              <Input
-                type="number"
-                min="1"
-                id="kuantitas"
-                name="kuantitas"
-                placeholder="Kuantitas"
-                value={form.kuantitas}
-                onChange={onFormChange}
-              />
-            </div>
-            <div className="flex flex-col">
-              <Label htmlFor="unit">Unit</Label>
-              <Input
-                type="text"
-                id="unit"
-                name="unit"
-                placeholder="Unit, misal pcs, kg"
-                value={form.unit}
-                onChange={onFormChange}
-              />
-            </div>
-            <div className="flex flex-col">
-              <Label htmlFor="storeKode">Store</Label>
-              <Select
-                onValueChange={(val) => setForm((f) => ({ ...f, storeKode: val }))}
-                value={form.storeKode}
-              >
-                <SelectTrigger aria-label="Store" id="storeKode" name="storeKode" className="w-full">
-                  <SelectValue placeholder="Pilih Store" />
-                </SelectTrigger>
-                <SelectContent>
-                  {stores.map((store) => (
-                    <SelectItem key={store.kode} value={store.kode}>
-                      {store.nama}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </CardContent>
-          <CardFooter>
-            <Button onClick={() => submitTransaksi("pengeluaran")} disabled={!isFormValid()}>
-              Simpan Pengeluaran
-            </Button>
-          </CardFooter>
-        </Card>
-      )}
-
-      {/* Riwayat Page */}
-      {page === "riwayat" && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Riwayat Transaksi</CardTitle>
-            <CardDescription>Daftar penerimaan dan pengeluaran barang</CardDescription>
-            <div className="mt-2 w-64">
-              <Label htmlFor="filterStore">Filter Store</Label>
-              <Select
-                id="filterStore"
-                value={riwayatStoreFilter}
-                onValueChange={setRiwayatStoreFilter}
-                defaultValue=""
-              >
-                <SelectTrigger aria-label="Filter Store" className="w-full">
-                  <SelectValue placeholder="Semua Store" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">Semua Store</SelectItem>
-                  {stores.map((store) => (
-                    <SelectItem key={store.kode} value={store.kode}>
-                      {store.nama}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </CardHeader>
-          <CardContent>
-            {filteredRiwayat.length === 0 ? (
-              <p className="text-center py-4 text-gray-500">Belum ada riwayat transaksi.</p>
-            ) : (
-              <table className="w-full border border-collapse border-gray-300 text-sm">
-                <thead className="bg-gray-100">
-                  <tr>
-                    <th className="border border-gray-300 px-2 py-1">Tanggal</th>
-                    <th className="border border-gray-300 px-2 py-1">Kode Barang</th>
-                    <th className="border border-gray-300 px-2 py-1">Nama Barang</th>
-                    <th className="border border-gray-300 px-2 py-1">Kuantitas</th>
-                    <th className="border border-gray-300 px-2 py-1">Unit</th>
-                    <th className="border border-gray-300 px-2 py-1">Store</th>
-                    <th className="border border-gray-300 px-2 py-1">Tipe</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredRiwayat
-                    .sort((a, b) => (a.tanggal < b.tanggal ? 1 : -1))
-                    .map((t, idx) => (
-                      <tr
-                        key={`${t.tanggal}-${t.kodeBarang}-${idx}`}
-                        className="odd:bg-white even:bg-gray-50"
-                      >
-                        <td className="border border-gray-300 px-2 py-1 font-mono">{t.tanggal}</td>
-                        <td className="border border-gray-300 px-2 py-1 font-mono">{t.kodeBarang}</td>
-                        <td className="border border-gray-300 px-2 py-1">{t.namaBarang}</td>
-                        <td className="border border-gray-300 px-2 py-1 text-right">{t.kuantitas}</td>
-                        <td className="border border-gray-300 px-2 py-1">{t.unit}</td>
-                        <td className="border border-gray-300 px-2 py-1">
-                          {stores.find((s) => s.kode === t.storeKode)?.nama || "-"}
-                        </td>
-                        <td
-                          className={`border border-gray-300 px-2 py-1 font-semibold ${
-                            t.tipe === "penerimaan" ? "text-green-600" : "text-red-600"
-                          }`}
-                        >
-                          {t.tipe === "penerimaan" ? "Penerimaan" : "Pengeluaran"}
-                        </td>
-                      </tr>
-                    ))}
-                </tbody>
-              </table>
-            )}
-          </CardContent>
-        </Card>
-      )}
-    </div>
-  );
 }
+
+function doGet(e) {
+  return ContentService.createTextOutput(JSON.stringify({
+    success: true,
+    message: 'Google Apps Script berjalan dengan baik!',
+    timestamp: new Date().toISOString()
+  })).setMimeType(ContentService.MimeType.JSON);
+}
+
+function addIncomingItem(ss, data) {
+  const sheet = ss.getSheetByName('Incoming') || ss.insertSheet('Incoming');
+  
+  // Header jika sheet kosong
+  if (sheet.getLastRow() === 0) {
+    sheet.getRange(1, 1, 1, 7).setValues([
+      ['Tanggal', 'Kode Barang', 'Nama Barang', 'Kuantitas', 'Unit', 'Status', 'Keterangan']
+    ]);
+  }
+  
+  // Tambah data baru
+  sheet.appendRow([
+    data.tanggal,
+    data.kodeBarang,
+    data.namaBarang,
+    data.kuantitas,
+    data.unit,
+    data.status,
+    data.keterangan
+  ]);
+  
+  // Jika status "selesai", update inventory
+  if (data.status === 'selesai') {
+    updateInventory(ss, data.kodeBarang, data.namaBarang, data.kuantitas, data.unit, 'add');
+  }
+  
+  return ContentService.createTextOutput(JSON.stringify({
+    success: true,
+    message: 'Data barang masuk berhasil ditambahkan'
+  })).setMimeType(ContentService.MimeType.JSON);
+}
+
+function addOutgoingItem(ss, data) {
+  const sheet = ss.getSheetByName('Outgoing') || ss.insertSheet('Outgoing');
+  
+  // Header jika sheet kosong
+  if (sheet.getLastRow() === 0) {
+    sheet.getRange(1, 1, 1, 6).setValues([
+      ['Tanggal', 'Kode Barang', 'Nama Barang', 'Kuantitas', 'Unit', 'Store Tujuan']
+    ]);
+  }
+  
+  // Tambah data baru
+  sheet.appendRow([
+    data.tanggal,
+    data.kodeBarang,
+    data.namaBarang,
+    data.kuantitas,
+    data.unit,
+    data.storeTujuan
+  ]);
+  
+  // Update inventory (kurangi stok)
+  updateInventory(ss, data.kodeBarang, data.namaBarang, data.kuantitas, data.unit, 'subtract');
+  
+  return ContentService.createTextOutput(JSON.stringify({
+    success: true,
+    message: 'Data barang keluar berhasil ditambahkan'
+  })).setMimeType(ContentService.MimeType.JSON);
+}
+
+function updateInventory(ss, kodeBarang, namaBarang, kuantitas, unit, operation) {
+  const sheet = ss.getSheetByName('Inventory') || ss.insertSheet('Inventory');
+  
+  // Header jika sheet kosong
+  if (sheet.getLastRow() === 0) {
+    sheet.getRange(1, 1, 1, 6).setValues([
+      ['Kode Barang', 'Nama Barang', 'Kuantitas', 'Unit', 'Min Stock', 'Status']
+    ]);
+  }
+  
+  const data = sheet.getDataRange().getValues();
+  let found = false;
+  
+  // Cari barang yang sudah ada
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0] === kodeBarang) {
+      const currentQty = data[i][2];
+      const newQty = operation === 'add' ? 
+        currentQty + parseInt(kuantitas) : 
+        currentQty - parseInt(kuantitas);
+      
+      sheet.getRange(i + 1, 3).setValue(newQty);
+      
+      // Update status berdasarkan min stock
+      const minStock = data[i][4] || 10;
+      const status = newQty <= 0 ? 'Habis' : 
+                    newQty <= minStock ? 'Stok Rendah' : 'Tersedia';
+      sheet.getRange(i + 1, 6).setValue(status);
+      
+      found = true;
+      break;
+    }
+  }
+  
+  // Jika barang belum ada, tambah baru
+  if (!found && operation === 'add') {
+    sheet.appendRow([
+      kodeBarang,
+      namaBarang,
+      parseInt(kuantitas),
+      unit,
+      10, // Default min stock
+      parseInt(kuantitas) <= 10 ? 'Stok Rendah' : 'Tersedia'
+    ]);
+  }
+}
+
+function getInventoryData(ss) {
+  const sheet = ss.getSheetByName('Inventory');
+  if (!sheet) {
+    return ContentService.createTextOutput(JSON.stringify({
+      success: true,
+      data: []
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+  
+  const data = sheet.getDataRange().getValues();
+  const inventory = data.slice(1).map(row => ({
+    kodeBarang: row[0],
+    namaBarang: row[1],
+    kuantitas: row[2],
+    unit: row[3],
+    minStock: row[4],
+    status: row[5]
+  }));
+  
+  return ContentService.createTextOutput(JSON.stringify({
+    success: true,
+    data: inventory
+  })).setMimeType(ContentService.MimeType.JSON);
+}`;
+
+        // Auto-fill function
+        function autoFillBarang(kodeSelect, namaInput, unitInput) {
+            kodeSelect.addEventListener('change', function() {
+                const kode = this.value;
+                if (kode && barangDatabase[kode]) {
+                    namaInput.value = barangDatabase[kode].nama;
+                    unitInput.value = barangDatabase[kode].unit;
+                } else {
+                    namaInput.value = '';
+                    unitInput.value = '';
+                }
+            });
+        }
+
+        // Show notification
+        function showNotification(message, type = 'info') {
+            const colors = {
+                success: 'bg-green-500',
+                error: 'bg-red-500',
+                info: 'bg-blue-500',
+                warning: 'bg-yellow-500'
+            };
+            
+            const notification = document.createElement('div');
+            notification.className = \`fixed top-4 right-4 \${colors[type]} text-white px-6 py-3 rounded-lg shadow-lg z-50 transition-all duration-300\`;
+            notification.innerHTML = message;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.opacity = '0';
+                notification.style.transform = 'translateX(100%)';
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
+        }
+
+        // Send data to Google Apps Script
+        async function sendToGoogleScript(data) {
+            if (!isConnected || !scriptUrl) {
+                showNotification('❌ Belum terhubung ke Google Apps Script', 'error');
+                return false;
+            }
+
+            try {
+                const response = await fetch(scriptUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    showNotification('✅ ' + result.message, 'success');
+                    return true;
+                } else {
+                    showNotification('❌ ' + result.message, 'error');
+                    return false;
+                }
+            } catch (error) {
+                showNotification('❌ Error: ' + error.message, 'error');
+                return false;
+            }
+        }
+
+        // Clear form function
+        function clearForm(formPrefix) {
+            document.getElementById(formPrefix + 'Date').value = '';
+            document.getElementById(formPrefix + 'Kode').value = '';
+            document.getElementById(formPrefix + 'Nama').value = '';
+            document.getElementById(formPrefix + 'Unit').value = '';
+            
+            if (formPrefix === 'incoming') {
+                document.getElementById('incomingKuantitas').value = '';
+                document.getElementById('incomingStatus').value = '';
+                document.getElementById('incomingKeterangan').value = '';
+            } else if (formPrefix === 'outgoing') {
+                document.getElementById('outgoingKuantitas').value = '';
+                document.getElementById('outgoingStore').value = '';
+            }
+        }
+
+        // Setup auto-fill dan event listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            // Set tanggal hari ini
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('incomingDate').value = today;
+            document.getElementById('outgoingDate').value = today;
+
+            // Setup auto-fill untuk semua form
+            const incomingKode = document.getElementById('incomingKode');
+            const incomingNama = document.getElementById('incomingNama');
+            const incomingUnit = document.getElementById('incomingUnit');
+            if (incomingKode && incomingNama && incomingUnit) {
+                autoFillBarang(incomingKode, incomingNama, incomingUnit);
+            }
+
+            const outgoingKode = document.getElementById('outgoingKode');
+            const outgoingNama = document.getElementById('outgoingNama');
+            const outgoingUnit = document.getElementById('outgoingUnit');
+            if (outgoingKode && outgoingNama && outgoingUnit) {
+                autoFillBarang(outgoingKode, outgoingNama, outgoingUnit);
+            }
+
+            const statusKode = document.getElementById('statusKode');
+            const statusNama = document.getElementById('statusNama');
+            const statusUnit = document.getElementById('statusUnit');
+            if (statusKode && statusNama && statusUnit) {
+                autoFillBarang(statusKode, statusNama, statusUnit);
+            }
+
+            // Modal functionality
+            document.getElementById('showScriptCode').addEventListener('click', () => {
+                document.getElementById('scriptCode').textContent = googleAppsScriptCode;
+                document.getElementById('scriptModal').classList.remove('hidden');
+            });
+
+            document.getElementById('closeModal').addEventListener('click', () => {
+                document.getElementById('scriptModal').classList.add('hidden');
+            });
+
+            document.getElementById('copyScript').addEventListener('click', () => {
+                navigator.clipboard.writeText(googleAppsScriptCode).then(() => {
+                    showNotification('📋 Kode berhasil di-copy!', 'success');
+                });
+            });
+
+            // Test connection
+            document.getElementById('testConnection').addEventListener('click', async () => {
+                const url = document.getElementById('scriptUrl').value;
+                if (!url) {
+                    showNotification('❌ Mohon masukkan URL Google Apps Script', 'error');
+                    return;
+                }
+
+                try {
+                    const response = await fetch(url);
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        showNotification('✅ Koneksi berhasil!', 'success');
+                        scriptUrl = url;
+                        isConnected = true;
+                        
+                        // Update UI
+                        document.getElementById('connectionStatus').innerHTML = \`
+                            <div class="w-3 h-3 bg-green-500 rounded-full"></div>
+                            <span class="text-sm text-gray-600">Terhubung</span>
+                        \`;
+                        document.getElementById('connectBtn').innerHTML = 'Terhubung';
+                        document.getElementById('connectBtn').classList.remove('bg-blue-500', 'hover:bg-blue-600');
+                        document.getElementById('connectBtn').classList.add('bg-green-500', 'hover:bg-green-600');
+                    }
+                } catch (error) {
+                    showNotification('❌ Gagal terhubung: ' + error.message, 'error');
+                }
+            });
+
+            // Connect button
+            document.getElementById('connectBtn').addEventListener('click', () => {
+                document.getElementById('testConnection').click();
+            });
+
+            // Form submissions
+            document.getElementById('submitIncoming').addEventListener('click', async () => {
+                const data = {
+                    action: 'addIncoming',
+                    tanggal: document.getElementById('incomingDate').value,
+                    kodeBarang: document.getElementById('incomingKode').value,
+                    namaBarang: document.getElementById('incomingNama').value,
+                    kuantitas: document.getElementById('incomingKuantitas').value,
+                    unit: document.getElementById('incomingUnit').value,
+                    status: document.getElementById('incomingStatus').value,
+                    keterangan: document.getElementById('incomingKeterangan').value
+                };
+
+                if (!data.tanggal || !data.kodeBarang || !data.kuantitas || !data.status) {
+                    showNotification('❌ Mohon lengkapi semua field yang wajib', 'error');
+                    return;
+                }
+
+                const success = await sendToGoogleScript(data);
+                if (success) {
+                    clearForm('incoming');
+                }
+            });
+
+            document.getElementById('submitOutgoing').addEventListener('click', async () => {
+                const data = {
+                    action: 'addOutgoing',
+                    tanggal: document.getElementById('outgoingDate').value,
+                    kodeBarang: document.getElementById('outgoingKode').value,
+                    namaBarang: document.getElementById('outgoingNama').value,
+                    kuantitas: document.getElementById('outgoingKuantitas').value,
+                    unit: document.getElementById('outgoingUnit').value,
+                    storeTujuan: document.getElementById('outgoingStore').value
+                };
+
+                if (!data.tanggal || !data.kodeBarang || !data.kuantitas || !data.storeTujuan) {
+                    showNotification('❌ Mohon lengkapi semua field yang wajib', 'error');
+                    return;
+                }
+
+                const success = await sendToGoogleScript(data);
+                if (success) {
+                    clearForm('outgoing');
+                }
+            });
+
+            // Clear form buttons
+            document.getElementById('clearIncomingForm').addEventListener('click', () => {
+                clearForm('incoming');
+                showNotification('🗑️ Form berhasil di-clear', 'info');
+            });
+
+            document.getElementById('clearOutgoingForm').addEventListener('click', () => {
+                clearForm('outgoing');
+                showNotification('🗑️ Form berhasil di-clear', 'info');
+            });
+        });
+
+        // Tab functionality
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                // Remove active class from all tabs
+                document.querySelectorAll('.tab-btn').forEach(b => {
+                    b.classList.remove('active', 'border-blue-500', 'text-blue-600');
+                    b.classList.add('border-transparent', 'text-gray-500');
+                });
+                
+                // Add active class to clicked tab
+                btn.classList.add('active', 'border-blue-500', 'text-blue-600');
+                btn.classList.remove('border-transparent', 'text-gray-500');
+                
+                // Hide all tab contents
+                document.querySelectorAll('.tab-content').forEach(content => {
+                    content.classList.add('hidden');
+                });
+                
+                // Show selected tab content
+                const tabId = btn.getAttribute('data-tab');
+                document.getElementById(tabId).classList.remove('hidden');
+                document.getElementById(tabId).classList.add('fade-in');
+            });
+        });
+
+        // Initialize with dashboard tab active
+        document.querySelector('[data-tab="dashboard"]').click();
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'97e53f884300ce4f',t:'MTc1Nzc0MTM4MC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
