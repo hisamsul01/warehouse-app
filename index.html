@@ -58,6 +58,8 @@
                         <span class="nav-text ml-auto bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">3</span>
                     </a>
 
+
+
                     <a href="#" onclick="showSection('status')" class="nav-item flex items-center px-4 py-3 text-sm font-medium text-gray-700 rounded-lg hover:bg-gray-100">
                         <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
@@ -271,6 +273,8 @@
                         </div>
                     </div>
                 </div>
+
+
 
                 <!-- Status Section -->
                 <div id="status" class="section hidden">
@@ -1123,7 +1127,6 @@
         let currentSection = 'dashboard';
         let sidebarCollapsed = false;
         let mobileSidebarOpen = false;
-
         // Konfigurasi Google Apps Script
         const GOOGLE_SCRIPT_CONFIG = {
             // URL Web App yang sudah di-deploy dari Google Apps Script
@@ -1529,7 +1532,7 @@
                 alert('Mohon lengkapi semua field!');
                 return;
             }
-            
+                        
             // Kirim update ke Google Sheet
             const statusStock = getStatusStock(qty, minStock);
             sendToGoogleSheet('update_recap', {
@@ -1574,3 +1577,1171 @@
                 
                 recapRows.forEach(row => {
                     if (row.cells<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'97f0f9fdc6a6fe8c',t:'MTc1Nzg2NDM2MC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script>
+            // Update the table row
+            const recapRows = document.querySelectorAll('#recapTable tr');
+            recapRows.forEach(row => {
+                if (row.cells[0] && row.cells[0].textContent === code) {
+                    row.cells[1].textContent = name;
+                    row.cells[2].textContent = qty;
+                    row.cells[3].textContent = unit;
+                    row.cells[4].textContent = minStock;
+                    
+                    // Update status stock
+                    const statusCell = row.cells[5];
+                    if (qty > minStock) {
+                        statusCell.innerHTML = '<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Aman</span>';
+                    } else if (qty === minStock) {
+                        statusCell.innerHTML = '<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">Minimal</span>';
+                    } else {
+                        statusCell.innerHTML = '<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">Kurang</span>';
+                    }
+                }
+            });
+            
+            closeEditModal();
+            addActivity(`Barang ${name} berhasil diupdate`, 'blue');
+            alert(`Data barang ${name} berhasil diupdate!`);
+        }
+
+        function deleteItem(itemCode) {
+            if (confirm('Apakah Anda yakin ingin menghapus barang ini?')) {
+                const recapRows = document.querySelectorAll('#recapTable tr');
+                let itemName = '';
+                
+                recapRows.forEach(row => {
+                    if (row.cells[0] && row.cells[0].textContent === itemCode) {
+                        itemName = row.cells[1].textContent;
+                        row.remove();
+                    }
+                });
+                
+                if (itemName) {
+                    addActivity(`Barang ${itemName} berhasil dihapus`, 'red');
+                    alert(`Barang ${itemName} berhasil dihapus!`);
+                }
+            }
+        }
+
+        // Add data function
+        function addData() {
+            const code = document.getElementById('itemCode').value;
+            const name = document.getElementById('itemName').value;
+            const quantity = document.getElementById('itemQuantity').value;
+            const targetStore = document.getElementById('itemStore').value;
+            const unit = document.getElementById('itemUnit').value;
+            const minStock = document.getElementById('itemMinStock').value;
+
+            if (!code || !name || !quantity) {
+                alert('Mohon lengkapi semua field!');
+                return;
+            }
+
+            if (currentSection === 'incoming' && !unit) {
+                alert('Mohon pilih unit untuk barang!');
+                return;
+            }
+
+            const today = new Date().toISOString().split('T')[0];
+            
+            if (currentSection === 'incoming') {
+                // Check if item exists in recap to update stock or create new incoming
+                const recapRows = document.querySelectorAll('#recapTable tr');
+                let existingItem = null;
+                
+                recapRows.forEach(row => {
+                    if (row.cells[0] && row.cells[0].textContent === code) {
+                        existingItem = row;
+                    }
+                });
+                
+                if (existingItem) {
+                    // Item exists in recap - this is a stock addition
+                    const currentQty = parseInt(existingItem.cells[2].textContent);
+                    const newQty = currentQty + parseInt(quantity);
+                    existingItem.cells[2].textContent = newQty;
+                    
+                    // Update status stock based on new quantity
+                    const minStock = parseInt(existingItem.cells[4].textContent);
+                    const statusCell = existingItem.cells[5];
+                    if (newQty > minStock) {
+                        statusCell.innerHTML = '<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Aman</span>';
+                    } else if (newQty === minStock) {
+                        statusCell.innerHTML = '<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">Minimal</span>';
+                    } else {
+                        statusCell.innerHTML = '<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">Kurang</span>';
+                    }
+                    
+                    addActivity(`Stock ${name} bertambah ${quantity} unit (total: ${newQty})`, 'green');
+                    alert(`Stock ${name} berhasil ditambah ${quantity} unit! Total stock sekarang: ${newQty}`);
+                } else {
+                    // New item - add to incoming table for processing
+                    const table = document.getElementById('incomingTable');
+                    const newRow = table.insertRow(0);
+                    newRow.innerHTML = `
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${code}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${name}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${quantity}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${today}</td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">Pending</span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <button onclick="updateStatus('${code}', 'selesai')" class="text-green-600 hover:text-green-700 mr-3">Selesai</button>
+                            <button class="text-red-600 hover:text-red-700">Hapus</button>
+                        </td>
+                    `;
+                    
+                    // Add to status table
+                    addToStatus(code, name, quantity, today);
+                    
+                    // Add to recap table for new items
+                    addToRecap(code, name, quantity, unit, 0);
+                }
+                
+            } else if (currentSection === 'status' && targetStore) {
+                // Move selected item from status to store
+                const statusRows = document.querySelectorAll('#statusTable tr');
+                let selectedItem = null;
+                
+                statusRows.forEach(row => {
+                    if (row.cells[0] && row.cells[0].textContent === code) {
+                        selectedItem = {
+                            code: code,
+                            name: row.cells[1].textContent,
+                            quantity: row.cells[2].textContent
+                        };
+                    }
+                });
+                
+                if (selectedItem) {
+                    moveToStore(selectedItem.code, targetStore);
+                }
+            } else if (currentSection === 'recap') {
+                // Add new item to recap table
+                if (!unit || minStock === '') {
+                    alert('Mohon lengkapi semua field termasuk unit dan min stock!');
+                    return;
+                }
+                
+                const table = document.getElementById('recapTable');
+                const newRow = table.insertRow(0);
+                const qty = parseInt(quantity);
+                const minStockNum = parseInt(minStock);
+                
+                let statusStock = '';
+                if (qty > minStockNum) {
+                    statusStock = '<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Aman</span>';
+                } else if (qty === minStockNum) {
+                    statusStock = '<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">Minimal</span>';
+                } else {
+                    statusStock = '<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">Kurang</span>';
+                }
+                
+                newRow.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${code}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${name}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${quantity}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${unit}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${minStock}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">${statusStock}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <button onclick="editItem('${code}')" class="text-blue-600 hover:text-blue-700 mr-3">Edit</button>
+                        <button onclick="deleteItem('${code}')" class="text-red-600 hover:text-red-700">Hapus</button>
+                    </td>
+                `;
+                
+                addActivity(`Barang baru ${name} ditambahkan ke rekapitulasi`, 'green');
+            }
+
+            closeModal();
+            if (currentSection !== 'status') {
+                addToHistory(code, currentSection, name, quantity);
+            }
+        }
+
+        // Status management functions
+        function updateStatus(code, status) {
+            if (status === 'selesai') {
+                // Update incoming status to verified
+                const incomingRows = document.querySelectorAll('#incomingTable tr');
+                incomingRows.forEach(row => {
+                    if (row.cells[0] && row.cells[0].textContent === code) {
+                        row.cells[4].innerHTML = '<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Terverifikasi</span>';
+                        row.cells[5].innerHTML = '<span class="text-gray-500">Terverifikasi</span>';
+                    }
+                });
+                
+                // Update status table to show verified and enable transfer
+                updateStatusVerification(code, true);
+                
+                addActivity(`Barang ${code} telah diverifikasi dan siap dipindah ke store`, 'green');
+                alert(`Barang ${code} telah diverifikasi! Sekarang bisa dipindah ke store.`);
+            }
+        }
+
+        function updateStatusVerification(code, isVerified) {
+            const statusRows = document.querySelectorAll('#statusTable tr');
+            statusRows.forEach(row => {
+                if (row.cells[0] && row.cells[0].textContent === code) {
+                    if (isVerified) {
+                        // Update verification status
+                        row.cells[4].innerHTML = '<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Terverifikasi</span>';
+                        
+                        // Enable transfer button
+                        const actionCell = row.cells[6];
+                        const itemName = row.cells[1].textContent;
+                        actionCell.innerHTML = `
+                            <button onclick="moveToStore('${code}')" class="text-green-600 hover:text-green-700 mr-3">Pindah ke Store</button>
+                            <button onclick="addNoteToStatus('${code}')" class="text-blue-600 hover:text-blue-700">Edit Catatan</button>
+                        `;
+                    }
+                }
+            });
+        }
+
+        function addToStatus(code, name, quantity, date) {
+            const table = document.getElementById('statusTable');
+            const newRow = table.insertRow(0);
+            newRow.innerHTML = `
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${code}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${name}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${quantity}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${date}</td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">Menunggu Verifikasi</span>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Menunggu verifikasi dari incoming</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    <button onclick="moveToStore('${code}')" class="text-gray-400 cursor-not-allowed mr-3" disabled title="Menunggu verifikasi dari incoming">Pindah ke Store</button>
+                    <button onclick="addNoteToStatus('${code}')" class="text-blue-600 hover:text-blue-700">Edit Catatan</button>
+                </td>
+            `;
+        }
+
+        function removeFromStatus(code) {
+            const statusRows = document.querySelectorAll('#statusTable tr');
+            statusRows.forEach(row => {
+                if (row.cells[0] && row.cells[0].textContent === code) {
+                    row.remove();
+                }
+            });
+        }
+
+        function moveToStore(code, targetStore = '01') {
+            // Get item details from status or incoming
+            let itemName, itemQuantity;
+            const statusRows = document.querySelectorAll('#statusTable tr');
+            const incomingRows = document.querySelectorAll('#incomingTable tr');
+            
+            // Find item in status table
+            statusRows.forEach(row => {
+                if (row.cells[0] && row.cells[0].textContent === code) {
+                    itemName = row.cells[1].textContent;
+                    itemQuantity = row.cells[2].textContent;
+                }
+            });
+            
+            // If not found in status, check incoming
+            if (!itemName) {
+                incomingRows.forEach(row => {
+                    if (row.cells[0] && row.cells[0].textContent === code) {
+                        itemName = row.cells[1].textContent;
+                        itemQuantity = row.cells[2].textContent;
+                    }
+                });
+            }
+            
+            if (itemName) {
+                // Add to store table
+                const storeTable = document.getElementById('storeTable');
+                const today = new Date().toISOString().split('T')[0];
+                const storeName = storeData[targetStore];
+                
+                const newRow = storeTable.insertRow(0);
+                newRow.setAttribute('data-store', targetStore);
+                newRow.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${targetStore}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${storeName}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${itemName}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${itemQuantity}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${today}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Tersedia</span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <button onclick="transferItem(this)" class="text-blue-600 hover:text-blue-700">Transfer</button>
+                    </td>
+                `;
+                
+                // Remove from status table
+                removeFromStatus(code);
+                
+                // Add to recent activity
+                addActivity(`${itemName} berhasil dipindah ke ${storeName}`, 'green');
+                
+                alert(`${itemName} berhasil dipindah ke ${storeName}!`);
+            }
+        }
+
+        // Filter store function
+        function filterByStore() {
+            const selectedStore = document.getElementById('storeSelector').value;
+            const rows = document.querySelectorAll('#storeTable tr[data-store]');
+            
+            rows.forEach(row => {
+                if (selectedStore === '' || row.getAttribute('data-store') === selectedStore) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        }
+
+        // History function
+        function addToHistory(code, type, name, quantity) {
+            const table = document.getElementById('historyTable');
+            const newRow = table.insertRow(0);
+            const now = new Date();
+            const timestamp = now.toISOString().split('T')[0] + ' ' + now.toTimeString().split(' ')[0].substring(0, 5);
+            
+            const typeClass = type === 'incoming' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800';
+            const typeText = type === 'incoming' ? 'Incoming' : 'Outgoing';
+            
+            newRow.innerHTML = `
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">TRX${Date.now().toString().slice(-3)}</td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${typeClass}">${typeText}</span>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${name}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${quantity}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${timestamp}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Admin</td>
+            `;
+        }
+
+        // Add to recap function
+        function addToRecap(code, name, quantity, unit, minStock) {
+            const table = document.getElementById('recapTable');
+            const newRow = table.insertRow(0);
+            const qty = parseInt(quantity);
+            const minStockNum = parseInt(minStock);
+            
+            let statusStock = '';
+            if (qty > minStockNum) {
+                statusStock = '<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Aman</span>';
+            } else if (qty === minStockNum) {
+                statusStock = '<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">Minimal</span>';
+            } else {
+                statusStock = '<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">Kurang</span>';
+            }
+            
+            newRow.innerHTML = `
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${code}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${name}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${quantity}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${unit}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${minStock}</td>
+                <td class="px-6 py-4 whitespace-nowrap">${statusStock}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    <button onclick="editItem('${code}')" class="text-blue-600 hover:text-blue-700 mr-3">Edit</button>
+                    <button onclick="deleteItem('${code}')" class="text-red-600 hover:text-red-700">Hapus</button>
+                </td>
+            `;
+        }
+
+        // Activity function
+        function addActivity(text, color) {
+            const activityContainer = document.getElementById('recentActivity');
+            const newActivity = document.createElement('div');
+            newActivity.className = 'flex items-start space-x-3';
+            newActivity.innerHTML = `
+                <div class="w-2 h-2 bg-${color}-500 rounded-full mt-2"></div>
+                <div>
+                    <p class="text-sm text-gray-900">${text}</p>
+                    <p class="text-xs text-gray-500">Baru saja</p>
+                </div>
+            `;
+            activityContainer.insertBefore(newActivity, activityContainer.firstChild);
+            
+            // Keep only 4 activities
+            if (activityContainer.children.length > 4) {
+                activityContainer.removeChild(activityContainer.lastChild);
+            }
+        }
+
+        // Transfer functions
+        let currentTransferRow = null;
+
+        function transferItem(button) {
+            currentTransferRow = button.closest('tr');
+            const itemName = currentTransferRow.cells[2].textContent;
+            const currentQty = parseInt(currentTransferRow.cells[3].textContent);
+            const currentStore = currentTransferRow.cells[0].textContent;
+            
+            document.getElementById('transferItemName').value = itemName;
+            document.getElementById('availableStock').textContent = currentQty;
+            document.getElementById('transferQty').max = currentQty;
+            
+            // Remove current store from destination options
+            const destinationSelect = document.getElementById('transferDestination');
+            Array.from(destinationSelect.options).forEach(option => {
+                if (option.value === currentStore) {
+                    option.style.display = 'none';
+                } else {
+                    option.style.display = 'block';
+                }
+            });
+            
+            document.getElementById('transferModal').classList.remove('hidden');
+            document.getElementById('transferModal').classList.add('flex');
+        }
+
+        function closeTransferModal() {
+            document.getElementById('transferModal').classList.add('hidden');
+            document.getElementById('transferModal').classList.remove('flex');
+            document.getElementById('transferQty').value = '';
+            document.getElementById('transferDestination').value = '';
+            currentTransferRow = null;
+        }
+
+        function executeTransfer() {
+            const transferQty = parseInt(document.getElementById('transferQty').value);
+            const destinationStore = document.getElementById('transferDestination').value;
+            
+            if (!transferQty || !destinationStore) {
+                alert('Mohon lengkapi semua field!');
+                return;
+            }
+            
+            const availableQty = parseInt(document.getElementById('availableStock').textContent);
+            if (transferQty > availableQty) {
+                alert('Jumlah transfer melebihi stok yang tersedia!');
+                return;
+            }
+            
+            const itemName = currentTransferRow.cells[2].textContent;
+            const currentQty = parseInt(currentTransferRow.cells[3].textContent);
+            const incomingDate = currentTransferRow.cells[4].textContent;
+            const destinationStoreName = storeData[destinationStore];
+            
+            // Update current row quantity
+            const remainingQty = currentQty - transferQty;
+            if (remainingQty > 0) {
+                currentTransferRow.cells[3].textContent = remainingQty;
+            } else {
+                // Remove row if no stock left
+                currentTransferRow.remove();
+            }
+            
+            // Add to destination store with today's date (outgoing date)
+            const storeTable = document.getElementById('storeTable');
+            const today = new Date().toISOString().split('T')[0]; // Today's date as outgoing date
+            const newRow = storeTable.insertRow(0);
+            newRow.setAttribute('data-store', destinationStore);
+            newRow.innerHTML = `
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${destinationStore}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${destinationStoreName}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${itemName}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${transferQty}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${today}</td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Tersedia</span>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    <button onclick="transferItem(this)" class="text-blue-600 hover:text-blue-700">Transfer</button>
+                </td>
+            `;
+            
+            // Add to history
+            addToHistory(`TRF${Date.now().toString().slice(-3)}`, 'transfer', `${itemName} (${transferQty} unit ke ${destinationStoreName})`, transferQty);
+            
+            // Add activity
+            addActivity(`Transfer: ${transferQty} unit ${itemName} ke ${destinationStoreName}`, 'blue');
+            
+            closeTransferModal();
+            alert(`Berhasil transfer ${transferQty} unit ${itemName} ke ${destinationStoreName}!`);
+        }
+
+        // Notes modal functions
+        function addNoteToStatus(code) {
+            const statusRows = document.querySelectorAll('#statusTable tr');
+            let itemData = null;
+            
+            statusRows.forEach(row => {
+                if (row.cells[0] && row.cells[0].textContent === code) {
+                    itemData = {
+                        code: row.cells[0].textContent,
+                        name: row.cells[1].textContent,
+                        note: row.cells[5].textContent
+                    };
+                }
+            });
+            
+            if (itemData) {
+                document.getElementById('noteItemCode').value = itemData.code;
+                document.getElementById('noteItemName').value = itemData.name;
+                document.getElementById('noteText').value = itemData.note;
+                
+                document.getElementById('notesModal').classList.remove('hidden');
+                document.getElementById('notesModal').classList.add('flex');
+            }
+        }
+
+        function closeNotesModal() {
+            document.getElementById('notesModal').classList.add('hidden');
+            document.getElementById('notesModal').classList.remove('flex');
+            document.getElementById('noteText').value = '';
+        }
+
+        function saveNote() {
+            const code = document.getElementById('noteItemCode').value;
+            const noteText = document.getElementById('noteText').value.trim();
+            
+            if (!noteText) {
+                alert('Mohon masukkan catatan!');
+                return;
+            }
+            
+            // Update the notes column in status table
+            const statusRows = document.querySelectorAll('#statusTable tr');
+            statusRows.forEach(row => {
+                if (row.cells[0] && row.cells[0].textContent === code) {
+                    row.cells[5].textContent = noteText;
+                }
+            });
+            
+            closeNotesModal();
+            addActivity(`Catatan untuk barang ${code} telah diperbarui`, 'blue');
+            alert('Catatan berhasil disimpan!');
+        }
+
+        // Store management functions
+        let currentEditingStore = null;
+        let currentEditingUnit = null;
+
+        function openStoreModal() {
+            document.getElementById('storeModalTitle').textContent = 'Tambah Store';
+            document.getElementById('storeSubmitButton').textContent = 'Tambah';
+            document.getElementById('storeCode').readOnly = false;
+            document.getElementById('storeCode').classList.remove('bg-gray-100');
+            currentEditingStore = null;
+            
+            document.getElementById('storeModal').classList.remove('hidden');
+            document.getElementById('storeModal').classList.add('flex');
+        }
+
+        function closeStoreModal() {
+            document.getElementById('storeModal').classList.add('hidden');
+            document.getElementById('storeModal').classList.remove('flex');
+            document.getElementById('storeForm').reset();
+        }
+
+        function editStore(storeCode) {
+            const storeRows = document.querySelectorAll('#storeSettingsTable tr');
+            let storeData = null;
+            
+            storeRows.forEach(row => {
+                if (row.cells[0] && row.cells[0].textContent === storeCode) {
+                    storeData = {
+                        code: row.cells[0].textContent,
+                        name: row.cells[1].textContent
+                    };
+                }
+            });
+            
+            if (storeData) {
+                document.getElementById('storeModalTitle').textContent = 'Edit Store';
+                document.getElementById('storeSubmitButton').textContent = 'Simpan';
+                document.getElementById('storeCode').value = storeData.code;
+                document.getElementById('storeCode').readOnly = true;
+                document.getElementById('storeCode').classList.add('bg-gray-100');
+                document.getElementById('storeName').value = storeData.name;
+                currentEditingStore = storeCode;
+                
+                document.getElementById('storeModal').classList.remove('hidden');
+                document.getElementById('storeModal').classList.add('flex');
+            }
+        }
+
+        function saveStore() {
+            const code = document.getElementById('storeCode').value.trim();
+            const name = document.getElementById('storeName').value.trim();
+            
+            if (!code || !name) {
+                alert('Mohon lengkapi semua field!');
+                return;
+            }
+            
+            if (currentEditingStore) {
+                // Edit existing store
+                const storeRows = document.querySelectorAll('#storeSettingsTable tr');
+                storeRows.forEach(row => {
+                    if (row.cells[0] && row.cells[0].textContent === currentEditingStore) {
+                        row.cells[1].textContent = name;
+                    }
+                });
+                
+                // Update storeData object
+                storeData[code] = name;
+                
+                addActivity(`Store ${code} berhasil diupdate`, 'blue');
+                alert(`Store ${code} berhasil diupdate!`);
+            } else {
+                // Add new store
+                const table = document.getElementById('storeSettingsTable');
+                const newRow = table.insertRow(0);
+                newRow.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${code}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${name}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <button onclick="editStore('${code}')" class="text-blue-600 hover:text-blue-700 mr-3">Edit</button>
+                        <button onclick="deleteStore('${code}')" class="text-red-600 hover:text-red-700">Hapus</button>
+                    </td>
+                `;
+                
+                // Add to storeData object
+                storeData[code] = name;
+                
+                // Update all store selectors
+                updateStoreSelectors();
+                
+                addActivity(`Store baru ${code} - ${name} berhasil ditambahkan`, 'green');
+                alert(`Store ${code} berhasil ditambahkan!`);
+            }
+            
+            closeStoreModal();
+        }
+
+        function deleteStore(storeCode) {
+            if (confirm(`Apakah Anda yakin ingin menghapus store ${storeCode}?`)) {
+                const storeRows = document.querySelectorAll('#storeSettingsTable tr');
+                let storeName = '';
+                
+                storeRows.forEach(row => {
+                    if (row.cells[0] && row.cells[0].textContent === storeCode) {
+                        storeName = row.cells[1].textContent;
+                        row.remove();
+                    }
+                });
+                
+                // Remove from storeData object
+                delete storeData[storeCode];
+                
+                // Update all store selectors
+                updateStoreSelectors();
+                
+                if (storeName) {
+                    addActivity(`Store ${storeCode} - ${storeName} berhasil dihapus`, 'red');
+                    alert(`Store ${storeCode} berhasil dihapus!`);
+                }
+            }
+        }
+
+        function updateStoreSelectors() {
+            const selectors = ['storeSelector', 'itemStore', 'transferDestination'];
+            
+            selectors.forEach(selectorId => {
+                const selector = document.getElementById(selectorId);
+                if (selector) {
+                    // Save current value
+                    const currentValue = selector.value;
+                    
+                    // Clear existing options (except first one)
+                    while (selector.children.length > 1) {
+                        selector.removeChild(selector.lastChild);
+                    }
+                    
+                    // Add updated options
+                    Object.keys(storeData).forEach(code => {
+                        const option = document.createElement('option');
+                        option.value = code;
+                        option.textContent = `${code} - ${storeData[code]}`;
+                        selector.appendChild(option);
+                    });
+                    
+                    // Restore value if still exists
+                    if (storeData[currentValue]) {
+                        selector.value = currentValue;
+                    }
+                }
+            });
+        }
+
+        // Unit management functions
+        function openUnitModal() {
+            document.getElementById('unitModalTitle').textContent = 'Tambah Unit';
+            document.getElementById('unitSubmitButton').textContent = 'Tambah';
+            document.getElementById('unitName').readOnly = false;
+            document.getElementById('unitName').classList.remove('bg-gray-100');
+            currentEditingUnit = null;
+            
+            document.getElementById('unitModal').classList.remove('hidden');
+            document.getElementById('unitModal').classList.add('flex');
+        }
+
+        function closeUnitModal() {
+            document.getElementById('unitModal').classList.add('hidden');
+            document.getElementById('unitModal').classList.remove('flex');
+            document.getElementById('unitForm').reset();
+        }
+
+        function editUnit(unitName) {
+            const unitRows = document.querySelectorAll('#unitSettingsTable tr');
+            let unitData = null;
+            
+            unitRows.forEach(row => {
+                if (row.cells[0] && row.cells[0].textContent === unitName) {
+                    unitData = {
+                        name: row.cells[0].textContent,
+                        description: row.cells[1].textContent
+                    };
+                }
+            });
+            
+            if (unitData) {
+                document.getElementById('unitModalTitle').textContent = 'Edit Unit';
+                document.getElementById('unitSubmitButton').textContent = 'Simpan';
+                document.getElementById('unitName').value = unitData.name;
+                document.getElementById('unitName').readOnly = true;
+                document.getElementById('unitName').classList.add('bg-gray-100');
+                document.getElementById('unitDescription').value = unitData.description;
+                currentEditingUnit = unitName;
+                
+                document.getElementById('unitModal').classList.remove('hidden');
+                document.getElementById('unitModal').classList.add('flex');
+            }
+        }
+
+        function saveUnit() {
+            const name = document.getElementById('unitName').value.trim();
+            const description = document.getElementById('unitDescription').value.trim();
+            
+            if (!name || !description) {
+                alert('Mohon lengkapi semua field!');
+                return;
+            }
+            
+            if (currentEditingUnit) {
+                // Edit existing unit
+                const unitRows = document.querySelectorAll('#unitSettingsTable tr');
+                unitRows.forEach(row => {
+                    if (row.cells[0] && row.cells[0].textContent === currentEditingUnit) {
+                        row.cells[1].textContent = description;
+                    }
+                });
+                
+                addActivity(`Unit ${name} berhasil diupdate`, 'blue');
+                alert(`Unit ${name} berhasil diupdate!`);
+            } else {
+                // Add new unit
+                const table = document.getElementById('unitSettingsTable');
+                const newRow = table.insertRow(0);
+                newRow.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${name}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${description}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <button onclick="editUnit('${name}')" class="text-blue-600 hover:text-blue-700 mr-3">Edit</button>
+                        <button onclick="deleteUnit('${name}')" class="text-red-600 hover:text-red-700">Hapus</button>
+                    </td>
+                `;
+                
+                // Update all unit selectors
+                updateUnitSelectors(name);
+                
+                addActivity(`Unit baru ${name} berhasil ditambahkan`, 'green');
+                alert(`Unit ${name} berhasil ditambahkan!`);
+            }
+            
+            closeUnitModal();
+        }
+
+        function deleteUnit(unitName) {
+            if (confirm(`Apakah Anda yakin ingin menghapus unit ${unitName}?`)) {
+                const unitRows = document.querySelectorAll('#unitSettingsTable tr');
+                
+                unitRows.forEach(row => {
+                    if (row.cells[0] && row.cells[0].textContent === unitName) {
+                        row.remove();
+                    }
+                });
+                
+                // Remove from all unit selectors
+                removeUnitFromSelectors(unitName);
+                
+                addActivity(`Unit ${unitName} berhasil dihapus`, 'red');
+                alert(`Unit ${unitName} berhasil dihapus!`);
+            }
+        }
+
+        function updateUnitSelectors(newUnit) {
+            const selectors = ['itemUnit', 'editItemUnit'];
+            
+            selectors.forEach(selectorId => {
+                const selector = document.getElementById(selectorId);
+                if (selector) {
+                    const option = document.createElement('option');
+                    option.value = newUnit;
+                    option.textContent = newUnit;
+                    selector.appendChild(option);
+                }
+            });
+        }
+
+        function removeUnitFromSelectors(unitName) {
+            const selectors = ['itemUnit', 'editItemUnit'];
+            
+            selectors.forEach(selectorId => {
+                const selector = document.getElementById(selectorId);
+                if (selector) {
+                    Array.from(selector.options).forEach(option => {
+                        if (option.value === unitName) {
+                            option.remove();
+                        }
+                    });
+                }
+            });
+        }
+
+        // Export functions
+        function exportRecap() {
+            const format = document.querySelector('input[name="recapFormat"]:checked').value;
+            const statusFilter = document.getElementById('recapStatusFilter').value;
+            
+            // Get data from recap table
+            const recapRows = document.querySelectorAll('#recapTable tr');
+            let exportData = [];
+            
+            recapRows.forEach(row => {
+                if (row.cells && row.cells.length > 0) {
+                    const statusText = row.cells[5].textContent.toLowerCase();
+                    const shouldInclude = statusFilter === 'all' || 
+                        (statusFilter === 'aman' && statusText.includes('aman')) ||
+                        (statusFilter === 'minimal' && statusText.includes('minimal')) ||
+                        (statusFilter === 'kurang' && statusText.includes('kurang'));
+                    
+                    if (shouldInclude) {
+                        exportData.push({
+                            kode: row.cells[0].textContent,
+                            nama: row.cells[1].textContent,
+                            qty: row.cells[2].textContent,
+                            unit: row.cells[3].textContent,
+                            minStock: row.cells[4].textContent,
+                            status: row.cells[5].textContent.replace(/\s+/g, ' ').trim()
+                        });
+                    }
+                }
+            });
+            
+            const today = new Date().toISOString().split('T')[0];
+            const timestamp = new Date().toLocaleString('id-ID');
+            
+            if (format === 'excel') {
+                exportToExcel(exportData, `Rekapitulasi_${today}`, 'rekapitulasi');
+            } else {
+                exportToPDF(exportData, `Rekapitulasi_${today}`, 'rekapitulasi');
+            }
+            
+            // Add to export history
+            addToExportHistory(`Rekapitulasi_${today}.${format === 'excel' ? 'xlsx' : 'pdf'}`, 'Rekapitulasi', format === 'excel' ? 'Excel' : 'PDF');
+            
+            addActivity(`Export rekapitulasi berhasil (${format.toUpperCase()})`, 'green');
+            alert(`Export rekapitulasi berhasil! File ${format.toUpperCase()} telah didownload.`);
+        }
+
+        function exportStore() {
+            const selectedStore = document.getElementById('exportStoreSelector').value;
+            const format = document.querySelector('input[name="storeFormat"]:checked').value;
+            
+            // Get data from store table
+            const storeRows = document.querySelectorAll('#storeTable tr[data-store]');
+            let exportData = [];
+            
+            storeRows.forEach(row => {
+                const storeCode = row.getAttribute('data-store');
+                if (selectedStore === 'all' || storeCode === selectedStore) {
+                    exportData.push({
+                        kodeStore: row.cells[0].textContent,
+                        namaStore: row.cells[1].textContent,
+                        namaBarang: row.cells[2].textContent,
+                        qty: row.cells[3].textContent,
+                        tanggalIncoming: row.cells[4].textContent,
+                        status: row.cells[5].textContent.replace(/\s+/g, ' ').trim()
+                    });
+                }
+            });
+            
+            const today = new Date().toISOString().split('T')[0];
+            const storeName = selectedStore === 'all' ? 'Semua_Store' : `Store_${selectedStore}`;
+            const fileName = `${storeName}_${today}`;
+            
+            if (format === 'excel') {
+                exportStoreToExcel(exportData, fileName, selectedStore);
+            } else {
+                exportStoreToPDF(exportData, fileName, selectedStore);
+            }
+            
+            // Add to export history
+            addToExportHistory(`${fileName}.${format === 'excel' ? 'xlsx' : 'pdf'}`, 'Kartu Store', format === 'excel' ? 'Excel' : 'PDF');
+            
+            addActivity(`Export kartu store berhasil (${format.toUpperCase()})`, 'blue');
+            alert(`Export kartu store berhasil! File ${format.toUpperCase()} telah didownload.`);
+        }
+
+        function exportToExcel(data, filename, type) {
+            // Create CSV content for Excel compatibility
+            let csvContent = '';
+            
+            if (type === 'rekapitulasi') {
+                csvContent = 'Kode Barang,Nama Barang,Qty,Unit,Min Stock,Status Stock\n';
+                data.forEach(item => {
+                    csvContent += `"${item.kode}","${item.nama}","${item.qty}","${item.unit}","${item.minStock}","${item.status}"\n`;
+                });
+            }
+            
+            // Create and download file
+            const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', filename + '.csv');
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function exportStoreToExcel(data, filename, storeCode) {
+            let csvContent = 'Kode Store,Nama Store,Nama Barang,Qty,Tanggal Incoming,Status\n';
+            data.forEach(item => {
+                csvContent += `"${item.kodeStore}","${item.namaStore}","${item.namaBarang}","${item.qty}","${item.tanggalIncoming}","${item.status}"\n`;
+            });
+            
+            const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', filename + '.csv');
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function exportToPDF(data, filename, type) {
+            // Create HTML content for PDF
+            let htmlContent = `
+                <html>
+                <head>
+                    <meta charset="utf-8">
+                    <title>${filename}</title>
+                    <style>
+                        body { font-family: Arial, sans-serif; margin: 20px; }
+                        .header { text-align: center; margin-bottom: 30px; }
+                        .company { font-size: 18px; font-weight: bold; margin-bottom: 5px; }
+                        .title { font-size: 16px; margin-bottom: 20px; }
+                        .date { font-size: 12px; color: #666; }
+                        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+                        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 12px; }
+                        th { background-color: #f5f5f5; font-weight: bold; }
+                        .footer { margin-top: 30px; font-size: 10px; color: #666; }
+                    </style>
+                </head>
+                <body>
+                    <div class="header">
+                        <div class="company">📦 ModernStock</div>
+                        <div class="title">Laporan ${type === 'rekapitulasi' ? 'Rekapitulasi Inventori' : 'Kartu Store'}</div>
+                        <div class="date">Tanggal: ${new Date().toLocaleDateString('id-ID')}</div>
+                    </div>
+                    <table>
+            `;
+            
+            if (type === 'rekapitulasi') {
+                htmlContent += `
+                    <thead>
+                        <tr>
+                            <th>Kode Barang</th>
+                            <th>Nama Barang</th>
+                            <th>Qty</th>
+                            <th>Unit</th>
+                            <th>Min Stock</th>
+                            <th>Status Stock</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                `;
+                data.forEach(item => {
+                    htmlContent += `
+                        <tr>
+                            <td>${item.kode}</td>
+                            <td>${item.nama}</td>
+                            <td>${item.qty}</td>
+                            <td>${item.unit}</td>
+                            <td>${item.minStock}</td>
+                            <td>${item.status}</td>
+                        </tr>
+                    `;
+                });
+            }
+            
+            htmlContent += `
+                    </tbody>
+                </table>
+                <div class="footer">
+                    <p>Dicetak pada: ${new Date().toLocaleString('id-ID')}</p>
+                    <p>ModernStock - Sistem Manajemen Gudang</p>
+                </div>
+            </body>
+            </html>
+            `;
+            
+            // Create and download PDF (using print functionality)
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write(htmlContent);
+            printWindow.document.close();
+            printWindow.focus();
+            
+            setTimeout(() => {
+                printWindow.print();
+                printWindow.close();
+            }, 250);
+        }
+
+        function exportStoreToPDF(data, filename, storeCode) {
+            const storeName = storeCode === 'all' ? 'Semua Store' : storeData[storeCode] || `Store ${storeCode}`;
+            
+            let htmlContent = `
+                <html>
+                <head>
+                    <meta charset="utf-8">
+                    <title>${filename}</title>
+                    <style>
+                        body { font-family: Arial, sans-serif; margin: 20px; }
+                        .header { text-align: center; margin-bottom: 30px; }
+                        .company { font-size: 18px; font-weight: bold; margin-bottom: 5px; }
+                        .title { font-size: 16px; margin-bottom: 10px; }
+                        .store-info { font-size: 14px; margin-bottom: 20px; }
+                        .date { font-size: 12px; color: #666; }
+                        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+                        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 12px; }
+                        th { background-color: #f5f5f5; font-weight: bold; }
+                        .footer { margin-top: 30px; font-size: 10px; color: #666; }
+                    </style>
+                </head>
+                <body>
+                    <div class="header">
+                        <div class="company">📦 ModernStock</div>
+                        <div class="title">Laporan Kartu Store</div>
+                        <div class="store-info">Store: ${storeName}</div>
+                        <div class="date">Tanggal: ${new Date().toLocaleDateString('id-ID')}</div>
+                    </div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Kode Store</th>
+                                <th>Nama Store</th>
+                                <th>Nama Barang</th>
+                                <th>Qty</th>
+                                <th>Tanggal Incoming</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+            
+            data.forEach(item => {
+                htmlContent += `
+                    <tr>
+                        <td>${item.kodeStore}</td>
+                        <td>${item.namaStore}</td>
+                        <td>${item.namaBarang}</td>
+                        <td>${item.qty}</td>
+                        <td>${item.tanggalIncoming}</td>
+                        <td>${item.status}</td>
+                    </tr>
+                `;
+            });
+            
+            htmlContent += `
+                        </tbody>
+                    </table>
+                    <div class="footer">
+                        <p>Total Item: ${data.length}</p>
+                        <p>Dicetak pada: ${new Date().toLocaleString('id-ID')}</p>
+                        <p>ModernStock - Sistem Manajemen Gudang</p>
+                    </div>
+                </body>
+                </html>
+            `;
+            
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write(htmlContent);
+            printWindow.document.close();
+            printWindow.focus();
+            
+            setTimeout(() => {
+                printWindow.print();
+                printWindow.close();
+            }, 250);
+        }
+
+        function addToExportHistory(filename, type, format) {
+            const table = document.getElementById('exportHistoryTable');
+            const newRow = table.insertRow(0);
+            const now = new Date();
+            const timestamp = now.toISOString().split('T')[0] + ' ' + now.toTimeString().split(' ')[0].substring(0, 5);
+            
+            newRow.innerHTML = `
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${filename}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${type}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${format}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${timestamp}</td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Berhasil</span>
+                </td>
+            `;
+            
+            // Keep only last 10 exports
+            if (table.rows.length > 10) {
+                table.deleteRow(table.rows.length - 1);
+            }
+        }
+
+        // Close modal when clicking outside
+        document.getElementById('addModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeModal();
+            }
+        });
+
+        document.getElementById('transferModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeTransferModal();
+            }
+        });
+
+        document.getElementById('editModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeEditModal();
+            }
+        });
+
+        document.getElementById('notesModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeNotesModal();
+            }
+        });
+
+        document.getElementById('storeModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeStoreModal();
+            }
+        });
+
+        document.getElementById('unitModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeUnitModal();
+            }
+        });
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'97f15b27156b9b90',t:'MTc1Nzg2ODM0MC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
