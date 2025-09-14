@@ -7,153 +7,229 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
-      theme: {
-        extend: {
-          colors: {
-            primary: '#2563eb',
-            secondary: '#64748b'
-          }
-        }
-      }
+      theme: { extend: { colors: { primary: '#2563eb', secondary: '#64748b' } } }
     }
   </script>
 </head>
 <body class="bg-gray-50 font-sans">
 
-  <!-- HEADER -->
-  <header class="bg-white shadow-sm border-b px-4 py-3 flex justify-between items-center">
-    <h1 class="text-lg font-semibold text-gray-900">📦 INVENTORY MANAGEMENT</h1>
-    <button onclick="openAddModal()" class="bg-primary text-white px-3 py-2 rounded-lg hover:bg-blue-700">+ Tambah Data</button>
-  </header>
+<header class="bg-white shadow px-4 py-3 flex justify-between items-center">
+  <h1 class="text-lg font-semibold text-gray-900">📦 INVENTORY MANAGEMENT</h1>
+  <button onclick="openAddModal()" class="bg-primary text-white px-3 py-2 rounded-lg">+ Tambah Data</button>
+</header>
 
-  <!-- MAIN CONTENT -->
-  <main class="p-6">
-    <!-- Incoming Section -->
-    <section id="incoming">
-      <h2 class="text-xl font-semibold mb-4">📥 Data Incoming</h2>
-      <div class="overflow-x-auto bg-white shadow rounded-lg">
-        <table class="min-w-full divide-y divide-gray-200">
-          <thead class="bg-gray-50">
-            <tr>
-              <th class="px-4 py-2">Kode</th>
-              <th class="px-4 py-2">Nama Barang</th>
-              <th class="px-4 py-2">Jumlah</th>
-              <th class="px-4 py-2">Tanggal</th>
-              <th class="px-4 py-2">Status</th>
-              <th class="px-4 py-2">Aksi</th>
-            </tr>
-          </thead>
-          <tbody id="incomingTable" class="divide-y divide-gray-200"></tbody>
-        </table>
-      </div>
-    </section>
-  </main>
+<main class="p-6 space-y-10">
 
-  <!-- Modal Tambah Data -->
-  <div id="addModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center">
-    <div class="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
-      <h3 class="text-lg font-semibold mb-4">Tambah Data Incoming</h3>
-      <form id="addForm" class="space-y-4">
-        <div>
-          <label class="block text-sm mb-1">Kode</label>
-          <input type="text" id="itemCode" class="w-full border px-3 py-2 rounded-lg" required>
-        </div>
-        <div>
-          <label class="block text-sm mb-1">Nama Barang</label>
-          <input type="text" id="itemName" class="w-full border px-3 py-2 rounded-lg" required>
-        </div>
-        <div>
-          <label class="block text-sm mb-1">Jumlah</label>
-          <input type="number" id="itemQuantity" class="w-full border px-3 py-2 rounded-lg" required>
-        </div>
-        <div class="flex justify-end gap-2">
-          <button type="button" onclick="closeAddModal()" class="px-4 py-2 bg-gray-200 rounded-lg">Batal</button>
-          <button type="submit" class="px-4 py-2 bg-primary text-white rounded-lg">Simpan</button>
-        </div>
-      </form>
+  <!-- Incoming -->
+  <section id="incoming">
+    <h2 class="text-xl font-semibold mb-4">📥 Incoming</h2>
+    <div class="overflow-x-auto bg-white shadow rounded-lg">
+      <table class="min-w-full divide-y divide-gray-200">
+        <thead class="bg-gray-50">
+          <tr><th>Kode</th><th>Nama</th><th>Qty</th><th>Tanggal</th><th>Status</th><th>Aksi</th></tr>
+        </thead>
+        <tbody id="incomingTable"></tbody>
+      </table>
     </div>
+  </section>
+
+  <!-- Status -->
+  <section id="status">
+    <h2 class="text-xl font-semibold mb-4">⏳ Status Pending</h2>
+    <table class="min-w-full bg-white shadow rounded-lg">
+      <thead><tr><th>Kode</th><th>Nama</th><th>Qty</th><th>Tanggal</th><th>Status</th><th>Catatan</th><th>Aksi</th></tr></thead>
+      <tbody id="statusTable"></tbody>
+    </table>
+  </section>
+
+  <!-- Store -->
+  <section id="store">
+    <h2 class="text-xl font-semibold mb-4">🏪 Kartu Store</h2>
+    <select id="storeSelector" onchange="loadStore()" class="border px-2 py-1 mb-2">
+      <option value="">Semua Store</option>
+    </select>
+    <table class="min-w-full bg-white shadow rounded-lg">
+      <thead><tr><th>Kode Store</th><th>Nama Store</th><th>Barang</th><th>Qty</th><th>Tanggal</th><th>Status</th><th>Aksi</th></tr></thead>
+      <tbody id="storeTable"></tbody>
+    </table>
+  </section>
+
+  <!-- History -->
+  <section id="history">
+    <h2 class="text-xl font-semibold mb-4">📜 Riwayat</h2>
+    <table class="min-w-full bg-white shadow rounded-lg">
+      <thead><tr><th>ID</th><th>Jenis</th><th>Barang</th><th>Qty</th><th>Tanggal</th><th>User</th></tr></thead>
+      <tbody id="historyTable"></tbody>
+    </table>
+  </section>
+
+  <!-- Recap -->
+  <section id="recap">
+    <h2 class="text-xl font-semibold mb-4">📊 Rekapitulasi</h2>
+    <table class="min-w-full bg-white shadow rounded-lg">
+      <thead><tr><th>Kode</th><th>Nama</th><th>Qty</th><th>Unit</th><th>Min</th><th>Status</th><th>Aksi</th></tr></thead>
+      <tbody id="recapTable"></tbody>
+    </table>
+  </section>
+
+  <!-- Export -->
+  <section id="export">
+    <h2 class="text-xl font-semibold mb-4">⬇️ Export</h2>
+    <button onclick="exportRecap('excel')" class="bg-green-600 text-white px-4 py-2 rounded">Export Rekap Excel</button>
+    <button onclick="exportRecap('pdf')" class="bg-red-600 text-white px-4 py-2 rounded">Export Rekap PDF</button>
+    <br><br>
+    <button onclick="exportStore('excel')" class="bg-blue-600 text-white px-4 py-2 rounded">Export Store Excel</button>
+    <button onclick="exportStore('pdf')" class="bg-purple-600 text-white px-4 py-2 rounded">Export Store PDF</button>
+  </section>
+
+  <!-- Settings -->
+  <section id="settings">
+    <h2 class="text-xl font-semibold mb-4">⚙️ Settings</h2>
+    <h3 class="font-semibold">Store</h3>
+    <table class="min-w-full bg-white shadow rounded-lg">
+      <thead><tr><th>Kode</th><th>Nama</th><th>Aksi</th></tr></thead>
+      <tbody id="storeSettingsTable"></tbody>
+    </table>
+    <h3 class="font-semibold mt-6">Unit</h3>
+    <table class="min-w-full bg-white shadow rounded-lg">
+      <thead><tr><th>Nama</th><th>Deskripsi</th><th>Aksi</th></tr></thead>
+      <tbody id="unitSettingsTable"></tbody>
+    </table>
+  </section>
+
+</main>
+
+<!-- Modal tambah -->
+<div id="addModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center">
+  <div class="bg-white rounded-lg p-6 w-full max-w-md">
+    <h3 class="text-lg font-semibold mb-4">Tambah Incoming</h3>
+    <form id="addForm" class="space-y-4">
+      <input id="itemCode" placeholder="Kode" class="w-full border px-2 py-1">
+      <input id="itemName" placeholder="Nama Barang" class="w-full border px-2 py-1">
+      <input id="itemQuantity" type="number" placeholder="Qty" class="w-full border px-2 py-1">
+      <div class="flex justify-end gap-2">
+        <button type="button" onclick="closeAddModal()" class="bg-gray-200 px-3 py-1 rounded">Batal</button>
+        <button type="submit" class="bg-primary text-white px-3 py-1 rounded">Simpan</button>
+      </div>
+    </form>
   </div>
+</div>
 
-  <script>
-    const API_URL = "https://script.google.com/macros/s/AKfycbzRw0anzYzOxfT6pGf2JG6RamhVWe7-RBuXlJVD-yjSBdVrr_h8rYo0ClnVE1xe4ySt/exec";
+<script>
+const API_URL = "https://script.google.com/macros/s/AKfycbzRw0anzYzOxfT6pGf2JG6RamhVWe7-RBuXlJVD-yjSBdVrr_h8rYo0ClnVE1xe4ySt/exec";
 
-    // ========== FETCH DATA ==========
-    async function loadIncoming() {
-      try {
-        let res = await fetch(API_URL + "?action=getIncoming");
-        let data = await res.json();
-        let tbody = document.getElementById("incomingTable");
-        tbody.innerHTML = "";
-        data.forEach(item => {
-          tbody.innerHTML += `
-            <tr>
-              <td class="px-4 py-2">${item.kode}</td>
-              <td class="px-4 py-2">${item.nama}</td>
-              <td class="px-4 py-2">${item.qty}</td>
-              <td class="px-4 py-2">${item.tanggal}</td>
-              <td class="px-4 py-2"><span class="px-2 py-1 rounded-full text-xs ${item.status === "Pending" ? "bg-yellow-100 text-yellow-800" : "bg-green-100 text-green-800"}">${item.status}</span></td>
-              <td class="px-4 py-2">
-                <button onclick="updateStatus('${item.kode}','Selesai')" class="text-green-600 mr-2">✔</button>
-                <button onclick="deleteIncoming('${item.kode}')" class="text-red-600">✖</button>
-              </td>
-            </tr>
-          `;
-        });
-      } catch (e) {
-        console.error("Gagal load data:", e);
-      }
-    }
+/* --- Incoming --- */
+async function loadIncoming(){
+  let res=await fetch(API_URL+"?action=getIncoming");
+  let data=await res.json();
+  let t=document.getElementById("incomingTable"); t.innerHTML="";
+  data.forEach(x=>{
+    t.innerHTML+=`<tr><td>${x.kode}</td><td>${x.nama}</td><td>${x.qty}</td><td>${x.tanggal}</td>
+      <td>${x.status}</td>
+      <td><button onclick="updateStatus('${x.kode}','Selesai')">✔</button>
+          <button onclick="deleteIncoming('${x.kode}')">✖</button></td></tr>`;
+  });
+}
+async function addIncoming(k,n,q){
+  let res=await fetch(API_URL,{method:"POST",body:JSON.stringify({action:"addIncoming",kode:k,nama:n,qty:q,tanggal:new Date().toISOString().split("T")[0],status:"Pending"})});
+  return await res.json();
+}
+async function updateStatus(k,s){
+  let r=await fetch(API_URL,{method:"POST",body:JSON.stringify({action:"updateStatus",kode:k,status:s})});
+  let j=await r.json(); if(j.success) loadIncoming();
+}
+async function deleteIncoming(k){
+  let r=await fetch(API_URL,{method:"POST",body:JSON.stringify({action:"deleteIncoming",kode:k})});
+  let j=await r.json(); if(j.success) loadIncoming();
+}
 
-    // ========== ADD DATA ==========
-    document.getElementById("addForm").addEventListener("submit", async function(e) {
-      e.preventDefault();
-      let body = {
-        action: "addIncoming",
-        kode: document.getElementById("itemCode").value,
-        nama: document.getElementById("itemName").value,
-        qty: document.getElementById("itemQuantity").value,
-        tanggal: new Date().toISOString().split("T")[0],
-        status: "Pending"
-      };
-      let res = await fetch(API_URL, { method: "POST", body: JSON.stringify(body) });
-      let result = await res.json();
-      if (result.success) {
-        alert("Data berhasil ditambahkan!");
-        closeAddModal();
-        loadIncoming();
-      } else {
-        alert("Gagal menambah data");
-      }
-    });
+/* --- Status --- */
+async function loadStatus(){
+  let r=await fetch(API_URL+"?action=getStatus"); let d=await r.json();
+  let t=document.getElementById("statusTable"); t.innerHTML="";
+  d.forEach(x=>{
+    t.innerHTML+=`<tr><td>${x.kode}</td><td>${x.nama}</td><td>${x.qty}</td><td>${x.tanggal}</td>
+    <td>${x.status}</td><td>${x.catatan||""}</td>
+    <td><button onclick="moveToStore('${x.kode}')">Pindah</button></td></tr>`;
+  });
+}
+async function moveToStore(k){
+  let r=await fetch(API_URL,{method:"POST",body:JSON.stringify({action:"moveToStore",kode:k})});
+  let j=await r.json(); if(j.success){ loadStatus(); loadStore(); }
+}
 
-    // ========== UPDATE STATUS ==========
-    async function updateStatus(kode, status) {
-      let body = { action: "updateStatus", kode, status };
-      let res = await fetch(API_URL, { method: "POST", body: JSON.stringify(body) });
-      let result = await res.json();
-      if (result.success) loadIncoming();
-    }
+/* --- Store --- */
+async function loadStore(){
+  let sel=document.getElementById("storeSelector").value;
+  let r=await fetch(API_URL+"?action=getStore"+(sel?"&store="+sel:""));
+  let d=await r.json(); let t=document.getElementById("storeTable"); t.innerHTML="";
+  d.forEach(x=>{
+    t.innerHTML+=`<tr><td>${x.kode_store}</td><td>${x.nama_store}</td><td>${x.nama_barang}</td><td>${x.qty}</td><td>${x.tanggal}</td><td>${x.status}</td>
+    <td><button onclick="transferItem('${x.kode_store}','${x.nama_barang}')">Transfer</button></td></tr>`;
+  });
+}
+function transferItem(s,b){ alert("Transfer "+b+" dari store "+s); }
 
-    // ========== DELETE ==========
-    async function deleteIncoming(kode) {
-      if (!confirm("Yakin hapus data?")) return;
-      let body = { action: "deleteIncoming", kode };
-      let res = await fetch(API_URL, { method: "POST", body: JSON.stringify(body) });
-      let result = await res.json();
-      if (result.success) loadIncoming();
-    }
+/* --- History --- */
+async function loadHistory(){
+  let r=await fetch(API_URL+"?action=getHistory"); let d=await r.json();
+  let t=document.getElementById("historyTable"); t.innerHTML="";
+  d.forEach(x=>{
+    t.innerHTML+=`<tr><td>${x.id}</td><td>${x.jenis}</td><td>${x.nama}</td><td>${x.qty}</td><td>${x.tanggal}</td><td>${x.user}</td></tr>`;
+  });
+}
 
-    // ========== MODAL ==========
-    function openAddModal() {
-      document.getElementById("addModal").classList.remove("hidden");
-      document.getElementById("addModal").classList.add("flex");
-    }
-    function closeAddModal() {
-      document.getElementById("addModal").classList.add("hidden");
-    }
+/* --- Recap --- */
+async function loadRecap(){
+  let r=await fetch(API_URL+"?action=getRecap"); let d=await r.json();
+  let t=document.getElementById("recapTable"); t.innerHTML="";
+  d.forEach(x=>{
+    t.innerHTML+=`<tr><td>${x.kode}</td><td>${x.nama}</td><td>${x.qty}</td><td>${x.unit}</td><td>${x.min_stock}</td><td>${x.status}</td>
+    <td><button onclick="editItem('${x.kode}')">Edit</button><button onclick="deleteItem('${x.kode}')">Hapus</button></td></tr>`;
+  });
+}
+function editItem(k){ alert("Edit "+k); }
+async function deleteItem(k){
+  let r=await fetch(API_URL,{method:"POST",body:JSON.stringify({action:"deleteItem",kode:k})});
+  let j=await r.json(); if(j.success) loadRecap();
+}
 
-    // Auto load saat pertama kali dibuka
-    loadIncoming();
-  </script>
+/* --- Export --- */
+function exportRecap(fmt){ window.open(API_URL+"?action=exportRecap&format="+fmt,"_blank"); }
+function exportStore(fmt){ window.open(API_URL+"?action=exportStore&format="+fmt,"_blank"); }
+
+/* --- Settings --- */
+async function loadStoreSettings(){
+  let r=await fetch(API_URL+"?action=getStoreSettings"); let d=await r.json();
+  let t=document.getElementById("storeSettingsTable"); t.innerHTML="";
+  d.forEach(x=>{
+    t.innerHTML+=`<tr><td>${x.kode}</td><td>${x.nama}</td>
+      <td><button onclick="editStore('${x.kode}')">Edit</button><button onclick="deleteStore('${x.kode}')">Hapus</button></td></tr>`;
+  });
+}
+async function loadUnitSettings(){
+  let r=await fetch(API_URL+"?action=getUnitSettings"); let d=await r.json();
+  let t=document.getElementById("unitSettingsTable"); t.innerHTML="";
+  d.forEach(x=>{
+    t.innerHTML+=`<tr><td>${x.nama}</td><td>${x.deskripsi}</td>
+      <td><button onclick="editUnit('${x.nama}')">Edit</button><button onclick="deleteUnit('${x.nama}')">Hapus</button></td></tr>`;
+  });
+}
+function editStore(k){ alert("Edit store "+k); }
+async function deleteStore(k){ await fetch(API_URL,{method:"POST",body:JSON.stringify({action:"deleteStore",kode:k})}); loadStoreSettings(); }
+function editUnit(n){ alert("Edit unit "+n); }
+async function deleteUnit(n){ await fetch(API_URL,{method:"POST",body:JSON.stringify({action:"deleteUnit",nama:n})}); loadUnitSettings(); }
+
+/* --- Modal --- */
+function openAddModal(){ document.getElementById("addModal").classList.remove("hidden"); document.getElementById("addModal").classList.add("flex"); }
+function closeAddModal(){ document.getElementById("addModal").classList.add("hidden"); }
+document.getElementById("addForm").addEventListener("submit",async e=>{
+  e.preventDefault(); let k=itemCode.value,n=itemName.value,q=itemQuantity.value;
+  let r=await addIncoming(k,n,q); if(r.success){ closeAddModal(); loadIncoming(); }
+});
+
+/* Auto load semua */
+loadIncoming(); loadStatus(); loadStore(); loadHistory(); loadRecap(); loadStoreSettings(); loadUnitSettings();
+</script>
 </body>
 </html>
