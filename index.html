@@ -1,235 +1,858 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ModernStock - Sistem Manajemen Gudang</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      theme: { extend: { colors: { primary: '#2563eb', secondary: '#64748b' } } }
-    }
-  </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Warehouse Management System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+            --color-primary: #2563eb;
+            --color-primary-hover: #1d4ed8;
+        }
+        
+        .bg-primary {
+            background-color: var(--color-primary) !important;
+        }
+        
+        .text-primary {
+            color: var(--color-primary) !important;
+        }
+        
+        .border-primary {
+            border-color: var(--color-primary) !important;
+        }
+        
+        .ring-primary {
+            --tw-ring-color: var(--color-primary) !important;
+        }
+        
+        .focus\:ring-primary:focus {
+            --tw-ring-color: var(--color-primary) !important;
+        }
+        
+        .hover\:bg-blue-700:hover {
+            background-color: var(--color-primary-hover) !important;
+        }
+    </style>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#2563eb',
+                        secondary: '#64748b'
+                    }
+                }
+            }
+        }
+    </script>
 </head>
 <body class="bg-gray-50 font-sans">
+    <!-- Header -->
+    <header class="bg-white shadow-sm border-b">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center">
+                    <div class="bg-primary text-white p-2 rounded-lg mr-3">
+                        <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M4 3a2 2 0 100 4h12a2 2 0 100-4H4z"></path>
+                            <path fill-rule="evenodd" d="M3 8h14v7a2 2 0 01-2 2H5a2 2 0 01-2-2V8zm5 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" clip-rule="evenodd"></path>
+                        </svg>
+                    </div>
+                    <h1 class="text-xl font-bold text-gray-900">Warehouse Management</h1>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <div class="hidden md:flex items-center space-x-3">
+                        <div class="text-right">
+                            <p class="text-sm font-medium text-gray-900" id="currentUserName">Administrator</p>
+                            <p class="text-xs text-gray-500" id="currentUserRole">Admin</p>
+                        </div>
+                        <div class="bg-primary text-white p-2 rounded-full">
+                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"></path>
+                            </svg>
+                        </div>
+                        <button onclick="logout()" class="text-gray-600 hover:text-red-600 p-2 rounded-lg hover:bg-red-50 transition-colors" title="Logout">
+                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M3 3a1 1 0 00-1 1v12a1 1 0 102 0V4a1 1 0 00-1-1zm10.293 9.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L14.586 9H7a1 1 0 100 2h7.586l-1.293 1.293z" clip-rule="evenodd"></path>
+                            </svg>
+                        </button>
+                    </div>
+                    <button id="mobileMenuBtn" class="md:hidden p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
 
-<header class="bg-white shadow px-4 py-3 flex justify-between items-center">
-  <h1 class="text-lg font-semibold text-gray-900">📦 INVENTORY MANAGEMENT</h1>
-  <button onclick="openAddModal()" class="bg-primary text-white px-3 py-2 rounded-lg">+ Tambah Data</button>
-</header>
+    <div class="flex">
+        <!-- Sidebar -->
+        <nav id="sidebar" class="bg-white w-64 min-h-screen shadow-sm border-r fixed md:relative transform -translate-x-full md:translate-x-0 transition-transform duration-200 ease-in-out z-30">
+            <div class="p-6">
+                <ul class="space-y-2">
+                    <li>
+                        <button onclick="showSection('dashboard')" class="nav-item w-full flex items-center px-4 py-3 text-left text-gray-700 rounded-lg hover:bg-blue-50 hover:text-primary transition-colors">
+                            <svg class="w-5 h-5 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z"></path>
+                            </svg>
+                            Dashboard
+                        </button>
+                    </li>
+                    <li>
+                        <button onclick="showSection('incoming')" class="nav-item w-full flex items-center px-4 py-3 text-left text-gray-700 rounded-lg hover:bg-blue-50 hover:text-primary transition-colors">
+                            <svg class="w-5 h-5 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                            </svg>
+                            Incoming
+                        </button>
+                    </li>
+                    <li>
+                        <button onclick="showSection('status')" class="nav-item w-full flex items-center px-4 py-3 text-left text-gray-700 rounded-lg hover:bg-blue-50 hover:text-primary transition-colors">
+                            <svg class="w-5 h-5 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                            </svg>
+                            Status
+                        </button>
+                    </li>
+                    <li>
+                        <button onclick="showSection('kartu-store')" class="nav-item w-full flex items-center px-4 py-3 text-left text-gray-700 rounded-lg hover:bg-blue-50 hover:text-primary transition-colors">
+                            <svg class="w-5 h-5 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"></path>
+                                <path fill-rule="evenodd" d="M4 5a2 2 0 012-2v1a1 1 0 001 1h6a1 1 0 001-1V3a2 2 0 012 2v6a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"></path>
+                            </svg>
+                            Kartu Store
+                        </button>
+                    </li>
+                    <li>
+                        <button onclick="showSection('riwayat')" class="nav-item w-full flex items-center px-4 py-3 text-left text-gray-700 rounded-lg hover:bg-blue-50 hover:text-primary transition-colors">
+                            <svg class="w-5 h-5 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"></path>
+                            </svg>
+                            Riwayat
+                        </button>
+                    </li>
+                    <li>
+                        <button onclick="showSection('rekap-data')" class="nav-item w-full flex items-center px-4 py-3 text-left text-gray-700 rounded-lg hover:bg-blue-50 hover:text-primary transition-colors">
+                            <svg class="w-5 h-5 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z"></path>
+                            </svg>
+                            Rekap Data
+                        </button>
+                    </li>
+                    <li>
+                        <button onclick="showSection('pengaturan')" class="nav-item w-full flex items-center px-4 py-3 text-left text-gray-700 rounded-lg hover:bg-blue-50 hover:text-primary transition-colors">
+                            <svg class="w-5 h-5 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"></path>
+                            </svg>
+                            Pengaturan
+                        </button>
+                    </li>
+                    <li>
+                        <button onclick="showDownloadModal()" class="nav-item w-full flex items-center px-4 py-3 text-left text-gray-700 rounded-lg hover:bg-green-50 hover:text-green-600 transition-colors">
+                            <svg class="w-5 h-5 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                            </svg>
+                            Unduh Data
+                        </button>
+                    </li>
+                    <li>
+                        <button onclick="showSyncModal()" class="nav-item w-full flex items-center px-4 py-3 text-left text-gray-700 rounded-lg hover:bg-blue-50 hover:text-blue-600 transition-colors">
+                            <svg class="w-5 h-5 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd"></path>
+                            </svg>
+                            Sync ke Sheets
+                        </button>
+                    </li>
+                </ul>
+            </div>
+        </nav>
 
-<main class="p-6 space-y-10">
+        <!-- Overlay for mobile -->
+        <div id="overlay" class="fixed inset-0 bg-black bg-opacity-50 z-20 hidden md:hidden"></div>
 
-  <!-- Incoming -->
-  <section id="incoming">
-    <h2 class="text-xl font-semibold mb-4">📥 Incoming</h2>
-    <div class="overflow-x-auto bg-white shadow rounded-lg">
-      <table class="min-w-full divide-y divide-gray-200">
-        <thead class="bg-gray-50">
-          <tr><th>Kode</th><th>Nama</th><th>Qty</th><th>Tanggal</th><th>Status</th><th>Aksi</th></tr>
-        </thead>
-        <tbody id="incomingTable"></tbody>
-      </table>
+        <!-- Main Content -->
+        <main class="flex-1 p-6 md:ml-0">
+            <!-- Dashboard Section -->
+            <div id="dashboard" class="section">
+                <div class="mb-6">
+                    <h2 class="text-2xl font-bold text-gray-900 mb-2">Dashboard</h2>
+                    <p class="text-gray-600">Ringkasan aktivitas gudang hari ini</p>
+                </div>
+
+                <!-- Stats Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    <div class="bg-white p-6 rounded-lg shadow-sm border hover:shadow-md transition-all cursor-pointer transform hover:scale-105">
+                        <div class="flex items-center">
+                            <div class="bg-blue-100 p-3 rounded-lg">
+                                <svg class="w-6 h-6 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM11 13a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path>
+                                </svg>
+                            </div>
+                            <div class="ml-4">
+                                <p class="text-sm font-medium text-gray-600">Total Item</p>
+                                <p class="text-2xl font-bold text-gray-900" id="dashTotalItems">20</p>
+                                <p class="text-xs text-blue-600 font-medium mt-1">Klik untuk lihat detail</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-6 rounded-lg shadow-sm border hover:shadow-md transition-all cursor-pointer transform hover:scale-105">
+                        <div class="flex items-center">
+                            <div class="bg-green-100 p-3 rounded-lg">
+                                <svg class="w-6 h-6 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                                </svg>
+                            </div>
+                            <div class="ml-4">
+                                <p class="text-sm font-medium text-gray-600">Barang Masuk</p>
+                                <p class="text-2xl font-bold text-gray-900" id="dashIncomingItems">2</p>
+                                <p class="text-xs text-green-600 font-medium mt-1">Klik untuk lihat detail</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-6 rounded-lg shadow-sm border hover:shadow-md transition-all cursor-pointer transform hover:scale-105">
+                        <div class="flex items-center">
+                            <div class="bg-red-100 p-3 rounded-lg">
+                                <svg class="w-6 h-6 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M16.707 10.293a1 1 0 010 1.414l-6 6a1 1 0 01-1.414 0l-6-6a1 1 0 111.414-1.414L9 14.586V3a1 1 0 012 0v11.586l4.293-4.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                                </svg>
+                            </div>
+                            <div class="ml-4">
+                                <p class="text-sm font-medium text-gray-600">Barang Keluar</p>
+                                <p class="text-2xl font-bold text-gray-900" id="dashOutgoingItems">5</p>
+                                <p class="text-xs text-red-600 font-medium mt-1">Klik untuk lihat detail</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-6 rounded-lg shadow-sm border hover:shadow-md transition-all cursor-pointer transform hover:scale-105">
+                        <div class="flex items-center">
+                            <div class="bg-yellow-100 p-3 rounded-lg">
+                                <svg class="w-6 h-6 text-yellow-600" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                                </svg>
+                            </div>
+                            <div class="ml-4">
+                                <p class="text-sm font-medium text-gray-600">Stok Rendah</p>
+                                <p class="text-2xl font-bold text-gray-900" id="dashLowStock">4</p>
+                                <p class="text-xs text-yellow-600 font-medium mt-1">Klik untuk lihat detail</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+                    <div class="bg-white rounded-lg shadow-sm border">
+                        <div class="p-6 border-b">
+                            <h3 class="text-lg font-semibold text-gray-900">Aksi Cepat</h3>
+                        </div>
+                        <div class="p-6 space-y-3">
+                            <button onclick="showSection('incoming')" class="w-full flex items-center justify-center px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
+                                <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"></path>
+                                </svg>
+                                Tambah Barang Masuk
+                            </button>
+                            <button onclick="showSection('status')" class="w-full flex items-center justify-center px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                                <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                                </svg>
+                                Verifikasi Barang
+                            </button>
+                            <button onclick="showSection('kartu-store')" class="w-full flex items-center justify-center px-4 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors">
+                                <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"></path>
+                                    <path fill-rule="evenodd" d="M4 5a2 2 0 012-2v1a1 1 0 001 1h6a1 1 0 001-1V3a2 2 0 012 2v6a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"></path>
+                                </svg>
+                                Kelola Store
+                            </button>
+                            <button onclick="showSyncModal()" class="w-full flex items-center justify-center px-4 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
+                                <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd"></path>
+                                </svg>
+                                Sync ke Google Sheets
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-lg shadow-sm border">
+                        <div class="p-6 border-b">
+                            <h3 class="text-lg font-semibold text-gray-900">Status Sistem</h3>
+                        </div>
+                        <div class="p-6 space-y-4">
+                            <div class="flex items-center justify-between">
+                                <span class="text-sm text-gray-600">Barang Perlu Verifikasi</span>
+                                <span class="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800" id="dashPendingVerification">2</span>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-sm text-gray-600">Store Aktif</span>
+                                <span class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800" id="dashActiveStores">24</span>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-sm text-gray-600">Total Transaksi Hari Ini</span>
+                                <span class="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800" id="dashTodayTransactions">8</span>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-sm text-gray-600">Peringatan Stok</span>
+                                <span class="px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800" id="dashStockWarnings">5</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-lg shadow-sm border">
+                        <div class="p-6 border-b">
+                            <h3 class="text-lg font-semibold text-gray-900">Aktivitas Terbaru</h3>
+                        </div>
+                        <div class="p-6">
+                            <div class="space-y-4" id="recentActivities">
+                                <div class="flex items-center space-x-3">
+                                    <div class="w-2 h-2 bg-green-500 rounded-full"></div>
+                                    <div class="flex-1">
+                                        <p class="text-sm text-gray-900">Barang masuk: Laptop Dell</p>
+                                        <p class="text-xs text-gray-500">2 jam yang lalu</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center space-x-3">
+                                    <div class="w-2 h-2 bg-blue-500 rounded-full"></div>
+                                    <div class="flex-1">
+                                        <p class="text-sm text-gray-900">Transfer ke Store 50</p>
+                                        <p class="text-xs text-gray-500">3 jam yang lalu</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center space-x-3">
+                                    <div class="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                                    <div class="flex-1">
+                                        <p class="text-sm text-gray-900">Stok rendah: Mouse Wireless</p>
+                                        <p class="text-xs text-gray-500">5 jam yang lalu</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mt-4 pt-4 border-t">
+                                <button onclick="showSection('riwayat')" class="text-sm text-primary hover:text-blue-700 font-medium">
+                                    Lihat Semua Aktivitas →
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Incoming Section -->
+            <div id="incoming" class="section hidden">
+                <div class="mb-6">
+                    <h2 class="text-2xl font-bold text-gray-900 mb-2">Barang Masuk</h2>
+                    <p class="text-gray-600">Kelola barang yang masuk ke gudang</p>
+                </div>
+
+                <!-- Form Input Barang Masuk -->
+                <div class="bg-white rounded-lg shadow-sm border mb-6">
+                    <div class="p-6 border-b">
+                        <h3 class="text-lg font-semibold text-gray-900">Input Barang Masuk</h3>
+                    </div>
+                    <div class="p-6">
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Tanggal</label>
+                                <input type="date" id="incomingDate" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Kode Barang</label>
+                                <input type="text" id="incomingCode" placeholder="Masukkan kode barang" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Nama Barang</label>
+                                <input type="text" id="incomingName" placeholder="Nama barang" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Qty</label>
+                                <input type="number" id="incomingQty" placeholder="0" min="1" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Unit</label>
+                                <select id="incomingUnit" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
+                                    <option value="">Pilih Unit</option>
+                                    <option value="pcs">Pcs</option>
+                                    <option value="kg">Kg</option>
+                                    <option value="liter">Liter</option>
+                                    <option value="box">Box</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Min Stock</label>
+                                <input type="number" id="incomingMinStock" placeholder="0" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
+                            </div>
+                            <div class="flex items-end">
+                                <button onclick="addIncomingItem()" class="w-full bg-primary text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                                    Tambah ke Daftar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Daftar Barang Masuk -->
+                <div class="bg-white rounded-lg shadow-sm border">
+                    <div class="p-6 border-b">
+                        <h3 class="text-lg font-semibold text-gray-900">Daftar Barang Masuk</h3>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tanggal</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kode</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Barang</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Qty</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unit</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Min Stock</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="incomingTableBody" class="bg-white divide-y divide-gray-200">
+                                <!-- Sample data -->
+                                <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">2024-01-15</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">LP001</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Laptop Dell Inspiron</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">5</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">pcs</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">2</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">Pending</span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                        <button class="text-blue-600 hover:text-blue-900 mr-3">Edit</button>
+                                        <button class="text-red-600 hover:text-red-900">Hapus</button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Status Section -->
+            <div id="status" class="section hidden">
+                <div class="mb-6">
+                    <h2 class="text-2xl font-bold text-gray-900 mb-2">Status Verifikasi Barang</h2>
+                    <p class="text-gray-600">Verifikasi dan transfer barang ke store</p>
+                </div>
+
+                <div class="bg-white rounded-lg shadow-sm border">
+                    <div class="p-6 border-b">
+                        <h3 class="text-lg font-semibold text-gray-900">Daftar Barang Menunggu Verifikasi</h3>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tanggal</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kode</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Barang</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Qty</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unit</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="statusTableBody" class="bg-white divide-y divide-gray-200">
+                                <!-- Sample data -->
+                                <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">2024-01-15</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">LP001</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Laptop Dell Inspiron</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">5</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">pcs</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">Menunggu Verifikasi</span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                        <button onclick="verifyItem('LP001')" class="bg-green-600 text-white px-3 py-1 rounded text-xs hover:bg-green-700 mr-2">Verifikasi</button>
+                                        <button onclick="showTransferModal()" class="bg-blue-600 text-white px-3 py-1 rounded text-xs hover:bg-blue-700">Transfer</button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Kartu Store Section -->
+            <div id="kartu-store" class="section hidden">
+                <div class="mb-6">
+                    <h2 class="text-2xl font-bold text-gray-900 mb-2">Kartu Store</h2>
+                    <p class="text-gray-600">Monitor stok barang per store</p>
+                </div>
+
+                <!-- Store Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    <!-- Store Card 1 -->
+                    <div class="bg-white rounded-lg shadow-sm border hover:shadow-md transition-all cursor-pointer">
+                        <div class="p-6">
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="text-lg font-semibold text-gray-900">Store 50</h3>
+                                <span class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">Aktif</span>
+                            </div>
+                            <div class="space-y-3">
+                                <div class="flex justify-between">
+                                    <span class="text-sm text-gray-600">Total Item</span>
+                                    <span class="text-sm font-medium text-gray-900">15</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-sm text-gray-600">Stok Rendah</span>
+                                    <span class="text-sm font-medium text-red-600">3</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-sm text-gray-600">Last Update</span>
+                                    <span class="text-sm text-gray-500">2 jam lalu</span>
+                                </div>
+                            </div>
+                            <div class="mt-4 pt-4 border-t">
+                                <button onclick="viewStoreDetail('50')" class="w-full bg-primary text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm">
+                                    Lihat Detail
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Store Card 2 -->
+                    <div class="bg-white rounded-lg shadow-sm border hover:shadow-md transition-all cursor-pointer">
+                        <div class="p-6">
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="text-lg font-semibold text-gray-900">Store 51</h3>
+                                <span class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">Aktif</span>
+                            </div>
+                            <div class="space-y-3">
+                                <div class="flex justify-between">
+                                    <span class="text-sm text-gray-600">Total Item</span>
+                                    <span class="text-sm font-medium text-gray-900">12</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-sm text-gray-600">Stok Rendah</span>
+                                    <span class="text-sm font-medium text-yellow-600">1</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-sm text-gray-600">Last Update</span>
+                                    <span class="text-sm text-gray-500">1 jam lalu</span>
+                                </div>
+                            </div>
+                            <div class="mt-4 pt-4 border-t">
+                                <button onclick="viewStoreDetail('51')" class="w-full bg-primary text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm">
+                                    Lihat Detail
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Riwayat Section -->
+            <div id="riwayat" class="section hidden">
+                <div class="mb-6">
+                    <h2 class="text-2xl font-bold text-gray-900 mb-2">Riwayat Transaksi</h2>
+                    <p class="text-gray-600">Lihat semua aktivitas gudang dan transaksi per store</p>
+                </div>
+
+                <div class="bg-white rounded-lg shadow-sm border">
+                    <div class="p-6 border-b">
+                        <h3 class="text-lg font-semibold text-gray-900">Log Aktivitas Transaksi</h3>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tanggal & Waktu</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Jenis Transaksi</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kode Barang</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Barang</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Qty</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Store/Lokasi</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                                <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">2024-01-15 14:30</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">Barang Masuk</span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">LP001</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Laptop Dell Inspiron</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">5</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">GUDANG</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Admin</td>
+                                </tr>
+                                <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">2024-01-15 13:15</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">Transfer Masuk</span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">MS002</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Mouse Wireless</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">10</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Store 50</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Admin</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Rekap Data Section -->
+            <div id="rekap-data" class="section hidden">
+                <div class="mb-6">
+                    <h2 class="text-2xl font-bold text-gray-900 mb-2">Rekap Data</h2>
+                    <p class="text-gray-600">Laporan lengkap data gudang dan analisis stok</p>
+                </div>
+
+                <!-- Summary Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+                    <div class="bg-white p-6 rounded-lg shadow-sm border">
+                        <div class="flex items-center">
+                            <div class="bg-blue-100 p-3 rounded-lg">
+                                <svg class="w-6 h-6 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM11 13a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path>
+                                </svg>
+                            </div>
+                            <div class="ml-4">
+                                <p class="text-sm font-medium text-gray-600">Total Jenis Barang</p>
+                                <p class="text-2xl font-bold text-gray-900">20</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-6 rounded-lg shadow-sm border">
+                        <div class="flex items-center">
+                            <div class="bg-green-100 p-3 rounded-lg">
+                                <svg class="w-6 h-6 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                                </svg>
+                            </div>
+                            <div class="ml-4">
+                                <p class="text-sm font-medium text-gray-600">Stok Aman</p>
+                                <p class="text-2xl font-bold text-gray-900">15</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-6 rounded-lg shadow-sm border">
+                        <div class="flex items-center">
+                            <div class="bg-yellow-100 p-3 rounded-lg">
+                                <svg class="w-6 h-6 text-yellow-600" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                                </svg>
+                            </div>
+                            <div class="ml-4">
+                                <p class="text-sm font-medium text-gray-600">Stok Rendah</p>
+                                <p class="text-2xl font-bold text-gray-900">4</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-6 rounded-lg shadow-sm border">
+                        <div class="flex items-center">
+                            <div class="bg-red-100 p-3 rounded-lg">
+                                <svg class="w-6 h-6 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
+                                </svg>
+                            </div>
+                            <div class="ml-4">
+                                <p class="text-sm font-medium text-gray-600">Stok Habis</p>
+                                <p class="text-2xl font-bold text-gray-900">1</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tabel Rekap Data -->
+                <div class="bg-white rounded-lg shadow-sm border">
+                    <div class="p-6 border-b">
+                        <h3 class="text-lg font-semibold text-gray-900">Detail Rekap Data Barang</h3>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kode</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Barang</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stok Saat Ini</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Min. Stok</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unit</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Masuk</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Keluar</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                                <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">LP001</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Laptop Dell Inspiron</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">8</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">2</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">pcs</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">10</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">2</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">Aman</span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">MS002</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Mouse Wireless</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">3</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">5</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">pcs</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">15</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">12</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">Rendah</span>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pengaturan Section -->
+            <div id="pengaturan" class="section hidden">
+                <div class="mb-6">
+                    <h2 class="text-2xl font-bold text-gray-900 mb-2">Pengaturan</h2>
+                    <p class="text-gray-600">Konfigurasi sistem gudang</p>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="bg-white rounded-lg shadow-sm border">
+                        <div class="p-6 border-b">
+                            <h3 class="text-lg font-semibold text-gray-900">Pengaturan Umum</h3>
+                        </div>
+                        <div class="p-6 space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Nama Perusahaan</label>
+                                <input type="text" value="PT. Warehouse Management" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Alamat</label>
+                                <textarea rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">Jl. Contoh No. 123, Jakarta</textarea>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                                <input type="email" value="admin@warehouse.com" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-lg shadow-sm border">
+                        <div class="p-6 border-b">
+                            <h3 class="text-lg font-semibold text-gray-900">Pengaturan Sistem</h3>
+                        </div>
+                        <div class="p-6 space-y-4">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm font-medium text-gray-900">Notifikasi Email</p>
+                                    <p class="text-sm text-gray-500">Kirim notifikasi via email</p>
+                                </div>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" checked class="sr-only peer">
+                                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                                </label>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm font-medium text-gray-900">Auto Backup</p>
+                                    <p class="text-sm text-gray-500">Backup otomatis setiap hari</p>
+                                </div>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" checked class="sr-only peer">
+                                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-6 flex justify-end">
+                    <button class="bg-primary text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                        Simpan Pengaturan
+                    </button>
+                </div>
+            </div>
+        </main>
     </div>
-  </section>
 
-  <!-- Status -->
-  <section id="status">
-    <h2 class="text-xl font-semibold mb-4">⏳ Status Pending</h2>
-    <table class="min-w-full bg-white shadow rounded-lg">
-      <thead><tr><th>Kode</th><th>Nama</th><th>Qty</th><th>Tanggal</th><th>Status</th><th>Catatan</th><th>Aksi</th></tr></thead>
-      <tbody id="statusTable"></tbody>
-    </table>
-  </section>
+    <!-- Transfer Modal -->
+    <div id="transferModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden">
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div class="bg-white rounded-lg shadow-xl max-w-md w-full">
+                <div class="p-6 border-b">
+                    <h3 class="text-lg font-semibold text-gray-900">Transfer Barang ke Store</h3>
+                </div>
+                <div class="p-6 space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Pilih Store Tujuan</label>
+                        <select class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
+                            <option value="">Pilih store tujuan...</option>
+                            <option value="50">Store 50</option>
+                            <option value="51">Store 51</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Jumlah Transfer</label>
+                        <input type="number" min="1" max="5" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
+                    </div>
+                </div>
+                <div class="p-6 border-t flex justify-end space-x-3">
+                    <button onclick="closeTransferModal()" class="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors">
+                        Batal
+                    </button>
+                    <button onclick="processTransfer()" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors">
+                        Transfer
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 
-  <!-- Store -->
-  <section id="store">
-    <h2 class="text-xl font-semibold mb-4">🏪 Kartu Store</h2>
-    <select id="storeSelector" onchange="loadStore()" class="border px-2 py-1 mb-2">
-      <option value="">Semua Store</option>
-    </select>
-    <table class="min-w-full bg-white shadow rounded-lg">
-      <thead><tr><th>Kode Store</th><th>Nama Store</th><th>Barang</th><th>Qty</th><th>Tanggal</th><th>Status</th><th>Aksi</th></tr></thead>
-      <tbody id="storeTable"></tbody>
-    </table>
-  </section>
-
-  <!-- History -->
-  <section id="history">
-    <h2 class="text-xl font-semibold mb-4">📜 Riwayat</h2>
-    <table class="min-w-full bg-white shadow rounded-lg">
-      <thead><tr><th>ID</th><th>Jenis</th><th>Barang</th><th>Qty</th><th>Tanggal</th><th>User</th></tr></thead>
-      <tbody id="historyTable"></tbody>
-    </table>
-  </section>
-
-  <!-- Recap -->
-  <section id="recap">
-    <h2 class="text-xl font-semibold mb-4">📊 Rekapitulasi</h2>
-    <table class="min-w-full bg-white shadow rounded-lg">
-      <thead><tr><th>Kode</th><th>Nama</th><th>Qty</th><th>Unit</th><th>Min</th><th>Status</th><th>Aksi</th></tr></thead>
-      <tbody id="recapTable"></tbody>
-    </table>
-  </section>
-
-  <!-- Export -->
-  <section id="export">
-    <h2 class="text-xl font-semibold mb-4">⬇️ Export</h2>
-    <button onclick="exportRecap('excel')" class="bg-green-600 text-white px-4 py-2 rounded">Export Rekap Excel</button>
-    <button onclick="exportRecap('pdf')" class="bg-red-600 text-white px-4 py-2 rounded">Export Rekap PDF</button>
-    <br><br>
-    <button onclick="exportStore('excel')" class="bg-blue-600 text-white px-4 py-2 rounded">Export Store Excel</button>
-    <button onclick="exportStore('pdf')" class="bg-purple-600 text-white px-4 py-2 rounded">Export Store PDF</button>
-  </section>
-
-  <!-- Settings -->
-  <section id="settings">
-    <h2 class="text-xl font-semibold mb-4">⚙️ Settings</h2>
-    <h3 class="font-semibold">Store</h3>
-    <table class="min-w-full bg-white shadow rounded-lg">
-      <thead><tr><th>Kode</th><th>Nama</th><th>Aksi</th></tr></thead>
-      <tbody id="storeSettingsTable"></tbody>
-    </table>
-    <h3 class="font-semibold mt-6">Unit</h3>
-    <table class="min-w-full bg-white shadow rounded-lg">
-      <thead><tr><th>Nama</th><th>Deskripsi</th><th>Aksi</th></tr></thead>
-      <tbody id="unitSettingsTable"></tbody>
-    </table>
-  </section>
-
-</main>
-
-<!-- Modal tambah -->
-<div id="addModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center">
-  <div class="bg-white rounded-lg p-6 w-full max-w-md">
-    <h3 class="text-lg font-semibold mb-4">Tambah Incoming</h3>
-    <form id="addForm" class="space-y-4">
-      <input id="itemCode" placeholder="Kode" class="w-full border px-2 py-1">
-      <input id="itemName" placeholder="Nama Barang" class="w-full border px-2 py-1">
-      <input id="itemQuantity" type="number" placeholder="Qty" class="w-full border px-2 py-1">
-      <div class="flex justify-end gap-2">
-        <button type="button" onclick="closeAddModal()" class="bg-gray-200 px-3 py-1 rounded">Batal</button>
-        <button type="submit" class="bg-primary text-white px-3 py-1 rounded">Simpan</button>
-      </div>
-    </form>
-  </div>
-</div>
-
-<script>
-const API_URL = "https://script.google.com/macros/s/AKfycbzRw0anzYzOxfT6pGf2JG6RamhVWe7-RBuXlJVD-yjSBdVrr_h8rYo0ClnVE1xe4ySt/exec";
-
-/* --- Incoming --- */
-async function loadIncoming(){
-  let res=await fetch(API_URL+"?action=getIncoming");
-  let data=await res.json();
-  let t=document.getElementById("incomingTable"); t.innerHTML="";
-  data.forEach(x=>{
-    t.innerHTML+=`<tr><td>${x.kode}</td><td>${x.nama}</td><td>${x.qty}</td><td>${x.tanggal}</td>
-      <td>${x.status}</td>
-      <td><button onclick="updateStatus('${x.kode}','Selesai')">✔</button>
-          <button onclick="deleteIncoming('${x.kode}')">✖</button></td></tr>`;
-  });
-}
-async function addIncoming(k,n,q){
-  let res=await fetch(API_URL,{method:"POST",body:JSON.stringify({action:"addIncoming",kode:k,nama:n,qty:q,tanggal:new Date().toISOString().split("T")[0],status:"Pending"})});
-  return await res.json();
-}
-async function updateStatus(k,s){
-  let r=await fetch(API_URL,{method:"POST",body:JSON.stringify({action:"updateStatus",kode:k,status:s})});
-  let j=await r.json(); if(j.success) loadIncoming();
-}
-async function deleteIncoming(k){
-  let r=await fetch(API_URL,{method:"POST",body:JSON.stringify({action:"deleteIncoming",kode:k})});
-  let j=await r.json(); if(j.success) loadIncoming();
-}
-
-/* --- Status --- */
-async function loadStatus(){
-  let r=await fetch(API_URL+"?action=getStatus"); let d=await r.json();
-  let t=document.getElementById("statusTable"); t.innerHTML="";
-  d.forEach(x=>{
-    t.innerHTML+=`<tr><td>${x.kode}</td><td>${x.nama}</td><td>${x.qty}</td><td>${x.tanggal}</td>
-    <td>${x.status}</td><td>${x.catatan||""}</td>
-    <td><button onclick="moveToStore('${x.kode}')">Pindah</button></td></tr>`;
-  });
-}
-async function moveToStore(k){
-  let r=await fetch(API_URL,{method:"POST",body:JSON.stringify({action:"moveToStore",kode:k})});
-  let j=await r.json(); if(j.success){ loadStatus(); loadStore(); }
-}
-
-/* --- Store --- */
-async function loadStore(){
-  let sel=document.getElementById("storeSelector").value;
-  let r=await fetch(API_URL+"?action=getStore"+(sel?"&store="+sel:""));
-  let d=await r.json(); let t=document.getElementById("storeTable"); t.innerHTML="";
-  d.forEach(x=>{
-    t.innerHTML+=`<tr><td>${x.kode_store}</td><td>${x.nama_store}</td><td>${x.nama_barang}</td><td>${x.qty}</td><td>${x.tanggal}</td><td>${x.status}</td>
-    <td><button onclick="transferItem('${x.kode_store}','${x.nama_barang}')">Transfer</button></td></tr>`;
-  });
-}
-function transferItem(s,b){ alert("Transfer "+b+" dari store "+s); }
-
-/* --- History --- */
-async function loadHistory(){
-  let r=await fetch(API_URL+"?action=getHistory"); let d=await r.json();
-  let t=document.getElementById("historyTable"); t.innerHTML="";
-  d.forEach(x=>{
-    t.innerHTML+=`<tr><td>${x.id}</td><td>${x.jenis}</td><td>${x.nama}</td><td>${x.qty}</td><td>${x.tanggal}</td><td>${x.user}</td></tr>`;
-  });
-}
-
-/* --- Recap --- */
-async function loadRecap(){
-  let r=await fetch(API_URL+"?action=getRecap"); let d=await r.json();
-  let t=document.getElementById("recapTable"); t.innerHTML="";
-  d.forEach(x=>{
-    t.innerHTML+=`<tr><td>${x.kode}</td><td>${x.nama}</td><td>${x.qty}</td><td>${x.unit}</td><td>${x.min_stock}</td><td>${x.status}</td>
-    <td><button onclick="editItem('${x.kode}')">Edit</button><button onclick="deleteItem('${x.kode}')">Hapus</button></td></tr>`;
-  });
-}
-function editItem(k){ alert("Edit "+k); }
-async function deleteItem(k){
-  let r=await fetch(API_URL,{method:"POST",body:JSON.stringify({action:"deleteItem",kode:k})});
-  let j=await r.json(); if(j.success) loadRecap();
-}
-
-/* --- Export --- */
-function exportRecap(fmt){ window.open(API_URL+"?action=exportRecap&format="+fmt,"_blank"); }
-function exportStore(fmt){ window.open(API_URL+"?action=exportStore&format="+fmt,"_blank"); }
-
-/* --- Settings --- */
-async function loadStoreSettings(){
-  let r=await fetch(API_URL+"?action=getStoreSettings"); let d=await r.json();
-  let t=document.getElementById("storeSettingsTable"); t.innerHTML="";
-  d.forEach(x=>{
-    t.innerHTML+=`<tr><td>${x.kode}</td><td>${x.nama}</td>
-      <td><button onclick="editStore('${x.kode}')">Edit</button><button onclick="deleteStore('${x.kode}')">Hapus</button></td></tr>`;
-  });
-}
-async function loadUnitSettings(){
-  let r=await fetch(API_URL+"?action=getUnitSettings"); let d=await r.json();
-  let t=document.getElementById("unitSettingsTable"); t.innerHTML="";
-  d.forEach(x=>{
-    t.innerHTML+=`<tr><td>${x.nama}</td><td>${x.deskripsi}</td>
-      <td><button onclick="editUnit('${x.nama}')">Edit</button><button onclick="deleteUnit('${x.nama}')">Hapus</button></td></tr>`;
-  });
-}
-function editStore(k){ alert("Edit store "+k); }
-async function deleteStore(k){ await fetch(API_URL,{method:"POST",body:JSON.stringify({action:"deleteStore",kode:k})}); loadStoreSettings(); }
-function editUnit(n){ alert("Edit unit "+n); }
-async function deleteUnit(n){ await fetch(API_URL,{method:"POST",body:JSON.stringify({action:"deleteUnit",nama:n})}); loadUnitSettings(); }
-
-/* --- Modal --- */
-function openAddModal(){ document.getElementById("addModal").classList.remove("hidden"); document.getElementById("addModal").classList.add("flex"); }
-function closeAddModal(){ document.getElementById("addModal").classList.add("hidden"); }
-document.getElementById("addForm").addEventListener("submit",async e=>{
-  e.preventDefault(); let k=itemCode.value,n=itemName.value,q=itemQuantity.value;
-  let r=await addIncoming(k,n,q); if(r.success){ closeAddModal(); loadIncoming(); }
-});
-
-/* Auto load semua */
-loadIncoming(); loadStatus(); loadStore(); loadHistory(); loadRecap(); loadStoreSettings(); loadUnitSettings();
-</script>
-</body>
-</html>
+    <!-- Sync Modal -->
+    <div id="syncModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden">
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div class="bg-white rounded-lg shadow-xl max-w-md w-full">
+                <div class="p-6 border-b">
+                    <h3 class="text-lg font-semibold text-gray-900">Sync ke Google Sheets</h3>
+                </div>
+                <div class="p-6">
+                    <div class="mb-4">
+                        <p class="text-sm text-gray-600 mb-4">Pilih data yang ingin disinkronkan ke Google Sheets:</p>
+                        <div class="space-y-3">
+                            <label class="flex items-center">
+                                <input type="checkbox" checked class="mr-3 rounded border-gray-300 text-primary focus:ring-primary">
+                                <span class="text-sm text-gray-700">Data Barang Masuk</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="checkbox" checked class="mr-3 rounded border-gray-300 text-primary focus:ring-primary">
+                                <span class="text-sm text-gray-700">Data Stok Store</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="checkbox" checked class="mr-3 rounded border-gray-300 text-primary focus:ring-primary">
+                                <span class="text-sm text-gray-700">Riwayat Transaksi</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="checkbox" class="mr-3 rounded border-gray-300 text-primary focus:ring-primary">
+                                <span class="text-sm text-gray-700">Rekap Data</span>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="bg-blue-50 p-3 rounded-lg">
+                        <p class="text-xs text-blue-800">
+                            <strong>Status:</strong> Siap untuk sinkronisasi<br>
+                            <strong>URL:</strong> https://script.google.com/macros/s/AKfycbwrCJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJhqJh<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'97f7b2f083903e01',t:'MTc1NzkzNDg1MC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script>
