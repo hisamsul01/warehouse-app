@@ -5506,7 +5506,9 @@
                     showLoginError('Akun Anda tidak aktif. Hubungi administrator.');
                     return;
                 }
-                
+                // Simpan ke localStorage agar tetap login setelah reload
+localStorage.setItem("currentUser", JSON.stringify(currentUser));
+
                 // Update last login
                 user.lastLogin = new Date().toLocaleString('id-ID');
                 
@@ -5998,39 +6000,48 @@
             closeUserModal();
         }
 
-        // Initialize dashboard as default
-        document.addEventListener('DOMContentLoaded', () => {
-            // Check if user is logged in (for demo, we'll auto-login as admin)
-            // In real app, check localStorage or session
-            
-            showSection('dashboard');
-            setupIncomingSearch();
-            setupRekapSearch();
-            setupStatusSearch();
-            setupStoreSearch();
-            setupStoreFilter();
-            setupUnitDropdowns(); // Initialize unit dropdowns
-            setupHistorySearch();
-            setupHistoryStoreFilter();
-            renderIncomingTable();
-            renderStatusTable();
-            renderStoreTable();
-            renderStoreCards(); // Initialize store cards
-            renderRekapTable();
-            updateRekapSummary();
-            renderHistoryTable();
-            updateHistorySummary();
-            setDefaultDate();
-            setupSelectAllCheckboxes();
-            loadDisplaySettings(); // Load saved display settings
-            updateDashboardStats(); // Initialize dashboard stats
-            
-            // Setup store cards search
-            const searchStoreCards = document.getElementById('searchStoreCards');
-            if (searchStoreCards) {
-                searchStoreCards.addEventListener('input', filterStoreCards);
-            }
-        });
+// Initialize dashboard
+document.addEventListener('DOMContentLoaded', () => {
+    const savedUser = localStorage.getItem("currentUser");
+
+    if (savedUser) {
+        // User sudah login, tampilkan dashboard
+        currentUser = JSON.parse(savedUser);
+        document.getElementById('currentUserName').textContent = currentUser.fullName;
+        document.getElementById('currentUserRole').textContent = currentUser.role;
+        document.getElementById('loginModal').classList.add('hidden');
+
+        showSection('dashboard');
+        setupIncomingSearch();
+        setupRekapSearch();
+        setupStatusSearch();
+        setupStoreSearch();
+        setupStoreFilter();
+        setupUnitDropdowns();
+        setupHistorySearch();
+        setupHistoryStoreFilter();
+        renderIncomingTable();
+        renderStatusTable();
+        renderStoreTable();
+        renderStoreCards();
+        renderRekapTable();
+        updateRekapSummary();
+        renderHistoryTable();
+        updateHistorySummary();
+        setDefaultDate();
+        setupSelectAllCheckboxes();
+        loadDisplaySettings();
+        updateDashboardStats();
+
+        const searchStoreCards = document.getElementById('searchStoreCards');
+        if (searchStoreCards) {
+            searchStoreCards.addEventListener('input', filterStoreCards);
+        }
+    } else {
+        // User belum login → tampilkan login modal
+        document.getElementById('loginModal').classList.remove('hidden');
+    }
+});
     <script>
   const webAppUrl = "https://script.google.com/macros/s/AKfycbzb77ilZw8omfCoFDqOnVZpDzykpD4S2HTcxkwJoP8XIDMg-I0hpw2MG3lvLXXApxo/exec";
 
