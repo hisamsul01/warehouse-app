@@ -65,6 +65,9 @@
             </button>
             <h2 id="pageTitle" class="text-2xl font-semibold text-gray-800">Dashboard</h2>
             <div class="flex items-center space-x-4">
+                <button onclick="syncWithGoogleSheet()" class="bg-green-600 text-white px-3 py-2 rounded-lg hover:bg-green-700 transition-colors text-sm">
+                    <i class="fas fa-sync-alt mr-1"></i>Sync
+                </button>
                 <span class="text-sm text-gray-600" id="currentDate"></span>
                 <div class="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
                     <i class="fas fa-user text-white text-sm"></i>
@@ -523,6 +526,123 @@
     </div>
 
     <script>
+        // Google Apps Script Configuration
+        const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzyWk4WrKz02nDKbi5qg5bZxo82liP02X3lAei-xRh3KD15Z57Ue03GCg8tiXeysHix/exec';
+
+        // Fungsi untuk mengirim data ke Google Spreadsheet
+        async function sendToGoogleSheet(action, data) {
+            try {
+                const response = await fetch(GOOGLE_SCRIPT_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        action: action,
+                        ...data
+                    })
+                });
+                
+                const result = await response.json();
+                return result;
+            } catch (error) {
+                console.error('Error sending to Google Sheet:', error);
+                return { success: false, message: error.message };
+            }
+        }
+
+        // Fungsi untuk mengambil data dari Google Spreadsheet
+        async function getFromGoogleSheet(action) {
+            try {
+                const response = await fetch(`${GOOGLE_SCRIPT_URL}?action=${action}`);
+                const result = await response.json();
+                return result;
+            } catch (error) {
+                console.error('Error getting from Google Sheet:', error);
+                return { success: false, message: error.message };
+            }
+        }
+
+        // Inisialisasi spreadsheet
+        async function initializeGoogleSheet() {
+            try {
+                const result = await getFromGoogleSheet('init');
+                if (result.success) {
+                    console.log('✅ Spreadsheet berhasil diinisialisasi');
+                    showNotification('Spreadsheet berhasil diinisialisasi', 'success');
+                } else {
+                    console.error('❌ Error inisialisasi:', result.message);
+                    showNotification('Error inisialisasi spreadsheet: ' + result.message, 'error');
+                }
+            } catch (error) {
+                console.error('❌ Error inisialisasi:', error);
+                showNotification('Error koneksi ke Google Spreadsheet', 'error');
+            }
+        }
+
+        // Fungsi untuk sinkronisasi data
+        async function syncWithGoogleSheet() {
+            try {
+                showNotification('Sinkronisasi data...', 'info');
+                const result = await getFromGoogleSheet('getAllData');
+                
+                if (result.success && result.data) {
+                    const data = result.data;
+                    
+                    // Update data lokal dengan data dari spreadsheet
+                    if (data.stores) stores = data.stores;
+                    if (data.units) units = data.units;
+                    
+                    // Update tampilan
+                    loadStores();
+                    loadUnits();
+                    updateDashboard();
+                    
+                    console.log('✅ Data berhasil disinkronisasi');
+                    showNotification('Data berhasil disinkronisasi', 'success');
+                } else {
+                    console.error('❌ Error sinkronisasi:', result.message);
+                }
+            } catch (error) {
+                console.error('❌ Error sinkronisasi:', error);
+            }
+        }
+
+        // Fungsi untuk menampilkan notifikasi
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.className = `fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg max-w-sm transition-all duration-300 ${
+                type === 'success' ? 'bg-green-500 text-white' :
+                type === 'error' ? 'bg-red-500 text-white' :
+                type === 'warning' ? 'bg-yellow-500 text-white' :
+                'bg-blue-500 text-white'
+            }`;
+            
+            notification.innerHTML = `
+                <div class="flex items-center">
+                    <i class="fas ${
+                        type === 'success' ? 'fa-check-circle' :
+                        type === 'error' ? 'fa-exclamation-circle' :
+                        type === 'warning' ? 'fa-exclamation-triangle' :
+                        'fa-info-circle'
+                    } mr-2"></i>
+                    <span>${message}</span>
+                    <button onclick="this.parentElement.parentElement.remove()" class="ml-4 text-white hover:text-gray-200">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            // Auto remove after 5 seconds
+            setTimeout(() => {
+                if (notification.parentElement) {
+                    notification.remove();
+                }
+            }, 5000);
+        }
+
         // Data Storage
         let stores = [
             {code: '01', name: 'GENERAL STORE (ANYER)'},
@@ -568,6 +688,10 @@
             updateDashboard();
             setDefaultDate();
             showPage('incoming');
+            
+            // Inisialisasi dan sync dengan Google Sheet
+            initializeGoogleSheet();
+            setTimeout(syncWithGoogleSheet, 2000); // Delay 2 detik untuk memastikan inisialisasi selesai
         });
 
         function setDefaultDate() {
@@ -698,7 +822,7 @@
         }
 
         // Incoming Form Handler
-        document.getElementById('incomingForm').addEventListener('submit', function(e) {
+        document.getElementById('incomingForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
             const transactionDate = document.getElementById('transactionDate').value;
@@ -729,49 +853,77 @@
                 status: itemStatus
             };
             
-            incomingItems.push(newItem);
+            // Kirim ke Google Sheet terlebih dahulu
+            showNotification('Menyimpan data ke Google Spreadsheet...', 'info');
+            const result = await sendToGoogleSheet('addIncoming', newItem);
             
-            // Add to recap if not exists
-            const existingRecap = recapItems.find(item => item.code === itemCode);
-            if (!existingRecap) {
-                recapItems.push({
-                    code: itemCode,
-                    name: itemName,
-                    qty: itemQty,
-                    unit: itemUnit,
-                    minStock: minStock
-                });
-            } else {
-                existingRecap.qty += itemQty;
-            }
-            
-            // Add to status if pending
-            if (itemStatus === 'pending') {
-                statusItems.push({...newItem, notes: ''});
-            } else if (itemStatus === 'selesai') {
-                // Add to store 01 directly
-                if (!storeItems['01']) storeItems['01'] = [];
-                storeItems['01'].push({
-                    ...newItem,
-                    transaction: 'Incoming'
-                });
+            if (result.success) {
+                // Jika berhasil, lanjutkan dengan logika lokal
+                incomingItems.push(newItem);
                 
-                // Add to history
-                historyItems.push({
-                    ...newItem,
-                    type: 'Incoming',
-                    store: '01 - GENERAL STORE (ANYER)'
-                });
+                // Add to recap if not exists
+                const existingRecap = recapItems.find(item => item.code === itemCode);
+                if (!existingRecap) {
+                    recapItems.push({
+                        code: itemCode,
+                        name: itemName,
+                        qty: itemQty,
+                        unit: itemUnit,
+                        minStock: minStock
+                    });
+                } else {
+                    existingRecap.qty += itemQty;
+                }
+                
+                // Add to status if pending
+                if (itemStatus === 'pending') {
+                    statusItems.push({...newItem, notes: ''});
+                } else if (itemStatus === 'selesai') {
+                    // Add to store 01 directly
+                    if (!storeItems['01']) storeItems['01'] = [];
+                    storeItems['01'].push({
+                        ...newItem,
+                        transaction: 'Incoming'
+                    });
+                    
+                    // Add to history
+                    historyItems.push({
+                        ...newItem,
+                        type: 'Incoming',
+                        store: '01 - GENERAL STORE (ANYER)'
+                    });
+                    
+                    // Kirim ke Google Sheet untuk kartu store dan history
+                    await sendToGoogleSheet('updateKartuStore', {
+                        storeCode: '01',
+                        storeName: 'GENERAL STORE (ANYER)',
+                        date: formattedDate,
+                        code: itemCode,
+                        name: itemName,
+                        qty: itemQty,
+                        unit: itemUnit,
+                        transaction: 'Incoming'
+                    });
+                    
+                    await sendToGoogleSheet('addToHistory', {
+                        ...newItem,
+                        type: 'Incoming',
+                        store: '01 - GENERAL STORE (ANYER)'
+                    });
+                }
+                
+                // Reset form
+                this.reset();
+                setDefaultDate();
+                
+                // Update displays
+                renderIncomingTable();
+                updateDashboard();
+                
+                showNotification('Barang berhasil ditambahkan dan disimpan ke Google Spreadsheet!', 'success');
+            } else {
+                showNotification('Error menyimpan ke Google Spreadsheet: ' + result.message, 'error');
             }
-            
-            // Reset form
-            this.reset();
-            
-            // Update displays
-            renderIncomingTable();
-            updateDashboard();
-            
-            alert('Barang berhasil ditambahkan!');
         });
 
         // Auto-fill form when item code exists in recap
@@ -854,39 +1006,50 @@
             }
         }
 
-        function approveItem(itemId) {
+        async function approveItem(itemId) {
             const itemIndex = statusItems.findIndex(item => item.id === itemId);
             if (itemIndex !== -1) {
                 const item = statusItems[itemIndex];
                 
-                // Move to store 01
-                if (!storeItems['01']) storeItems['01'] = [];
-                storeItems['01'].push({
-                    ...item,
-                    transaction: 'Incoming'
+                // Kirim update ke Google Sheet
+                const result = await sendToGoogleSheet('updateStatus', {
+                    id: itemId,
+                    approved: true,
+                    ...item
                 });
                 
-                // Add to history
-                historyItems.push({
-                    ...item,
-                    type: 'Incoming',
-                    store: '01 - GENERAL STORE (ANYER)'
-                });
-                
-                // Update incoming item status
-                const incomingItem = incomingItems.find(i => i.id === itemId);
-                if (incomingItem) {
-                    incomingItem.status = 'selesai';
+                if (result.success) {
+                    // Move to store 01
+                    if (!storeItems['01']) storeItems['01'] = [];
+                    storeItems['01'].push({
+                        ...item,
+                        transaction: 'Incoming'
+                    });
+                    
+                    // Add to history
+                    historyItems.push({
+                        ...item,
+                        type: 'Incoming',
+                        store: '01 - GENERAL STORE (ANYER)'
+                    });
+                    
+                    // Update incoming item status
+                    const incomingItem = incomingItems.find(i => i.id === itemId);
+                    if (incomingItem) {
+                        incomingItem.status = 'selesai';
+                    }
+                    
+                    // Remove from status
+                    statusItems.splice(itemIndex, 1);
+                    
+                    renderStatusTable();
+                    renderIncomingTable();
+                    updateDashboard();
+                    
+                    showNotification('Barang berhasil disetujui dan disimpan ke Google Spreadsheet!', 'success');
+                } else {
+                    showNotification('Error menyimpan ke Google Spreadsheet: ' + result.message, 'error');
                 }
-                
-                // Remove from status
-                statusItems.splice(itemIndex, 1);
-                
-                renderStatusTable();
-                renderIncomingTable();
-                updateDashboard();
-                
-                alert('Barang berhasil disetujui dan dipindahkan ke General Store (Anyer)!');
             }
         }
 
@@ -1083,7 +1246,7 @@
         }
 
         // Transfer Form Handler
-        document.getElementById('transferForm').addEventListener('submit', function(e) {
+        document.getElementById('transferForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
             const itemCode = document.getElementById('transferItemSelect').value;
@@ -1124,48 +1287,73 @@
                 transaction: 'Transfer'
             };
             
-            // Add to outgoing
-            outgoingItems.push(transferItem);
-            
-            // Add to destination store
-            if (!storeItems[toStore]) storeItems[toStore] = [];
-            storeItems[toStore].push({
+            // Kirim ke Google Sheet
+            showNotification('Menyimpan transfer ke Google Spreadsheet...', 'info');
+            const outgoingResult = await sendToGoogleSheet('addOutgoing', transferItem);
+            const historyResult = await sendToGoogleSheet('addToHistory', {
                 ...transferItem,
+                type: 'Transfer',
+                store: `${currentStoreCode} → ${toStore}`
+            });
+            
+            // Update kartu store untuk store tujuan
+            const kartuStoreResult = await sendToGoogleSheet('updateKartuStore', {
+                storeCode: toStore,
+                storeName: stores.find(s => s.code === toStore).name,
+                date: transferItem.date,
+                code: transferItem.code,
+                name: transferItem.name,
+                qty: transferItem.qty,
+                unit: transferItem.unit,
                 transaction: 'Incoming'
             });
             
-            // Remove from source store
-            let remainingQty = qty;
-            for (let i = sourceItems.length - 1; i >= 0 && remainingQty > 0; i--) {
-                if (sourceItems[i].code === itemCode) {
-                    if (sourceItems[i].qty <= remainingQty) {
-                        remainingQty -= sourceItems[i].qty;
-                        sourceItems.splice(i, 1);
-                    } else {
-                        sourceItems[i].qty -= remainingQty;
-                        remainingQty = 0;
+            if (outgoingResult.success && historyResult.success && kartuStoreResult.success) {
+                // Add to outgoing
+                outgoingItems.push(transferItem);
+                
+                // Add to destination store
+                if (!storeItems[toStore]) storeItems[toStore] = [];
+                storeItems[toStore].push({
+                    ...transferItem,
+                    transaction: 'Incoming'
+                });
+                
+                // Remove from source store
+                let remainingQty = qty;
+                for (let i = sourceItems.length - 1; i >= 0 && remainingQty > 0; i--) {
+                    if (sourceItems[i].code === itemCode) {
+                        if (sourceItems[i].qty <= remainingQty) {
+                            remainingQty -= sourceItems[i].qty;
+                            sourceItems.splice(i, 1);
+                        } else {
+                            sourceItems[i].qty -= remainingQty;
+                            remainingQty = 0;
+                        }
                     }
                 }
+                
+                // Add to history
+                const fromStoreName = stores.find(s => s.code === currentStoreCode).name;
+                const toStoreName = stores.find(s => s.code === toStore).name;
+                
+                historyItems.push({
+                    ...transferItem,
+                    type: 'Transfer',
+                    store: `${currentStoreCode} - ${fromStoreName} → ${toStore} - ${toStoreName}`
+                });
+                
+                // Reset form and close modal
+                this.reset();
+                closeTransferModal();
+                
+                // Refresh store detail
+                openStoreDetail(currentStoreCode);
+                
+                showNotification('Transfer berhasil dan disimpan ke Google Spreadsheet!', 'success');
+            } else {
+                showNotification('Error menyimpan transfer ke Google Spreadsheet', 'error');
             }
-            
-            // Add to history
-            const fromStoreName = stores.find(s => s.code === currentStoreCode).name;
-            const toStoreName = stores.find(s => s.code === toStore).name;
-            
-            historyItems.push({
-                ...transferItem,
-                type: 'Transfer',
-                store: `${currentStoreCode} - ${fromStoreName} → ${toStore} - ${toStoreName}`
-            });
-            
-            // Reset form and close modal
-            this.reset();
-            closeTransferModal();
-            
-            // Refresh store detail
-            openStoreDetail(currentStoreCode);
-            
-            alert('Transfer berhasil!');
         });
 
         function showAddItemModal() {
@@ -1518,6 +1706,9 @@
             doc.save(`kartu_store_${storeCode}.pdf`);
         }
 
+        // Auto-sync setiap 5 menit
+        setInterval(syncWithGoogleSheet, 5 * 60 * 1000);
+
         // Responsive handling
         window.addEventListener('resize', function() {
             if (window.innerWidth >= 1024) {
@@ -1526,195 +1717,5 @@
             }
         });
     </script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9803786e57512328',t:'MTc1ODA1ODI4My4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9803899da641fdeb',t:'MTc1ODA1ODk4OC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
-// Konfigurasi Google Apps Script
-const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzyWk4WrKz02nDKbi5qg5bZxo82liP02X3lAei-xRh3KD15Z57Ue03GCg8tiXeysHix/exec'; // Ganti dengan URL deployment Anda
-
-// Fungsi untuk mengirim data ke Google Spreadsheet
-async function sendToGoogleSheet(action, data) {
-    try {
-        const response = await fetch(GOOGLE_SCRIPT_URL, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                action: action,
-                ...data
-            })
-        });
-        
-        const result = await response.json();
-        return result;
-    } catch (error) {
-        console.error('Error sending to Google Sheet:', error);
-        return { success: false, message: error.message };
-    }
-}
-
-// Fungsi untuk mengambil data dari Google Spreadsheet
-async function getFromGoogleSheet(action) {
-    try {
-        const response = await fetch(`${GOOGLE_SCRIPT_URL}?action=${action}`);
-        const result = await response.json();
-        return result;
-    } catch (error) {
-        console.error('Error getting from Google Sheet:', error);
-        return { success: false, message: error.message };
-    }
-}
-
-// Inisialisasi spreadsheet
-async function initializeGoogleSheet() {
-    const result = await getFromGoogleSheet('init');
-    if (result.success) {
-        console.log('Spreadsheet berhasil diinisialisasi');
-    } else {
-        console.error('Error inisialisasi:', result.message);
-    }
-}
-
-// Contoh penggunaan dalam form incoming
-document.getElementById('incomingForm').addEventListener('submit', async function(e) {
-    e.preventDefault();
-    
-    const formData = {
-        id: Date.now(),
-        date: document.getElementById('transactionDate').value,
-        code: document.getElementById('itemCode').value,
-        name: document.getElementById('itemName').value,
-        qty: parseInt(document.getElementById('itemQty').value),
-        unit: document.getElementById('itemUnit').value,
-        minStock: parseInt(document.getElementById('minStock').value),
-        status: document.getElementById('itemStatus').value
-    };
-    
-    // Kirim ke Google Sheet
-    const result = await sendToGoogleSheet('addIncoming', formData);
-    
-    if (result.success) {
-        alert('Data berhasil disimpan ke Google Spreadsheet!');
-        // Lanjutkan dengan logika lokal
-        // ... kode existing ...
-    } else {
-        alert('Error menyimpan ke Google Spreadsheet: ' + result.message);
-    }
-});
-
-// Fungsi untuk sinkronisasi data
-async function syncWithGoogleSheet() {
-    try {
-        const result = await getFromGoogleSheet('getAllData');
-        
-        if (result.success) {
-            const data = result.data;
-            
-            // Update data lokal dengan data dari spreadsheet
-            incomingItems = data.incoming || [];
-            statusItems = data.status || [];
-            outgoingItems = data.outgoing || [];
-            historyItems = data.history || [];
-            recapItems = data.rekap || [];
-            stores = data.stores || [];
-            units = data.units || [];
-            
-            // Update tampilan
-            renderIncomingTable();
-            renderStatusTable();
-            renderOutgoingTable();
-            renderHistoryTable();
-            renderRecapTable();
-            loadStores();
-            loadUnits();
-            updateDashboard();
-            
-            console.log('Data berhasil disinkronisasi');
-        }
-    } catch (error) {
-        console.error('Error sinkronisasi:', error);
-    }
-}
-
-// Fungsi untuk approve item dengan integrasi Google Sheet
-async function approveItem(itemId) {
-    const itemIndex = statusItems.findIndex(item => item.id === itemId);
-    if (itemIndex !== -1) {
-        const item = statusItems[itemIndex];
-        
-        // Kirim update ke Google Sheet
-        const result = await sendToGoogleSheet('updateStatus', {
-            id: itemId,
-            approved: true,
-            ...item
-        });
-        
-        if (result.success) {
-            // Lanjutkan dengan logika lokal
-            // ... kode existing untuk approve ...
-            
-            alert('Barang berhasil disetujui dan disimpan ke Google Spreadsheet!');
-        } else {
-            alert('Error menyimpan ke Google Spreadsheet: ' + result.message);
-        }
-    }
-}
-
-// Fungsi untuk transfer barang dengan integrasi Google Sheet
-document.getElementById('transferForm').addEventListener('submit', async function(e) {
-    e.preventDefault();
-    
-    // ... validasi existing ...
-    
-    const transferData = {
-        id: Date.now(),
-        date: new Date().toLocaleDateString('id-ID'),
-        code: itemCode,
-        name: item.name,
-        qty: qty,
-        unit: item.unit,
-        fromStore: currentStoreCode,
-        toStore: toStore
-    };
-    
-    // Kirim ke Google Sheet
-    const outgoingResult = await sendToGoogleSheet('addOutgoing', transferData);
-    const historyResult = await sendToGoogleSheet('addToHistory', {
-        ...transferData,
-        type: 'Transfer',
-        store: `${currentStoreCode} → ${toStore}`
-    });
-    
-    // Update kartu store untuk store tujuan
-    const kartuStoreResult = await sendToGoogleSheet('updateKartuStore', {
-        storeCode: toStore,
-        storeName: stores.find(s => s.code === toStore).name,
-        date: transferData.date,
-        code: transferData.code,
-        name: transferData.name,
-        qty: transferData.qty,
-        unit: transferData.unit,
-        transaction: 'Incoming'
-    });
-    
-    if (outgoingResult.success && historyResult.success && kartuStoreResult.success) {
-        // Lanjutkan dengan logika lokal
-        // ... kode existing ...
-        
-        alert('Transfer berhasil dan disimpan ke Google Spreadsheet!');
-    } else {
-        alert('Error menyimpan transfer ke Google Spreadsheet');
-    }
-});
-
-// Auto-sync setiap 5 menit
-setInterval(syncWithGoogleSheet, 5 * 60 * 1000);
-
-// Sync saat halaman dimuat
-document.addEventListener('DOMContentLoaded', function() {
-    // ... kode existing ...
-    
-    // Inisialisasi dan sync dengan Google Sheet
-    initializeGoogleSheet();
-    setTimeout(syncWithGoogleSheet, 2000); // Delay 2 detik untuk memastikan inisialisasi selesai
-});
