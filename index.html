@@ -1,93 +1,146 @@
-<script>
-    // Google Apps Script Configuration
-    const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxde3CUWsh_xFk-YQukpkYg1G5NE_ssPFFhM0ioDtCO8XbeszrVPAyXcSzJMfJyCMxv/exec';
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Manajemen Gudang</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        h1 { color: #333; }
+        button { margin: 5px; padding: 10px; }
+        .notification { padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .success { background: #c8e6c9; color: #256029; }
+        .error { background: #ffcdd2; color: #c62828; }
+    </style>
+</head>
+<body>
+    <h1>📦 Sistem Manajemen Gudang</h1>
 
-    // Fungsi untuk mengirim data ke Google Spreadsheet
-    async function sendToGoogleSheet(action, data) {
-        try {
-            const response = await fetch(GOOGLE_SCRIPT_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action, ...data })
-            });
-            if (!response.ok) {
-                throw new Error(`HTTP error! Status: ${response.status}`);
+    <section>
+        <h2>Tambah Barang (Incoming)</h2>
+        <input id="date" type="date">
+        <input id="code" placeholder="Kode Barang">
+        <input id="name" placeholder="Nama Barang">
+        <input id="qty" type="number" placeholder="Qty">
+        <input id="unit" placeholder="Unit">
+        <input id="minStock" type="number" placeholder="Min Stock">
+        <select id="status">
+            <option value="pending">Pending</option>
+            <option value="approved">Approved</option>
+        </select>
+        <button onclick="addItem()">Tambah Barang</button>
+    </section>
+
+    <section>
+        <h2>Tambah Barang Keluar (Outgoing)</h2>
+        <input id="out_date" type="date">
+        <input id="out_code" placeholder="Kode Barang">
+        <input id="out_name" placeholder="Nama Barang">
+        <input id="out_qty" type="number" placeholder="Qty">
+        <input id="out_unit" placeholder="Unit">
+        <input id="fromStore" placeholder="Dari Store">
+        <input id="toStore" placeholder="Ke Store">
+        <button onclick="addOutgoing()">Tambah Outgoing</button>
+    </section>
+
+    <div id="notification"></div>
+
+    <script>
+        // Google Apps Script Configuration
+        const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxde3CUWsh_xFk-YQukpkYg1G5NE_ssPFFhM0ioDtCO8XbeszrVPAyXcSzJMfJyCMxv/exec';
+
+        // Fungsi notifikasi
+        function showNotification(message, type) {
+            const notif = document.getElementById('notification');
+            notif.innerHTML = `<div class="notification ${type}">${message}</div>`;
+            setTimeout(() => notif.innerHTML = '', 4000);
+        }
+
+        // Fungsi untuk mengirim data ke Google Spreadsheet
+        async function sendToGoogleSheet(action, data) {
+            try {
+                const response = await fetch(GOOGLE_SCRIPT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action, ...data })
+                });
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                const result = await response.json();
+                return result;
+            } catch (error) {
+                console.error('❌ Error sending to Google Sheet:', error);
+                return { success: false, message: error.message };
             }
-            const result = await response.json();
-            return result;
-        } catch (error) {
-            console.error('❌ Error sending to Google Sheet:', error);
-            return { success: false, message: error.message };
         }
-    }
 
-    // Tambah Barang (Incoming)
-    async function addItem() {
-        const date = document.getElementById('date').value;
-        const code = document.getElementById('code').value;
-        const name = document.getElementById('name').value;
-        const qty = parseInt(document.getElementById('qty').value) || 0;
-        const unit = document.getElementById('unit').value;
-        const minStock = parseInt(document.getElementById('minStock').value) || 0;
-        const status = document.getElementById('status').value;
+        // Tambah Barang (Incoming)
+        async function addItem() {
+            const date = document.getElementById('date').value;
+            const code = document.getElementById('code').value;
+            const name = document.getElementById('name').value;
+            const qty = parseInt(document.getElementById('qty').value) || 0;
+            const unit = document.getElementById('unit').value;
+            const minStock = parseInt(document.getElementById('minStock').value) || 0;
+            const status = document.getElementById('status').value;
 
-        const id = Date.now(); // 🔑 generate ID unik
+            const id = Date.now(); // 🔑 generate ID unik
 
-        const result = await sendToGoogleSheet("addIncoming", {
-            id, date, code, name, qty, unit, minStock, status
-        });
+            const result = await sendToGoogleSheet("addIncoming", {
+                id, date, code, name, qty, unit, minStock, status
+            });
 
-        if (result.success) {
-            showNotification('Barang berhasil ditambahkan', 'success');
-            loadIncomingData();
-        } else {
-            showNotification('Error: ' + result.message, 'error');
+            if (result.success) {
+                showNotification('Barang berhasil ditambahkan', 'success');
+            } else {
+                showNotification('Error: ' + result.message, 'error');
+            }
         }
-    }
 
-    // Tambah Outgoing
-    async function addOutgoing() {
-        const date = document.getElementById('out_date').value;
-        const code = document.getElementById('out_code').value;
-        const name = document.getElementById('out_name').value;
-        const qty = parseInt(document.getElementById('out_qty').value) || 0;
-        const unit = document.getElementById('out_unit').value;
-        const fromStore = document.getElementById('fromStore').value;
-        const toStore = document.getElementById('toStore').value;
+        // Tambah Outgoing
+        async function addOutgoing() {
+            const date = document.getElementById('out_date').value;
+            const code = document.getElementById('out_code').value;
+            const name = document.getElementById('out_name').value;
+            const qty = parseInt(document.getElementById('out_qty').value) || 0;
+            const unit = document.getElementById('out_unit').value;
+            const fromStore = document.getElementById('fromStore').value;
+            const toStore = document.getElementById('toStore').value;
 
-        const id = Date.now(); // 🔑 generate ID unik
+            const id = Date.now(); // 🔑 generate ID unik
 
-        const result = await sendToGoogleSheet("addOutgoing", {
-            id, date, code, name, qty, unit, fromStore, toStore
-        });
+            const result = await sendToGoogleSheet("addOutgoing", {
+                id, date, code, name, qty, unit, fromStore, toStore
+            });
 
-        if (result.success) {
-            showNotification('Barang keluar berhasil ditambahkan', 'success');
-            loadOutgoingData();
-        } else {
-            showNotification('Error: ' + result.message, 'error');
+            if (result.success) {
+                showNotification('Barang keluar berhasil ditambahkan', 'success');
+            } else {
+                showNotification('Error: ' + result.message, 'error');
+            }
         }
-    }
 
-    // Update Status
-    async function updateStatusItem(itemId, approved) {
-        const id = itemId || Date.now(); // 🔑 jika tidak ada, buat ID baru
+        // Update Status
+        async function updateStatusItem(itemId, approved) {
+            const id = itemId || Date.now();
 
-        const result = await sendToGoogleSheet("updateStatus", {
-            id: id,
-            date: new Date().toISOString().slice(0, 10),
-            code: "", // isi sesuai kebutuhan
-            name: "", // isi sesuai kebutuhan
-            qty: 0,    // isi sesuai kebutuhan
-            unit: "", // isi sesuai kebutuhan
-            approved: approved
-        });
+            const result = await sendToGoogleSheet("updateStatus", {
+                id: id,
+                date: new Date().toISOString().slice(0, 10),
+                code: "",
+                name: "",
+                qty: 0,
+                unit: "",
+                approved: approved
+            });
 
-        if (result.success) {
-            showNotification(result.message, 'success');
-            loadStatusData();
-        } else {
-            showNotification('Error: ' + result.message, 'error');
+            if (result.success) {
+                showNotification(result.message, 'success');
+            } else {
+                showNotification('Error: ' + result.message, 'error');
+            }
         }
-    }
-</script>
+    </script>
+</body>
+</html>
